@@ -1,0 +1,282 @@
+{
+    "1": {
+        "event_name": "Pass",
+        "description": "Any pass attempted from one player to another including free kicks, corners, throw-ins, goal kicks and goal assists"
+    },
+    "2": {
+        "event_name": "Offside Pass",
+        "description": "Attempted pass made to a player who is in an offside position"
+    },
+    "3": {
+        "event_name": "Take On",
+        "description": "Attempted dribble past an opponent (excluding when qualifier 211 is present as this is 'overrun' and is not always a duel event)"
+    },
+    "4": {
+        "event_name": "Foul",
+        "description": "This event ID shown when a foul is committed resulting in a free kick"
+    },
+    "5": {
+        "event_name": "Out",
+        "description": "Shown each time the ball goes out of play for a throw-in or goal kick"
+    },
+    "6": {
+        "event_name": "Corner Awarded",
+        "description": "Ball goes out of play for a corner kick"
+    },
+    "7": {
+        "event_name": "Tackle",
+        "description": "Tackle = dispossesses an opponent of the ball. Outcome 1 = win & retain possession or out of play, 0 = win tackle but not possession"
+    },
+    "8": {
+        "event_name": "Interception",
+        "description": "When a player intercepts any pass event between opposition players and prevents the ball reaching its target. Cannot be a clearance."
+    },
+    "9": {
+        "event_name": "Turnover",
+        "description": "Unforced error / loss of possession - i.e. bad control of ball – Replaced with Unsuccessful Touch + Overrun in recent seasons"
+    },
+    "10": {
+        "event_name": "Save",
+        "description": "Goalkeeper event; saving a shot on goal. Can also be an outfield player event with qualifier 94 for blocked shot."
+    },
+    "11": {
+        "event_name": "Claim",
+        "description": "Goalkeeper event; catching a crossed ball"
+    },
+    "12": {
+        "event_name": "Clearance",
+        "description": "Player under pressure hits ball clear of the defensive zone or/and out of play"
+    },
+    "13": {
+        "event_name": "Miss",
+        "description": "Any shot on goal which goes wide or over the goal"
+    },
+    "14": {
+        "event_name": "Post",
+        "description": "Whenever the ball hits the frame of the goal"
+    },
+    "15": {
+        "event_name": "Attempt Saved",
+        "description": "Shot saved - this event is for the player who made the shot. Qualifier 82 can be added for blocked shot."
+    },
+    "16": {
+        "event_name": "Goal",
+        "description": "All goals"
+    },
+    "17": {
+        "event_name": "Card",
+        "description": "Bookings - will have red, yellow or 2nd yellow qualifier plus a reason"
+    },
+    "18": {
+        "event_name": "Player Off",
+        "description": "Player is substituted off"
+    },
+    "19": {
+        "event_name": "Player On",
+        "description": "Player comes on as a substitute"
+    },
+    "20": {
+        "event_name": "Player Retired",
+        "description": "Player is forced to leave the pitch due to injury and the team have no substitutions left"
+    },
+    "21": {
+        "event_name": "Player Returns",
+        "description": "Player comes back on the pitch"
+    },
+    "22": {
+        "event_name": "Player Becomes Goalkeeper",
+        "description": "When an outfield player has to replace the goalkeeper"
+    },
+    "23": {
+        "event_name": "Goalkeeper Becomes Player",
+        "description": "Goalkeeper becomes an outfield player"
+    },
+    "24": {
+        "event_name": "Condition Change",
+        "description": "Change in playing conditions"
+    },
+    "25": {
+        "event_name": "Official Change",
+        "description": "Referee or linesman is replaced"
+    },
+    "27": {
+        "event_name": "Start Delay",
+        "description": "Used when there is a stoppage in play such as a player injury"
+    },
+    "28": {
+        "event_name": "End Delay",
+        "description": "Used when the stoppage ends and play resumes"
+    },
+    "30": {
+        "event_name": "End",
+        "description": "End of a match period"
+    },
+    "32": {
+        "event_name": "Start",
+        "description": "Start of a match period"
+    },
+    "34": {
+        "event_name": "Team Set Up",
+        "description": "Team line up - qualifiers 30, 44, 59, 130, 131 will show player line up and formation"
+    },
+    "35": {
+        "event_name": "Player Changed Position",
+        "description": "Player moved to a different position but the team formation remained the same"
+    },
+    "36": {
+        "event_name": "Player Changed Jersey Number",
+        "description": "Player is forced to change jersey number, qualifier will show the new number"
+    },
+    "37": {
+        "event_name": "Collection End",
+        "description": "Event 30 signals end of half. This signals end of the match and thus data collection."
+    },
+    "38": {
+        "event_name": "Temp Goal",
+        "description": "Goal has occurred but it is pending additional detail qualifiers from Opta. Will change to event 16."
+    },
+    "39": {
+        "event_name": "Temp Attempt",
+        "description": "Shot on goal has occurred but is pending additional detail qualifiers from Opta. Will change to event 15."
+    },
+    "40": {
+        "event_name": "Formation Change",
+        "description": "Team alters its formation"
+    },
+    "41": {
+        "event_name": "Punch",
+        "description": "Goalkeeper event; ball is punched clear"
+    },
+    "42": {
+        "event_name": "Good Skill",
+        "description": "A player shows a good piece of skill on the ball such as a step over or turn on the ball"
+    },
+    "43": {
+        "event_name": "Deleted Event",
+        "description": "Event has been deleted – the event will remain as it was originally with the same ID but will be resent with the type altered to 43."
+    },
+    "44": {
+        "event_name": "Aerial",
+        "description": "Aerial duel – 50/50 when the ball is in the air. Outcome will represent whether the duel was won or lost"
+    },
+    "45": {
+        "event_name": "Challenge",
+        "description": "When a player fails to win the ball as an opponent successfully dribbles past them"
+    },
+    "47": {
+        "event_name": "Rescinded Card",
+        "description": "This can occur post match if the referee rescinds a card he has awarded"
+    },
+    "49": {
+        "event_name": "Ball Recovery",
+        "description": "When a player takes possession of a loose ball"
+    },
+    "50": {
+        "event_name": "Dispossessed",
+        "description": "Player is successfully tackled and loses possession of the ball"
+    },
+    "51": {
+        "event_name": "Error",
+        "description": "Mistake by player losing the ball. Leads to a shot or goals as described with qualifier 169 or 170"
+    },
+    "52": {
+        "event_name": "Keeper Pick-up",
+        "description": "Goalkeeper event; picks up the ball"
+    },
+    "53": {
+        "event_name": "Cross Not Claimed",
+        "description": "Goalkeeper event; cross not successfully caught"
+    },
+    "54": {
+        "event_name": "Smother",
+        "description": "Goalkeeper event; comes out and covers the ball in the box winning possession"
+    },
+    "55": {
+        "event_name": "Offside Provoked",
+        "description": "Awarded to last defender when an offside decision is given against an attacker"
+    },
+    "56": {
+        "event_name": "Shield Ball Opp",
+        "description": "Defender uses his body to shield the ball from an opponent as it rolls out of play"
+    },
+    "57": {
+        "event_name": "Foul Throw-in",
+        "description": "A throw-in not taken correctly resulting in the throw being awarded to the opposing team"
+    },
+    "58": {
+        "event_name": "Penalty Faced",
+        "description": "Goalkeeper event; penalty by opposition"
+    },
+    "59": {
+        "event_name": "Keeper Sweeper",
+        "description": "When keeper comes off his line and/or out of his box to clear the ball"
+    },
+    "60": {
+        "event_name": "Chance Missed",
+        "description": "Used when a player does not actually make a shot on goal but was in a good position to score and only just missed receiving a pass"
+    },
+    "61": {
+        "event_name": "Ball Touch",
+        "description": "Used when a player makes a bad touch on the ball and loses possession. Outcome 1 – ball simply hit the player unintentionally. Outcome 0– Player unsuccessfully controlled the ball."
+    },
+    "63": {
+        "event_name": "Temp Save",
+        "description": "An event indicating a save has occurred but without full details. Event 10 will follow shortly afterwards with full details."
+    },
+    "64": {
+        "event_name": "Resume",
+        "description": "Match resumes on a new date after being abandoned mid game"
+    },
+    "65": {
+        "event_name": "Contentious Referee Decision",
+        "description": "Any major talking point or error made by the referee – decision will be assigned to the relevant team"
+    },
+    "66": {
+        "event_name": "Possession Data",
+        "description": "Possession event will appear every 5 mins. **No longer recorded in the feed**"
+    },
+    "67": {
+        "event_name": "50/50",
+        "description": "New duel - 2 players running for a loose ball. GERMAN ONLY. Outcome 1 or 0."
+    },
+    "68": {
+        "event_name": "Referee Drop Ball",
+        "description": "Delay - ref stops - this to event given to both teams on restart. No Outcome"
+    },
+    "69": {
+        "event_name": "Failed to Block",
+        "description": "Attempt to block a shot or pass - challenge lost. Put Through (qualifiers 266) is the winning duel event."
+    },
+    "70": {
+        "event_name": "Injury Time Announcement",
+        "description": "Injury Time awarded by Referee"
+    },
+    "71": {
+        "event_name": "Coach Setup",
+        "description": "Coach Type; 1,2,18,30,32,54,57,58,59"
+    },
+    "72": {
+        "event_name": "Caught Offside",
+        "description": "New event to just show player who is offside instead of offside pass event"
+    },
+    "73": {
+        "event_name": "Other Ball Contact",
+        "description": "This is an automated extra event for DFL. It comes with a tackle or an interception and indicates if the player who made the tackle/interception retained the ball after this action or if the tackle/interception was a single ball touch"
+    },
+    "74": {
+        "event_name": "Blocked Pass",
+        "description": "Similar to interception but player already very close to ball"
+    },
+    "75": {
+        "event_name": "Delayed Start",
+        "description": "Match start delayed"
+    },
+    "76": {
+        "event_name": "Early End",
+        "description": "The match has had an early end"
+    },
+    "77": {
+        "event_name": "Player Off Pitch",
+        "description": "Event indicating that a player is now off the pitch"
+    }
+}

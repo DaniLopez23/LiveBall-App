@@ -1,0 +1,32 @@
+# FastAPI
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.db
+*.sqlite3
+.env
+
+# Venv
+.venv/
+
+# Logs
+logs/
+*.log
+
+# Static files
+/static/
+
+# IDEs
+.vscode/
+.idea/
+
+# Python
+*.egg-info/
+*.egg
+
+# Data files
+data/
+
+# Env
+.env.*

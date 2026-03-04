@@ -1,0 +1,844 @@
+{
+    "1": {
+        "qualifier_name": "Long Ball",
+        "description": "Long pass over 32 metres",
+        "category": "Pass Events"
+    },
+    "2": {
+        "qualifier_name": "Cross",
+        "description": "A ball played in from wide areas into the box",
+        "category": "Pass Events"
+    },
+    "3": {
+        "qualifier_name": "Head Pass",
+        "description": "Pass made with a players head",
+        "category": "Pass Events"
+    },
+    "4": {
+        "qualifier_name": "Through Ball",
+        "description": "Ball played through for player making an attacking run to create a chance on goal",
+        "category": "Pass Events"
+    },
+    "5": {
+        "qualifier_name": "Free Kick Taken",
+        "description": "Any free kick; direct or indirect",
+        "category": "Pass Events"
+    },
+    "6": {
+        "qualifier_name": "Corner Taken",
+        "description": "All corners. Short corners will feature qualifier 6 but be missing qualifier 2 (cross).",
+        "category": "Pass Events"
+    },
+    "7": {
+        "qualifier_name": "Players Caught Offside",
+        "description": "Player who was in an offside position when pass was made",
+        "category": "Pass Events",
+        "value_type": "Players caught offside"
+    },
+    "8": {
+        "qualifier_name": "Goal Disallowed",
+        "description": "Pass led to a goal disallowed for a foul or offside",
+        "category": "Pass Events"
+    },
+    "15": {
+        "qualifier_name": "Head",
+        "description": "Any event where the player used their head such as a shot or a clearance",
+        "category": "Body Part"
+    },
+    "20": {
+        "qualifier_name": "Right Footed",
+        "description": "Player shot with right footed",
+        "category": "Body Part"
+    },
+    "21": {
+        "qualifier_name": "Other Body Part",
+        "description": "Shot was neither via a player's head or foot for example knee or chest",
+        "category": "Body Part"
+    },
+    "22": {
+        "qualifier_name": "Regular Play",
+        "description": "Shot during open play as opposed to from a set play",
+        "category": "Pattern of Play"
+    },
+    "23": {
+        "qualifier_name": "Fast Break",
+        "description": "Shot occurred following a fast break situation. Also used for offside pass which would have started a fast break",
+        "category": "Pattern of Play / Offside Pass"
+    },
+    "24": {
+        "qualifier_name": "Set Piece",
+        "description": "Shot occurred from a crossed free kick",
+        "category": "Pattern of Play"
+    },
+    "25": {
+        "qualifier_name": "From Corner",
+        "description": "Shot occurred from a corner",
+        "category": "Pattern of Play"
+    },
+    "26": {
+        "qualifier_name": "Free Kick",
+        "description": "Shot occurred directly from a free kick",
+        "category": "Pattern of Play"
+    },
+    "29": {
+        "qualifier_name": "Assisted",
+        "description": "Indicates that there was a pass (assist) from another player to set up the goal opportunity",
+        "category": "Pattern of Play"
+    },
+    "55": {
+        "qualifier_name": "Related Event ID",
+        "description": "This will appear for goals or shots, the related event_id will be that of the assist and thus show the assisting player ID",
+        "category": "Pattern of Play",
+        "value_type": "Event_id"
+    },
+    "72": {
+        "qualifier_name": "Left Footed",
+        "description": "Player shot with their left foot",
+        "category": "Body Part"
+    },
+    "96": {
+        "qualifier_name": "Corner Situation",
+        "description": "Pass or shot event in corner situation. 25 is used when the goal is direct from corner, 96 relates to 2nd phase attack - NO LONGER USED",
+        "category": "Pattern of Play",
+        "deprecated": true
+    },
+    "97": {
+        "qualifier_name": "Direct Free",
+        "description": "26 will be used for shot directly from a free kick. 97 only used with Opta GoalData (game system 4) but not with full data.",
+        "category": "Pattern of Play"
+    },
+    "106": {
+        "qualifier_name": "Attacking Pass",
+        "description": "A pass in the opposition's half of the pitch | No longer collected as of June 2016",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "107": {
+        "qualifier_name": "Throw-in",
+        "description": "Throw-in taken",
+        "category": "Pass Events"
+    },
+    "112": {
+        "qualifier_name": "Scramble",
+        "description": "Goal where there was a scramble for possession of the ball and the defence had an opportunity to clear | No longer collected as of June 2016",
+        "category": "Pattern of Play",
+        "deprecated": true
+    },
+    "140": {
+        "qualifier_name": "Pass End X",
+        "description": "The x pitch coordinate for the end point of a pass - See Appendix 11",
+        "category": "Pass Events",
+        "value_type": "0_100"
+    },
+    "141": {
+        "qualifier_name": "Pass End Y",
+        "description": "The y pitch coordinate for the end point of a pass - See Appendix 11",
+        "category": "Pass Events",
+        "value_type": "0_100"
+    },
+    "152": {
+        "qualifier_name": "Direct",
+        "description": "A direct free kick",
+        "category": "Pass Events"
+    },
+    "154": {
+        "qualifier_name": "Intentional Assist",
+        "description": "Shot from an intentional assist i.e. The assisting player intended the pass, no deflection etc",
+        "category": "Pattern of Play"
+    },
+    "155": {
+        "qualifier_name": "Chipped",
+        "description": "Pass which was chipped into the air",
+        "category": "Pass Events"
+    },
+    "156": {
+        "qualifier_name": "Lay-off",
+        "description": "Pass where player laid the ball into the path of a teammates run",
+        "category": "Pass Events"
+    },
+    "157": {
+        "qualifier_name": "Launch",
+        "description": "Pass played from a player's own half up towards front players. Aimed to hit a zone rather than a specific player",
+        "category": "Pass Events"
+    },
+    "160": {
+        "qualifier_name": "Throw-in Set Piece",
+        "description": "Shot came from a throw-in set piece",
+        "category": "Pattern of Play"
+    },
+    "168": {
+        "qualifier_name": "Flick-on",
+        "description": "Pass where a player has \"flicked\" the ball forward using their head",
+        "category": "Pass Events"
+    },
+    "193": {
+        "qualifier_name": "Goal Measure",
+        "description": "Essentially a Goal Rating from 1-5 but is only used for a limited about of comps. This was collected from 2013-2015 but is no longer used",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "195": {
+        "qualifier_name": "Pull Back",
+        "description": "Player in opposition's penalty box reaches the by-line and passes (cuts) the ball backwards to a teammate",
+        "category": "Pass Events"
+    },
+    "196": {
+        "qualifier_name": "Switch of Play",
+        "description": "Any pass which crosses the centre zone of the pitch and in length is greater than 60 on the y axis of the pitch",
+        "category": "Pass Events"
+    },
+    "210": {
+        "qualifier_name": "Assist",
+        "description": "The pass was an assist for a shot. The type of shot then dictates whether it was a goal assist or just key pass.",
+        "category": "Pass Events"
+    },
+    "212": {
+        "qualifier_name": "Length",
+        "description": "The estimated length the ball has travelled during the associated event",
+        "category": "Pass Events",
+        "value_type": "Dynamic length of pass in metres"
+    },
+    "213": {
+        "qualifier_name": "Angle",
+        "description": "The angle the ball travels at during an event relative to the direction of play. Shown in radians.",
+        "category": "Pass Events",
+        "value_type": "0 to 6.28 (Radians)"
+    },
+    "216": {
+        "qualifier_name": "2nd Related Event ID",
+        "description": "If there was a 2nd assist, i.e a pass to create the opportunity for the player making the assist. MLS and German Bundesliga 1 & 2.",
+        "category": "Pattern of Play",
+        "value_type": "Event_id"
+    },
+    "218": {
+        "qualifier_name": "2nd Assist",
+        "description": "Pass was deemed a 2nd assist - created the opportunity for another player to assist a goal",
+        "category": "Pass Events"
+    },
+    "219": {
+        "qualifier_name": "Players on Both Posts",
+        "description": "Assigned to a pass event with qualifier 6 indicating if there were defensive players on both posts when a corner was taken | No longer collected as of June 2016",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "220": {
+        "qualifier_name": "Player on Near Post",
+        "description": "Assigned to a pass event with qualifier 6 indicating if there was a defensive player on only the near post when a corner was taken | No longer collected as of June 2016",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "221": {
+        "qualifier_name": "Player on Far Post",
+        "description": "Assigned to a pass event with qualifier 6 indicating if there was a defensive player on only the far post when corner was taken | No longer collected as of June 2016",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "222": {
+        "qualifier_name": "No Players on Posts",
+        "description": "Assigned to a pass event with qualifier 6 indicating if there were no defensive players on either post when a corner was taken | No longer collected as of June 2016",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "223": {
+        "qualifier_name": "In-swinger",
+        "description": "Corner was crossed into the box swerving towards the goal",
+        "category": "Pass Events"
+    },
+    "224": {
+        "qualifier_name": "Out-swinger",
+        "description": "Corner was crossed into the box swerving away from the goal",
+        "category": "Pass Events"
+    },
+    "225": {
+        "qualifier_name": "Straight",
+        "description": "Corner was crossed into the box with a straight ball flight",
+        "category": "Pass Events"
+    },
+    "233": {
+        "qualifier_name": "Opposite Related Event ID",
+        "description": "Used for any event where there is the same event for both teams with outcome 1 or 0. This relates the 2 event together, for example aerial duels",
+        "category": "Pattern of Play"
+    },
+    "236": {
+        "qualifier_name": "Blocked Pass",
+        "description": "Similar to interception but player already very close to ball - instead of touch event in past. Or assigned to the pass to indicate it was blocked",
+        "category": "Pass Events"
+    },
+    "238": {
+        "qualifier_name": "Fair Play",
+        "description": "Ball kicked out of play for injury etc",
+        "category": "Pass Events"
+    },
+    "240": {
+        "qualifier_name": "GK Start",
+        "description": "Automated qualifier which appears on all GK passes after keeper collects ball with his hands and then puts it on the ground",
+        "category": "Pass Events"
+    },
+    "241": {
+        "qualifier_name": "Indirect",
+        "description": "Shows if indirect freekick is taken",
+        "category": "Pass Events"
+    },
+    "266": {
+        "qualifier_name": "Put Through",
+        "description": "Attacking player has passed/shot the ball past a defending player who attempted to stop the ball. A \"put through\" is always linked with a \"failed to block\" event. | Collected for DFL competitions only between 2013/14 and 2016/17",
+        "category": "Pass Events",
+        "deprecated": true
+    },
+    "278": {
+        "qualifier_name": "Tap",
+        "description": "Ball tapped to other player (i.e. for free-kick shot)",
+        "category": "Pass Events"
+    },
+    "279": {
+        "qualifier_name": "Kick Off",
+        "description": "Starting pass - to enable exclusion from passing %. S = kick-off to start a period (first half, second half, first half extra-time, second half extra-time), G = kick-off following a goal",
+        "category": "Pass Events",
+        "value_type": "S or G"
+    },
+    "287": {
+        "qualifier_name": "Over-arm",
+        "description": "Indicates over-arm throw out by the goalkeeper",
+        "category": "Pass Events"
+    },
+    "297": {
+        "qualifier_name": "Follows Shot Rebound",
+        "description": "An offside pass that follows a rebounded shot",
+        "category": "Offside Pass Events"
+    },
+    "298": {
+        "qualifier_name": "Follows Shot Blocked",
+        "description": "An offside pass that follows a blocked shot",
+        "category": "Offside Pass Events"
+    },
+    "307": {
+        "qualifier_name": "Phase of Possession ID",
+        "description": "The id for phase of possession for DFL. Related to events (1,2,3,4,7,8,10,11,12,13,14,15,16,41,42,50,54,61,74). | Collected for DFL competitions only between 2013/14 and 2016/17",
+        "category": "Phase of Possession (DFL specific)",
+        "deprecated": true
+    },
+    "312": {
+        "qualifier_name": "Phase of Possession Start",
+        "description": "Indicator that possession has started for DFL. (Related to events 3,7,8,10,11,54,74) | Collected for DFL competitions only between 2013/14 and 2016/17",
+        "category": "Phase of Possession (DFL specific)",
+        "deprecated": true
+    },
+    "9": {
+        "qualifier_name": "Penalty",
+        "description": "When attempt on goal was a penalty kick. ALSO used on Event type 4 to indicate a penalty was awarded",
+        "category": "Shot Descriptors"
+    },
+    "28": {
+        "qualifier_name": "Own Goal",
+        "description": "Own goal. Note: Use the inverse coordinates of the goal location",
+        "category": "Shot Descriptors"
+    },
+    "108": {
+        "qualifier_name": "Volley",
+        "description": "Shot on the volley (ball doesn't bounce before the shot)",
+        "category": "Shot Descriptors"
+    },
+    "109": {
+        "qualifier_name": "Overhead",
+        "description": "Shot via overhead kick",
+        "category": "Shot Descriptors"
+    },
+    "110": {
+        "qualifier_name": "Half Volley",
+        "description": "Shot on the half volley (hit immediately after the ball bounces) - NO LONGER USED",
+        "category": "Shot Descriptors",
+        "deprecated": true
+    },
+    "111": {
+        "qualifier_name": "Diving Header",
+        "description": "Shot where the player dives to head the ball - NO LONGER USED",
+        "category": "Shot Descriptors",
+        "deprecated": true
+    },
+    "113": {
+        "qualifier_name": "Strong",
+        "description": "Shot was subjectively classed as strong",
+        "category": "Shot Descriptors"
+    },
+    "114": {
+        "qualifier_name": "Weak",
+        "description": "Shot was subjectively classed as weak",
+        "category": "Shot Descriptors"
+    },
+    "117": {
+        "qualifier_name": "Lob",
+        "description": "Shot was an attempt by the attacker to play the ball over the goalkeeper and into the goal",
+        "category": "Shot Descriptors"
+    },
+    "118": {
+        "qualifier_name": "One Bounce",
+        "description": "Shot where the ball bounced once on its way towards the goal - NO LONGER USED",
+        "category": "Shot Descriptors",
+        "deprecated": true
+    },
+    "119": {
+        "qualifier_name": "Few Bounces",
+        "description": "Shot where the ball bounced several times on its way to the goal - NO LONGER USED",
+        "category": "Shot Descriptors",
+        "deprecated": true
+    },
+    "120": {
+        "qualifier_name": "Swerve Left",
+        "description": "Shot which swerves to the left - from attackers perspective",
+        "category": "Shot Descriptors"
+    },
+    "121": {
+        "qualifier_name": "Swerve Right",
+        "description": "Shot which swerves to the right - from attackers perspective",
+        "category": "Shot Descriptors"
+    },
+    "122": {
+        "qualifier_name": "Swerve Moving",
+        "description": "Shot which swerves in several directions",
+        "category": "Shot Descriptors"
+    },
+    "133": {
+        "qualifier_name": "Deflection",
+        "description": "Shot deflected off another player",
+        "category": "Shot Descriptors"
+    },
+    "136": {
+        "qualifier_name": "Keeper Touched",
+        "description": "Goal where the goalkeeper got a touch on the ball as it went in",
+        "category": "Shot Descriptors"
+    },
+    "137": {
+        "qualifier_name": "Keeper Saved",
+        "description": "Shot going wide or over the goal but still collected/saved by the goalkeeper with event type 15",
+        "category": "Shot Descriptors"
+    },
+    "138": {
+        "qualifier_name": "Hit Woodwork",
+        "description": "Any shot which hits the post or crossbar",
+        "category": "Shot Descriptors"
+    },
+    "153": {
+        "qualifier_name": "Not Past Goal Line",
+        "description": "Shot missed which does not pass the goal line",
+        "category": "Shot Descriptors"
+    },
+    "214": {
+        "qualifier_name": "Big Chance",
+        "description": "Shot was deemed by Opta analysts an excellent opportunity to score – clear cut chance eg one on one",
+        "category": "Shot Descriptors"
+    },
+    "215": {
+        "qualifier_name": "Individual Play",
+        "description": "Player created the chance to shoot by himself, not assisted. For example he dribbled to create space for himself and shot.",
+        "category": "Shot Descriptors"
+    },
+    "217": {
+        "qualifier_name": "2nd Assisted",
+        "description": "Indicates that this shot had a significant pass to create the opportunity for the pass which led to a goal",
+        "category": "Shot Descriptors"
+    },
+    "228": {
+        "qualifier_name": "Own Shot Blocked",
+        "description": "Player blocks an attacking shot unintentionally from their teammate",
+        "category": "Shot Descriptors"
+    },
+    "230": {
+        "qualifier_name": "GK X Coordinate",
+        "description": "GK position when goal or shot hit post",
+        "category": "Shot Descriptors"
+    },
+    "231": {
+        "qualifier_name": "GK Y Coordinate",
+        "description": "GK position when goal or shot hit post",
+        "category": "Shot Descriptors"
+    },
+    "249": {
+        "qualifier_name": "Temp Shot On",
+        "description": "Shot has occurred but it is pending additional detail qualifiers from Opta",
+        "category": "Shot Descriptors"
+    },
+    "250": {
+        "qualifier_name": "Temp Blocked",
+        "description": "Block has occurred but it is pending additional detail qualifiers from Opta",
+        "category": "Shot Descriptors"
+    },
+    "251": {
+        "qualifier_name": "Temp Post",
+        "description": "Shot has hit the post but it is pending additional detail qualifiers from Opta",
+        "category": "Shot Descriptors"
+    },
+    "252": {
+        "qualifier_name": "Temp Missed",
+        "description": "Shot has missed but it is pending additional detail qualifiers from Opta",
+        "category": "Shot Descriptors"
+    },
+    "253": {
+        "qualifier_name": "Temp Miss Not Passed Goal Line",
+        "description": "Shot has missed but not gone past the end line but it is pending additional detail qualifiers from Opta",
+        "category": "Shot Descriptors"
+    },
+    "254": {
+        "qualifier_name": "Follows a Dribble",
+        "description": "A goal followed a dribble by the goalscorer",
+        "category": "Shot Descriptors"
+    },
+    "261": {
+        "qualifier_name": "1 on 1 Chip",
+        "description": "Goal scored via a 1 on 1 chip over the goalkeeper",
+        "category": "Shot Descriptors"
+    },
+    "262": {
+        "qualifier_name": "Back Heel",
+        "description": "Goal scored via a back heel",
+        "category": "Shot Descriptors"
+    },
+    "263": {
+        "qualifier_name": "Direct Corner",
+        "description": "Shot or goal directly from a corner",
+        "category": "Shot Descriptors"
+    },
+    "280": {
+        "qualifier_name": "Fantasy Assist Type",
+        "description": "Related Event to - PASS_LOST, BLOCKED_SHOT, ATTEMPT_SAVED, POST, FREE_KICK_WON, HANDBALL_WON, OWN_GOAL, PENALTY_WON",
+        "category": "Shot Descriptors"
+    },
+    "281": {
+        "qualifier_name": "Fantasy Assisted By",
+        "description": "Player making assist",
+        "category": "Shot Descriptors"
+    },
+    "282": {
+        "qualifier_name": "Fantasy Assist Team",
+        "description": "Team making assist",
+        "category": "Shot Descriptors"
+    },
+    "284": {
+        "qualifier_name": "Duel",
+        "description": "Indicates Blocked Shot is a duel",
+        "category": "Shot Descriptors"
+    },
+    "300": {
+        "qualifier_name": "Solo Run",
+        "description": "Related to event 16 - to show the goal came from a solo run",
+        "category": "Shot Descriptors"
+    },
+    "316": {
+        "qualifier_name": "Passed Penalty",
+        "description": "Player elected to pass the ball to a team-mate when taking a penalty instead of trying a direct shot on goal",
+        "category": "Shot Descriptors"
+    },
+    "328": {
+        "qualifier_name": "First Touch",
+        "description": "The shot was attempted by the player first time without another touch to control the ball",
+        "category": "Shot Descriptors"
+    },
+    "16": {
+        "qualifier_name": "Small Box Centre",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "17": {
+        "qualifier_name": "Box-Centre",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "18": {
+        "qualifier_name": "Out of Box Centre",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "19": {
+        "qualifier_name": "35+ Centre",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "60": {
+        "qualifier_name": "Small Box Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "61": {
+        "qualifier_name": "Small Box Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "62": {
+        "qualifier_name": "Box-Deep Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "63": {
+        "qualifier_name": "Box-Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "64": {
+        "qualifier_name": "Box-Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "65": {
+        "qualifier_name": "Box-Deep Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "66": {
+        "qualifier_name": "Out of Box Deep Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "67": {
+        "qualifier_name": "Out of Box Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "68": {
+        "qualifier_name": "Out of Box Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "69": {
+        "qualifier_name": "Out of Box Deep Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "70": {
+        "qualifier_name": "35+ Right",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "71": {
+        "qualifier_name": "35+ Left",
+        "description": "Zone of the pitch - See appendix 13",
+        "category": "Shot Location Descriptors"
+    },
+    "73": {
+        "qualifier_name": "Left",
+        "description": "Hit the left post or missed left",
+        "category": "Shot Location Descriptors"
+    },
+    "74": {
+        "qualifier_name": "High",
+        "description": "Hit crossbar or missed over",
+        "category": "Shot Location Descriptors"
+    },
+    "75": {
+        "qualifier_name": "Right",
+        "description": "Hit right post or missed right",
+        "category": "Shot Location Descriptors"
+    },
+    "76": {
+        "qualifier_name": "Low Left",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "77": {
+        "qualifier_name": "High Left",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "78": {
+        "qualifier_name": "Low Centre",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "79": {
+        "qualifier_name": "High Centre",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "80": {
+        "qualifier_name": "Low Right",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "81": {
+        "qualifier_name": "High Right",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "82": {
+        "qualifier_name": "Blocked",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "83": {
+        "qualifier_name": "Close Left",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "84": {
+        "qualifier_name": "Close Right",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "85": {
+        "qualifier_name": "Close High",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "86": {
+        "qualifier_name": "Close Left and High",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "87": {
+        "qualifier_name": "Close Right and High",
+        "description": "Zone of the goalmouth - See appendix 12",
+        "category": "Shot Location Descriptors"
+    },
+    "100": {
+        "qualifier_name": "Six Yard Blocked",
+        "description": "Shot blocked on the 6 yard line",
+        "category": "Shot Location Descriptors"
+    },
+    "101": {
+        "qualifier_name": "Saved Off Line",
+        "description": "Shot saved on the goal line",
+        "category": "Shot Location Descriptors"
+    },
+    "102": {
+        "qualifier_name": "Goal Mouth Y Coordinate",
+        "description": "Y Co-ordinate of where a shot crossed goal line - see Appendix 12",
+        "category": "Shot Location Descriptors",
+        "value_type": "0-100"
+    },
+    "103": {
+        "qualifier_name": "Goal Mouth Z Coordinate",
+        "description": "Z Co-ordinate for height at which a shot crossed the goal line - see Appendix 12",
+        "category": "Shot Location Descriptors",
+        "value_type": "0-100"
+    },
+    "146": {
+        "qualifier_name": "Blocked X Coordinate",
+        "description": "The x pitch coordinate for where a shot was blocked",
+        "category": "Shot Location Descriptors"
+    },
+    "147": {
+        "qualifier_name": "Blocked Y Coordinate",
+        "description": "The y pitch coordinate for where a shot was blocked",
+        "category": "Shot Location Descriptors"
+    },
+    "276": {
+        "qualifier_name": "Out on Sideline",
+        "description": "Shot missed and went out on the sideline. Please note that in this context the accompanying Blocked qualifiers (q 147 and q 153) are where the ball goes out on the touchline.",
+        "category": "Shot Location Descriptors"
+    },
+    "30": {
+        "qualifier_name": "Involved",
+        "description": "This will show all players in the starting line up and available as a substitute",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Player IDs in line up"
+    },
+    "41": {
+        "qualifier_name": "Injury",
+        "description": "Substitution, event 18, because of injury",
+        "category": "Line Up/Subs/Formation"
+    },
+    "42": {
+        "qualifier_name": "Tactical",
+        "description": "Substitution, event 18 for tactical reasons",
+        "category": "Line Up/Subs/Formation"
+    },
+    "44": {
+        "qualifier_name": "Player Position",
+        "description": "Goalkeeper, Defender, Midfielder, Forward or Substitute. These are the playing positions associated with each player for the specific match they are playing in.",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Dynamic"
+    },
+    "59": {
+        "qualifier_name": "Jersey Number",
+        "description": "This will be shown for substitutions, line ups, line up changes",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Shirt number of player(s)"
+    },
+    "130": {
+        "qualifier_name": "Team Formation",
+        "description": "Formation ID - See appendix 14",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Formation ID"
+    },
+    "131": {
+        "qualifier_name": "Team Player Formation",
+        "description": "Player position within a formation - See appendix 14",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "1 to 11"
+    },
+    "145": {
+        "qualifier_name": "Formation Slot",
+        "description": "Formation position of a player coming on - see appendix 14",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "1 to 11"
+    },
+    "194": {
+        "qualifier_name": "Captain",
+        "description": "ID of the player who is the team captain",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Player ID"
+    },
+    "197": {
+        "qualifier_name": "Team Kit",
+        "description": "Kit of the team",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Kit ID"
+    },
+    "211": {
+        "qualifier_name": "Overrun",
+        "description": "Take on where the player attempting overhits the ball and it runs away from them out of play or to an opponent",
+        "category": "Take On Event"
+    },
+    "234": {
+        "qualifier_name": "Home Team Possession",
+        "description": "Possession % in last 5 mins",
+        "category": "Possession Data Events"
+    },
+    "235": {
+        "qualifier_name": "Away Team Possession",
+        "description": "Possession % in last 5 mins",
+        "category": "Possession Data Events"
+    },
+    "283": {
+        "qualifier_name": "Coach ID",
+        "description": "ID of the team coach",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "Coach ID"
+    },
+    "285": {
+        "qualifier_name": "Defensive",
+        "description": "Indicates a defensive duel",
+        "category": "Duel Events"
+    },
+    "286": {
+        "qualifier_name": "Offensive",
+        "description": "Indicates an offensive duel",
+        "category": "Duel Events"
+    },
+    "288": {
+        "qualifier_name": "Out of Play Secs",
+        "description": "Amount of time the ball was out of play in the last 5 minutes",
+        "category": "Possession Data Events"
+    },
+    "290": {
+        "qualifier_name": "Coach Types",
+        "description": "Shows Coaches and involved roles",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "1,2,18,30,32,54,57,58,59"
+    },
+    "292": {
+        "qualifier_name": "Detailed Position ID",
+        "description": "Associated to event type 19, this value refers to the position the player comes on in. 1-Goalkeeper, 2-Wing Back, 3-Full Back, 4-Central Defender, 5-Defensive Midfielder, 6-Attacking Midfielder, 7-Central Midfielder, 8-Winger, 9-Striker, 10-Second Striker",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "1-10"
+    },
+    "293": {
+        "qualifier_name": "Position Side ID",
+        "description": "Associated to event type 19, this value refers to the side the player comes on in. 1-Left, 2-Right, 3-Centre, 4-Left/Centre, 5-Centre/Right, 6-Left/Centre/Right, 7-Left/Right",
+        "category": "Line Up/Subs/Formation",
+        "value_type": "1-7"
+    },
+    "319": {
+        "qualifier_name": "Captain Change",
+        "description": "An indicator to confirm that the team has changed their captain",
+        "category": "Line Up/Subs/Formation"
+    }
+}
