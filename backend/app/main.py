@@ -8,9 +8,12 @@ import asyncio
 import logging
 from dotenv import load_dotenv
 
+from app.api.v1.api import api_router
 from app.core.logging import setup_logging
+from app.websockets.event_broadcaster import broadcast_message
 from app.state.game_state import GameStateCache
 from app.services.process_events_service import ProcessEventsService
+from app.websockets.websocket_manager import ConnectionManager
 from app.workers.xml_file_watcher import watch_xml_file
 
 load_dotenv()
@@ -28,14 +31,17 @@ async def lifespan(app: FastAPI):
 
     cache = GameStateCache()
     process_service = ProcessEventsService(cache=cache)
+    ws_manager = ConnectionManager()
 
     # Expose via app.state for use in HTTP/WebSocket endpoints
     app.state.cache = cache
     app.state.process_service = process_service
+    app.state.ws_manager = ws_manager
 
     async def on_new_data(messages):
         for msg in messages:
             logger.info("📦 %s – game %s", msg.get("type"), msg.get("game_id"))
+            await broadcast_message(msg, ws_manager)
 
     task = asyncio.create_task(
         watch_xml_file(
@@ -78,6 +84,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(api_router, prefix="/api/v1")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
