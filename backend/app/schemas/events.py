@@ -26,6 +26,7 @@ class Event(BaseModel):
 
     # Actors
     player_id: Optional[str] = None
+    player_receiver_id: Optional[str] = None
     team_id: Optional[str] = None
 
     # Result & position

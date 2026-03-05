@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Tuple
 
 from app.schemas.events import Event
 from app.schemas.pass_networks import PassEdge, PassNetwork, PlayerNode
@@ -185,15 +185,17 @@ class PassNetworkService:
     # ------------------------------------------------------------------ #
 
     def add_passes_incremental(
-        self, events: List[Event]
+        self,
+        events: List[Event],
     ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
         """
         Procesa una lista de eventos y devuelve solo los nodos y aristas
         que han cambiado (actualizaciones incrementales).
 
-        Solo se procesan pases exitosos (type_id='1', outcome=1) con
-        receptor conocido (qualifier_id='55'). Los eventos ya procesados
-        se omiten para evitar duplicados.
+        Solo se procesan pases exitosos (type_id='1', outcome=1) cuyo
+        receptor haya sido previamente asignado en ``event.player_receiver_id``
+        por ``ProcessEventsService._assign_receivers``.
+        Los eventos ya procesados se omiten para evitar duplicados.
 
         Returns:
             (changed_nodes, changed_edges)
@@ -201,16 +203,10 @@ class PassNetworkService:
         self.clear_changes()
 
         for event in events:
-            # Solo pases exitosos
+            # Solo pases exitosos con receptor calculado
             if event.type_id != "1" or event.outcome != 1:
                 continue
-
-            # Receptor del pase: qualifier 55
-            receiver_id: Optional[str] = next(
-                (q.value for q in event.qualifiers if q.qualifier_id == "55"),
-                None,
-            )
-            if not receiver_id:
+            if not event.player_receiver_id:
                 continue
 
             # Evitar duplicados
@@ -232,7 +228,7 @@ class PassNetworkService:
                 elif q.qualifier_id == "141":
                     end_y = float(q.value)
 
-            self.add_pass(from_player_id, receiver_id, x, y, end_x, end_y)
+            self.add_pass(from_player_id, event.player_receiver_id, x, y, end_x, end_y)
             self.network.processed_event_ids.add(event.event_id)
 
         return self.get_changed_nodes(), self.get_changed_edges()

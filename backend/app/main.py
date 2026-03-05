@@ -3,30 +3,54 @@ from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 import asyncio
+import logging
 from dotenv import load_dotenv
 
 from app.core.logging import setup_logging
+from app.state.game_state import GameStateCache
+from app.services.process_events_service import ProcessEventsService
+from app.workers.xml_file_watcher import watch_xml_file
 
 load_dotenv()
 setup_logging()
 
+logger = logging.getLogger(__name__)
+
+BASE_DIR_SIMULATED_DATA = Path(__file__).parent.parent.parent  # → root/ (para acceder a simulated-data)
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    print("⚙️ Iniciando servidor...")
+    logger.info("⚙️ Iniciando servidor...")
+
+    cache = GameStateCache()
+    process_service = ProcessEventsService(cache=cache)
+
+    # Expose via app.state for use in HTTP/WebSocket endpoints
+    app.state.cache = cache
+    app.state.process_service = process_service
+
+    async def on_new_data(messages):
+        for msg in messages:
+            logger.info("📦 %s – game %s", msg.get("type"), msg.get("game_id"))
+
     task = asyncio.create_task(
-        # watch_simulated_real_time_data(
-        #     poll_interval=3,
-        #     on_new_data=on_new_data_callback
-        # )
+        watch_xml_file(
+            poll_interval=3,
+            on_new_data=on_new_data,
+            file_path=str(BASE_DIR_SIMULATED_DATA / "simulated-data"),
+            process_service=process_service,
+        )
     )
-    print("✅ Monitoreo de datos simulados iniciado")
-    
+    logger.info("✅ Monitoreo de archivos XML iniciado")
+
     yield
-    
+
     # Shutdown
-    print("🛑 Servidor apagándose...")
+    logger.info("🛑 Servidor apagándose...")
     task.cancel()
     try:
         await task
