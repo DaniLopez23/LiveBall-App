@@ -60,9 +60,11 @@ class XmlReaderService:
         '''
         content = self.read_raw_xml(file_path)
         if content is None:
+            logger.warning("No content read from file: %s", file_path)
             return None
 
         if self.has_changed(file_path, content):
+            logger.info("Change detected in XML file: %s", file_path)
             return content
 
         # logger.debug("No changes detected for: %s", file_path)

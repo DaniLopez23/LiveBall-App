@@ -81,7 +81,7 @@ class ConnectionManager:
             message: Diccionario con los datos a enviar
         """
         if game_id not in self.active_connections:
-            logger.warning(f"⚠️  No hay clientes conectados al room {game_id}. Conexiones activas: {self.active_connections}")
+            logger.warning(f"⚠️  No hay clientes conectados al room {game_id}. Conexiones activas: {self.active_connections if self.active_connections else '0'}")
             return
         
         disconnected_clients = []

@@ -21,8 +21,9 @@ setup_logging()
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR_SIMULATED_DATA = Path(__file__).parent.parent.parent  # → root/ (para acceder a simulated-data)
+BASE_DIR_SIMULATED_DATA = Path(__file__).parent.parent.parent / "simulated-real-time-data" # → root/ (para acceder a simulated-data)
 
+SIMULATED_FILE_NAME = "simulated-data.xml"  # Nombre del archivo XML simulado dentro de simulated-data/
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -47,7 +48,7 @@ async def lifespan(app: FastAPI):
         watch_xml_file(
             poll_interval=3,
             on_new_data=on_new_data,
-            file_path=str(BASE_DIR_SIMULATED_DATA / "simulated-data"),
+            file_path=str(BASE_DIR_SIMULATED_DATA / SIMULATED_FILE_NAME),
             process_service=process_service,
         )
     )

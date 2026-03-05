@@ -99,13 +99,13 @@ class ProcessEventsService:
 
         if not self._cache.has_game(game_id):
             self._cache.store_game(game, current)
-            logger.debug("New game detected: %s", game_id)
+            logger.debug("(GAME) New game detected: %s", game_id)
             return {"type": "new_game", "game_id": game_id, "data": current}
 
         previous = self._cache.get_game_snapshot(game_id)
         if current != previous:
             self._cache.store_game(game, current)
-            logger.debug("Game updated: %s", game_id)
+            logger.debug("(GAME) Game updated: %s", game_id)
             return {"type": "updated_game", "game_id": game_id, "data": current}
 
         return None
@@ -144,7 +144,7 @@ class ProcessEventsService:
 
         if new_events:
             logger.debug(
-                "Game %s – %d new event(s)", game.game_id, len(new_events)
+                "(EVENTS) Game %s – %d new event(s)", game.game_id, len(new_events)
             )
             messages.append(
                 {
@@ -156,7 +156,7 @@ class ProcessEventsService:
 
         if updated_events:
             logger.debug(
-                "Game %s – %d updated event(s)", game.game_id, len(updated_events)
+                "(EVENTS) Game %s – %d updated event(s)", game.game_id, len(updated_events)
             )
             messages.append(
                 {
@@ -209,7 +209,7 @@ class ProcessEventsService:
 
             if changed_nodes or changed_edges:
                 logger.debug(
-                    "Game %s team %s – pass network updated (%d nodes, %d edges)",
+                    "(PASS_NETWORK) Game %s team %s – pass network updated (%d nodes, %d edges)",
                     game.game_id,
                     team_id,
                     len(changed_nodes),

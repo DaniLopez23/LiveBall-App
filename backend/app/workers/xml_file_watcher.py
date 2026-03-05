@@ -42,29 +42,28 @@ async def watch_xml_file(
 
     reader = XmlReaderService()
     parser = XmlParseService()
-    directory = Path(file_path)
+    xml_file = Path(file_path)
 
     logger.info(
-        "XML watcher started – monitoring '%s' every %ds", directory, poll_interval
+        "XML watcher started – monitoring '%s' every %ds", xml_file, poll_interval
     )
 
     while True:
         try:
-            for xml_file in sorted(directory.rglob("*.xml")):
-                content = reader.read_if_changed(str(xml_file))
-                if content is None:
-                    continue
+            content = reader.read_if_changed(str(xml_file))
+            if content is None:
+                continue
 
-                parsed_root = parser.parse_xml_string(content)
-                if parsed_root is None:
-                    logger.warning("Failed to parse '%s', skipping.", xml_file)
-                    continue
+            parsed_root = parser.parse_xml_string(content)
+            if parsed_root is None:
+                logger.warning("Failed to parse '%s', skipping.", xml_file)
+                continue
 
-                messages = process_service.process_game(parsed_root)
-                if messages and on_new_data is not None:
-                    result = on_new_data(messages)
-                    if inspect.isawaitable(result):
-                        await result
+            messages = process_service.process_game(parsed_root)
+            if messages and on_new_data is not None:
+                result = on_new_data(messages)
+                if inspect.isawaitable(result):
+                    await result
 
         except Exception:
             logger.exception("Unexpected error in XML file watcher")

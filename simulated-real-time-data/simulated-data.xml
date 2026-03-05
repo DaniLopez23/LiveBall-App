@@ -1,0 +1,1646 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Games timestamp="2023-08-12T10:47:49">
+  <Game id="2372222" away_score="2" away_team_id="184" away_team_name="Rayo Vallecano" away_team_official="Rayo Vallecano de Madrid SAD" away_team_short="Rayo Vallecano" competition_id="23" competition_name="Spanish La Liga" game_date="2023-08-11T18:30:00" home_score="0" home_team_id="1564" home_team_name="Almería" home_team_official="Unión Deportiva Almería SAD" home_team_short="UD Almería" matchday="1" period_1_start="2023-08-11T18:30:37" period_2_start="2023-08-11T19:38:29" season_id="2023" season_name="Season 2023/2024">
+    <Event id="2575349729" event_id="1" type_id="34" period_id="16" min="0" sec="0" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T17:24:48.763" timestamp_utc="2023-08-11T16:24:48.763" last_modified="2023-08-11T18:30:52" version="1691775051940">
+      <Q id="4429174009" qualifier_id="130" value="8" />
+      <Q id="4429174015" qualifier_id="227" value="0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0" />
+      <Q id="4429174013" qualifier_id="194" value="233681" />
+      <Q id="4429174007" qualifier_id="59" value="1, 17, 15, 4, 3, 22, 14, 5, 9, 7, 10, 29, 18, 19, 6, 2, 8, 11, 13, 20, 21, 28, 37" />
+      <Q id="4429292275" qualifier_id="197" value="19783" />
+      <Q id="4429174011" qualifier_id="131" value="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0" />
+      <Q id="4429174005" qualifier_id="44" value="1, 2, 2, 3, 2, 2, 3, 3, 4, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5" />
+      <Q id="4429174003" qualifier_id="30" value="76611, 234548, 220871, 463170, 469402, 210977, 441293, 233681, 432838, 433952, 132161, 539673, 562720, 493344, 476412, 532708, 248506, 195457, 100058, 454883, 227162, 545577, 500049" />
+    </Event>
+    <Event id="2575351647" event_id="1" type_id="34" period_id="16" min="0" sec="0" team_id="184" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T17:31:02.859" timestamp_utc="2023-08-11T16:31:02.859" last_modified="2023-08-11T18:30:48" version="1691775048557">
+      <Q id="4429184979" qualifier_id="131" value="1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0" />
+      <Q id="4429184971" qualifier_id="30" value="94878, 97624, 178424, 433161, 89399, 77359, 434078, 183462, 449300, 40721, 165682, 547819, 498444, 114323, 48847, 84374, 232016, 94756, 441175, 587591, 587592, 462680" />
+      <Q id="4429184981" qualifier_id="194" value="40721" />
+      <Q id="4429184977" qualifier_id="130" value="8" />
+      <Q id="4429184983" qualifier_id="227" value="0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0" />
+      <Q id="4429289229" qualifier_id="197" value="11787" />
+      <Q id="4429184975" qualifier_id="59" value="1, 20, 12, 23, 5, 24, 7, 17, 11, 8, 18, 27, 3, 6, 9, 10, 16, 19, 21, 28, 29, 30" />
+      <Q id="4429184973" qualifier_id="44" value="1, 2, 2, 3, 2, 2, 3, 3, 4, 3, 3, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5, 5" />
+    </Event>
+    <Event id="2575371143" event_id="2" type_id="32" period_id="1" min="0" sec="0" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:30:37.882" timestamp_utc="2023-08-11T17:30:37.882" last_modified="2023-08-12T06:28:50" version="1691818129865">
+      <Q id="4429295511" qualifier_id="127" value="Left to Right" />
+    </Event>
+    <Event id="2575371149" event_id="3" type_id="32" period_id="1" min="0" sec="0" team_id="184" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:30:37.882" timestamp_utc="2023-08-11T17:30:37.882" last_modified="2023-08-11T18:30:40" version="1691775039275">
+      <Q id="4429295543" qualifier_id="127" value="Right to Left" />
+    </Event>
+    <Event id="2575371175" event_id="4" type_id="1" period_id="1" min="0" sec="0" player_id="449300" team_id="184" outcome="1" x="50.1" y="50.0" timestamp="2023-08-11T18:30:37.939" timestamp_utc="2023-08-11T17:30:37.939" last_modified="2023-08-12T06:38:52" version="1691818733014">
+      <Q id="4429295731" qualifier_id="279" value="S" />
+      <Q id="4429295721" qualifier_id="56" value="Back" />
+      <Q id="4429295729" qualifier_id="213" value="2.73" />
+      <Q id="4429295727" qualifier_id="212" value="20.6" />
+      <Q id="4429295723" qualifier_id="140" value="32.1" />
+      <Q id="4430534007" qualifier_id="178" />
+      <Q id="4429295725" qualifier_id="141" value="62.1" />
+    </Event>
+    <Event id="2575371189" event_id="5" type_id="1" period_id="1" min="0" sec="2" player_id="77359" team_id="184" outcome="0" x="29.0" y="63.8" timestamp="2023-08-11T18:30:40.855" timestamp_utc="2023-08-11T17:30:40.855" last_modified="2023-08-12T06:38:57" version="1691818737354">
+      <Q id="4429295795" qualifier_id="155" />
+      <Q id="4429295803" qualifier_id="212" value="55.5" />
+      <Q id="4429295805" qualifier_id="213" value="0.47" />
+      <Q id="4430534035" qualifier_id="178" />
+      <Q id="4429295797" qualifier_id="56" value="Left" />
+      <Q id="4429295801" qualifier_id="141" value="100.0" />
+      <Q id="4429295807" qualifier_id="1" />
+      <Q id="4429295799" qualifier_id="140" value="76.0" />
+    </Event>
+    <Event id="2575371195" event_id="3" type_id="5" period_id="1" min="0" sec="6" player_id="432838" team_id="1564" outcome="1" x="23.8" y="-0.9" timestamp="2023-08-11T18:30:44.650" timestamp_utc="2023-08-11T17:30:44.650" last_modified="2023-08-12T06:39:02" version="1691818742297">
+      <Q id="4429295883" qualifier_id="233" value="6" />
+      <Q id="4429295877" qualifier_id="347" />
+      <Q id="4429295875" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575371191" event_id="6" type_id="5" period_id="1" min="0" sec="6" player_id="77359" team_id="184" outcome="0" x="76.2" y="100.9" timestamp="2023-08-11T18:30:44.650" timestamp_utc="2023-08-11T17:30:44.650" last_modified="2023-08-12T06:39:02" version="1691818742303">
+      <Q id="4429295815" qualifier_id="347" />
+      <Q id="4429295935" qualifier_id="233" value="3" />
+      <Q id="4429295813" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575371241" event_id="4" type_id="1" period_id="1" min="0" sec="17" player_id="234548" team_id="1564" outcome="1" x="24.2" y="0.0" timestamp="2023-08-11T18:30:55.192" timestamp_utc="2023-08-11T17:30:55.192" last_modified="2023-08-12T06:39:06" version="1691818746555">
+      <Q id="4429296155" qualifier_id="107" />
+      <Q id="4429296165" qualifier_id="212" value="11.8" />
+      <Q id="4429296163" qualifier_id="141" value="5.3" />
+      <Q id="4429296159" qualifier_id="56" value="Back" />
+      <Q id="4429296161" qualifier_id="140" value="34.7" />
+      <Q id="4429296169" qualifier_id="213" value="0.37" />
+    </Event>
+    <Event id="2575371247" event_id="5" type_id="1" period_id="1" min="0" sec="18" player_id="441293" team_id="1564" outcome="0" x="34.7" y="5.3" timestamp="2023-08-11T18:30:56.036" timestamp_utc="2023-08-11T17:30:56.036" last_modified="2023-08-12T06:39:09" version="1691818750081">
+      <Q id="4429296207" qualifier_id="213" value="1.12" />
+      <Q id="4429296201" qualifier_id="140" value="38.0" />
+      <Q id="4429296205" qualifier_id="212" value="7.9" />
+      <Q id="4429296203" qualifier_id="141" value="15.8" />
+      <Q id="4429296199" qualifier_id="56" value="Back" />
+      <Q id="4430534161" qualifier_id="178" />
+      <Q id="4429296197" qualifier_id="168" />
+    </Event>
+    <Event id="2575371259" event_id="7" type_id="1" period_id="1" min="0" sec="19" player_id="183462" team_id="184" outcome="0" x="60.3" y="83.7" timestamp="2023-08-11T18:30:57.530" timestamp_utc="2023-08-11T17:30:57.530" last_modified="2023-08-12T06:39:15" version="1691818755886">
+      <Q id="4430534221" qualifier_id="178" />
+      <Q id="4429296293" qualifier_id="213" value="0.46" />
+      <Q id="4429296279" qualifier_id="3" />
+      <Q id="4429296287" qualifier_id="141" value="91.3" />
+      <Q id="4429296289" qualifier_id="212" value="11.6" />
+      <Q id="4429296281" qualifier_id="56" value="Left" />
+      <Q id="4429296285" qualifier_id="140" value="70.2" />
+    </Event>
+    <Event id="2575371275" event_id="6" type_id="1" period_id="1" min="0" sec="21" player_id="234548" team_id="1564" outcome="0" x="24.6" y="12.0" timestamp="2023-08-11T18:30:59.267" timestamp_utc="2023-08-11T17:30:59.267" last_modified="2023-08-12T06:39:20" version="1691818761102">
+      <Q id="4429296377" qualifier_id="3" />
+      <Q id="4430534279" qualifier_id="178" />
+      <Q id="4429296381" qualifier_id="140" value="36.1" />
+      <Q id="4429296379" qualifier_id="56" value="Back" />
+      <Q id="4429296387" qualifier_id="213" value="0.05" />
+      <Q id="4429296385" qualifier_id="212" value="12.1" />
+      <Q id="4429296383" qualifier_id="141" value="12.9" />
+    </Event>
+    <Event id="2575371271" event_id="8" type_id="49" period_id="1" min="0" sec="22" player_id="433161" team_id="184" outcome="1" x="61.6" y="88.8" timestamp="2023-08-11T18:31:00.606" timestamp_utc="2023-08-11T17:31:00.606" last_modified="2023-08-12T06:39:25" version="1691818765645" />
+    <Event id="2575371277" event_id="9" type_id="1" period_id="1" min="0" sec="22" player_id="433161" team_id="184" outcome="1" x="60.9" y="87.0" timestamp="2023-08-11T18:31:00.656" timestamp_utc="2023-08-11T17:31:00.656" last_modified="2023-08-12T06:39:27" version="1691818767745">
+      <Q id="4429296393" qualifier_id="141" value="94.2" />
+      <Q id="4429296395" qualifier_id="212" value="5.5" />
+      <Q id="4429296389" qualifier_id="56" value="Left" />
+      <Q id="4429296397" qualifier_id="213" value="1.11" />
+      <Q id="4429296391" qualifier_id="140" value="63.2" />
+      <Q id="4430534359" qualifier_id="178" />
+    </Event>
+    <Event id="2575371293" event_id="10" type_id="1" period_id="1" min="0" sec="24" player_id="178424" team_id="184" outcome="1" x="63.1" y="94.4" timestamp="2023-08-11T18:31:01.897" timestamp_utc="2023-08-11T17:31:01.897" last_modified="2023-08-12T06:39:29" version="1691818770120">
+      <Q id="4429296463" qualifier_id="141" value="94.9" />
+      <Q id="4429296465" qualifier_id="212" value="6.5" />
+      <Q id="4429296461" qualifier_id="140" value="69.3" />
+      <Q id="4429296459" qualifier_id="56" value="Left" />
+      <Q id="4430534403" qualifier_id="178" />
+      <Q id="4429296467" qualifier_id="213" value="0.05" />
+    </Event>
+    <Event id="2575371297" event_id="11" type_id="1" period_id="1" min="0" sec="24" player_id="165682" team_id="184" outcome="0" x="69.3" y="94.9" timestamp="2023-08-11T18:31:02.500" timestamp_utc="2023-08-11T17:31:02.500" last_modified="2023-08-12T06:39:32" version="1691818773159">
+      <Q id="4429296493" qualifier_id="56" value="Left" />
+      <Q id="4429296495" qualifier_id="140" value="69.3" />
+      <Q id="4429296497" qualifier_id="141" value="86.1" />
+      <Q id="4429296501" qualifier_id="213" value="4.71" />
+      <Q id="4429296499" qualifier_id="212" value="6.0" />
+      <Q id="4430534425" qualifier_id="178" />
+    </Event>
+    <Event id="2575371289" event_id="7" type_id="43" period_id="1" min="0" sec="25" player_id="441293" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:31:03.125" timestamp_utc="2023-08-11T17:31:03.125" last_modified="2023-08-12T00:43:35" version="1691781960449">
+      <Q id="4429296931" qualifier_id="399" value="165682" />
+      <Q id="4430269573" qualifier_id="144" value="83" />
+    </Event>
+    <Event id="2575371299" event_id="8" type_id="49" period_id="1" min="0" sec="25" player_id="233681" team_id="1564" outcome="1" x="30.4" y="14.3" timestamp="2023-08-11T18:31:03.455" timestamp_utc="2023-08-11T17:31:03.455" last_modified="2023-08-12T06:39:35" version="1691818776284" />
+    <Event id="2575371345" event_id="9" type_id="1" period_id="1" min="0" sec="27" player_id="233681" team_id="1564" outcome="1" x="33.3" y="4.7" timestamp="2023-08-11T18:31:05.346" timestamp_utc="2023-08-11T17:31:05.346" last_modified="2023-08-12T06:39:39" version="1691818779612">
+      <Q id="4429296799" qualifier_id="140" value="44.6" />
+      <Q id="4429296807" qualifier_id="213" value="0.07" />
+      <Q id="4429296795" qualifier_id="56" value="Back" />
+      <Q id="4430534479" qualifier_id="178" />
+      <Q id="4429296805" qualifier_id="212" value="11.9" />
+      <Q id="4429296803" qualifier_id="141" value="5.9" />
+    </Event>
+    <Event id="2575371347" event_id="10" type_id="4" period_id="1" min="0" sec="29" player_id="432838" team_id="1564" outcome="1" x="42.3" y="6.8" timestamp="2023-08-11T18:31:07.399" timestamp_utc="2023-08-11T17:31:07.399" last_modified="2023-08-12T06:39:46" version="1691818786344">
+      <Q id="4429296853" qualifier_id="13" />
+      <Q id="4429296855" qualifier_id="294" />
+      <Q id="4429297001" qualifier_id="233" value="12" />
+      <Q id="4429296857" qualifier_id="56" value="Back" />
+      <Q id="4429296861" qualifier_id="286" />
+      <Q id="4429296859" qualifier_id="152" />
+    </Event>
+    <Event id="2575371367" event_id="12" type_id="4" period_id="1" min="0" sec="29" player_id="77359" team_id="184" outcome="0" x="57.7" y="93.2" timestamp="2023-08-11T18:31:07.400" timestamp_utc="2023-08-11T17:31:07.400" last_modified="2023-08-12T06:39:46" version="1691818786342">
+      <Q id="4429296979" qualifier_id="152" />
+      <Q id="4429297031" qualifier_id="233" value="10" />
+      <Q id="4429296977" qualifier_id="56" value="Left" />
+      <Q id="4429296981" qualifier_id="285" />
+      <Q id="4430534533" qualifier_id="178" />
+      <Q id="4429296973" qualifier_id="13" />
+      <Q id="4429296975" qualifier_id="294" />
+    </Event>
+    <Event id="2575371397" event_id="11" type_id="1" period_id="1" min="0" sec="37" player_id="233681" team_id="1564" outcome="1" x="42.9" y="6.7" timestamp="2023-08-11T18:31:15.881" timestamp_utc="2023-08-11T17:31:15.881" last_modified="2023-08-12T06:39:50" version="1691818790755">
+      <Q id="4429297125" qualifier_id="140" value="27.0" />
+      <Q id="4429297119" qualifier_id="5" />
+      <Q id="4429297127" qualifier_id="141" value="25.6" />
+      <Q id="4429297131" qualifier_id="213" value="2.49" />
+      <Q id="4429297123" qualifier_id="56" value="Back" />
+      <Q id="4429297137" qualifier_id="189" />
+      <Q id="4429297129" qualifier_id="212" value="21.1" />
+      <Q id="4429297121" qualifier_id="152" />
+      <Q id="4430534571" qualifier_id="178" />
+    </Event>
+    <Event id="2575371419" event_id="12" type_id="1" period_id="1" min="0" sec="39" player_id="469402" team_id="1564" outcome="1" x="26.2" y="28.3" timestamp="2023-08-11T18:31:17.260" timestamp_utc="2023-08-11T17:31:17.260" last_modified="2023-08-12T06:39:54" version="1691818794343">
+      <Q id="4429297253" qualifier_id="213" value="1.43" />
+      <Q id="4429297241" qualifier_id="56" value="Back" />
+      <Q id="4430534629" qualifier_id="178" />
+      <Q id="4429297247" qualifier_id="141" value="67.5" />
+      <Q id="4429297245" qualifier_id="140" value="29.8" />
+      <Q id="4429297251" qualifier_id="212" value="26.9" />
+    </Event>
+    <Event id="2575371453" event_id="13" type_id="1" period_id="1" min="0" sec="43" player_id="210977" team_id="1564" outcome="1" x="30.4" y="67.8" timestamp="2023-08-11T18:31:21.026" timestamp_utc="2023-08-11T17:31:21.026" last_modified="2023-08-12T06:40:19" version="1691818819369">
+      <Q id="4430534883" qualifier_id="178" />
+      <Q id="4429297423" qualifier_id="141" value="94.4" />
+      <Q id="4429297415" qualifier_id="56" value="Back" />
+      <Q id="4429297419" qualifier_id="140" value="41.4" />
+      <Q id="4429297427" qualifier_id="212" value="21.5" />
+      <Q id="4429297429" qualifier_id="213" value="1.00" />
+    </Event>
+    <Event id="2575371455" event_id="14" type_id="1" period_id="1" min="0" sec="46" player_id="463170" team_id="1564" outcome="0" x="41.6" y="94.4" timestamp="2023-08-11T18:31:24.261" timestamp_utc="2023-08-11T17:31:24.261" last_modified="2023-08-12T06:40:22" version="1691818822839">
+      <Q id="4429297443" qualifier_id="212" value="1.3" />
+      <Q id="4429297435" qualifier_id="155" />
+      <Q id="4429297437" qualifier_id="56" value="Back" />
+      <Q id="4429297497" qualifier_id="236" />
+      <Q id="4429297441" qualifier_id="141" value="94.7" />
+      <Q id="4429297445" qualifier_id="213" value="0.16" />
+      <Q id="4430534935" qualifier_id="178" />
+      <Q id="4429297503" qualifier_id="286" />
+      <Q id="4429297499" qualifier_id="233" value="13" />
+      <Q id="4429297439" qualifier_id="140" value="42.8" />
+    </Event>
+    <Event id="2575371457" event_id="13" type_id="74" period_id="1" min="0" sec="46" player_id="183462" team_id="184" outcome="1" x="55.7" y="4.9" timestamp="2023-08-11T18:31:24.328" timestamp_utc="2023-08-11T17:31:24.328" last_modified="2023-08-12T06:40:27" version="1691818828208">
+      <Q id="4429297453" qualifier_id="285" />
+      <Q id="4429297511" qualifier_id="233" value="14" />
+      <Q id="4430535031" qualifier_id="178" />
+      <Q id="4429297451" qualifier_id="56" value="Right" />
+    </Event>
+    <Event id="2575371471" event_id="14" type_id="5" period_id="1" min="0" sec="48" player_id="183462" team_id="184" outcome="0" x="51.5" y="-1.8" timestamp="2023-08-11T18:31:26.123" timestamp_utc="2023-08-11T17:31:26.123" last_modified="2023-08-12T06:40:30" version="1691818830492">
+      <Q id="4429297543" qualifier_id="56" value="Right" />
+      <Q id="4429297545" qualifier_id="347" />
+      <Q id="4429297659" qualifier_id="233" value="15" />
+    </Event>
+    <Event id="2575371487" event_id="15" type_id="5" period_id="1" min="0" sec="48" player_id="220871" team_id="1564" outcome="1" x="48.5" y="101.8" timestamp="2023-08-11T18:31:26.123" timestamp_utc="2023-08-11T17:31:26.123" last_modified="2023-08-12T06:40:30" version="1691818830481">
+      <Q id="4429297631" qualifier_id="347" />
+      <Q id="4429297641" qualifier_id="233" value="14" />
+      <Q id="4429297629" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575371603" event_id="16" type_id="1" period_id="1" min="1" sec="3" player_id="220871" team_id="1564" outcome="1" x="59.1" y="100.0" timestamp="2023-08-11T18:31:41.806" timestamp_utc="2023-08-11T17:31:41.806" last_modified="2023-08-12T06:40:32" version="1691818833096">
+      <Q id="4429298335" qualifier_id="140" value="66.7" />
+      <Q id="4429298333" qualifier_id="56" value="Left" />
+      <Q id="4429298337" qualifier_id="141" value="96.5" />
+      <Q id="4429298331" qualifier_id="107" />
+      <Q id="4429298339" qualifier_id="212" value="8.7" />
+      <Q id="4429298341" qualifier_id="213" value="5.87" />
+    </Event>
+    <Event id="2575371635" event_id="17" type_id="1" period_id="1" min="1" sec="5" player_id="132161" team_id="1564" outcome="1" x="66.7" y="96.5" timestamp="2023-08-11T18:31:43.532" timestamp_utc="2023-08-11T17:31:43.532" last_modified="2023-08-12T06:40:39" version="1691818839558">
+      <Q id="4429298491" qualifier_id="141" value="97.4" />
+      <Q id="4429298485" qualifier_id="56" value="Left" />
+      <Q id="4429298489" qualifier_id="140" value="58.1" />
+      <Q id="4430535145" qualifier_id="178" />
+      <Q id="4429298493" qualifier_id="212" value="9.1" />
+      <Q id="4429298495" qualifier_id="213" value="3.07" />
+    </Event>
+    <Event id="2575371623" event_id="15" type_id="45" period_id="1" min="1" sec="7" player_id="183462" team_id="184" outcome="0" x="37.9" y="5.5" timestamp="2023-08-11T18:31:45.784" timestamp_utc="2023-08-11T17:31:45.784" last_modified="2023-08-12T06:41:05" version="1691818865759">
+      <Q id="4429298971" qualifier_id="285" />
+      <Q id="4429299141" qualifier_id="233" value="22" />
+      <Q id="4429298969" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575371747" event_id="22" type_id="3" period_id="1" min="1" sec="7" player_id="220871" team_id="1564" outcome="1" x="62.1" y="94.5" timestamp="2023-08-11T18:31:45.784" timestamp_utc="2023-08-11T17:31:45.784" last_modified="2023-08-12T06:41:05" version="1691818865753">
+      <Q id="4429299097" qualifier_id="286" />
+      <Q id="4429299095" qualifier_id="56" value="Left" />
+      <Q id="4429299103" qualifier_id="233" value="15" />
+      <Q id="4430271459" qualifier_id="464" />
+      <Q id="4430535519" qualifier_id="178" />
+    </Event>
+    <Event id="2575371669" event_id="19" type_id="1" period_id="1" min="1" sec="9" player_id="220871" team_id="1564" outcome="0" x="57.9" y="97.4" timestamp="2023-08-11T18:31:47.097" timestamp_utc="2023-08-11T17:31:47.097" last_modified="2023-08-12T06:41:09" version="1691818869335">
+      <Q id="4429298669" qualifier_id="212" value="13.3" />
+      <Q id="4429298667" qualifier_id="141" value="99.0" />
+      <Q id="4429298671" qualifier_id="213" value="0.08" />
+      <Q id="4429298663" qualifier_id="56" value="Left" />
+      <Q id="4429298665" qualifier_id="140" value="70.5" />
+      <Q id="4430535557" qualifier_id="178" />
+    </Event>
+    <Event id="2575371653" event_id="18" type_id="43" period_id="1" min="1" sec="9" player_id="220871" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:31:47.333" timestamp_utc="2023-08-11T17:31:47.333" last_modified="2023-08-11T18:31:56" version="1691775109449">
+      <Q id="4429298935" qualifier_id="144" value="3" />
+      <Q id="4429298595" qualifier_id="56" value="Left" />
+      <Q id="4429298597" qualifier_id="286" value="0" />
+    </Event>
+    <Event id="2575371665" event_id="16" type_id="49" period_id="1" min="1" sec="12" player_id="89399" team_id="184" outcome="1" x="23.0" y="4.0" timestamp="2023-08-11T18:31:50.480" timestamp_utc="2023-08-11T17:31:50.480" last_modified="2023-08-12T06:41:15" version="1691818875646" />
+    <Event id="2575371693" event_id="17" type_id="1" period_id="1" min="1" sec="12" player_id="89399" team_id="184" outcome="0" x="22.8" y="3.3" timestamp="2023-08-11T18:31:50.518" timestamp_utc="2023-08-11T17:31:50.518" last_modified="2023-08-12T06:41:19" version="1691818879471">
+      <Q id="4429298797" qualifier_id="213" value="6.24" />
+      <Q id="4429298791" qualifier_id="140" value="39.1" />
+      <Q id="4429298799" qualifier_id="1" />
+      <Q id="4430535691" qualifier_id="178" />
+      <Q id="4429298787" qualifier_id="157" />
+      <Q id="4429298795" qualifier_id="212" value="17.1" />
+      <Q id="4429298793" qualifier_id="141" value="2.3" />
+      <Q id="4429298789" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575371691" event_id="20" type_id="61" period_id="1" min="1" sec="13" player_id="220871" team_id="1564" outcome="1" x="60.0" y="98.0" timestamp="2023-08-11T18:31:51.285" timestamp_utc="2023-08-11T17:31:51.285" last_modified="2023-08-12T07:12:38" version="1691820758373">
+      <Q id="4429298785" qualifier_id="56" value="Left" />
+      <Q id="4430536227" qualifier_id="178" />
+    </Event>
+    <Event id="2575371713" event_id="18" type_id="5" period_id="1" min="1" sec="14" player_id="434078" team_id="184" outcome="1" x="42.2" y="-1.5" timestamp="2023-08-11T18:31:52.617" timestamp_utc="2023-08-11T17:31:52.617" last_modified="2023-08-12T06:42:01" version="1691818921725">
+      <Q id="4429298897" qualifier_id="347" />
+      <Q id="4429298895" qualifier_id="56" value="Back" />
+      <Q id="4429298927" qualifier_id="233" value="21" />
+    </Event>
+    <Event id="2575371699" event_id="21" type_id="5" period_id="1" min="1" sec="14" player_id="220871" team_id="1564" outcome="0" x="57.8" y="101.5" timestamp="2023-08-11T18:31:52.617" timestamp_utc="2023-08-11T17:31:52.617" last_modified="2023-08-12T06:42:01" version="1691818921730">
+      <Q id="4429298949" qualifier_id="233" value="18" />
+      <Q id="4429298823" qualifier_id="56" value="Left" />
+      <Q id="4429298825" qualifier_id="347" />
+    </Event>
+    <Event id="2575371891" event_id="19" type_id="1" period_id="1" min="1" sec="37" player_id="97624" team_id="184" outcome="1" x="46.7" y="0.0" timestamp="2023-08-11T18:32:15.157" timestamp_utc="2023-08-11T17:32:15.157" last_modified="2023-08-12T06:42:04" version="1691818924554">
+      <Q id="4429299815" qualifier_id="140" value="61.7" />
+      <Q id="4429299813" qualifier_id="56" value="Right" />
+      <Q id="4429299821" qualifier_id="213" value="0.29" />
+      <Q id="4429299817" qualifier_id="141" value="5.2" />
+      <Q id="4429299819" qualifier_id="212" value="16.4" />
+      <Q id="4429299811" qualifier_id="107" />
+    </Event>
+    <Event id="2575371893" event_id="20" type_id="44" period_id="1" min="1" sec="38" player_id="434078" team_id="184" outcome="1" x="61.9" y="5.3" timestamp="2023-08-11T18:32:16.335" timestamp_utc="2023-08-11T17:32:16.335" last_modified="2023-08-12T09:38:12" version="1691829492361">
+      <Q id="4429299887" qualifier_id="233" value="23" />
+      <Q id="4429299849" qualifier_id="286" />
+      <Q id="4429299847" qualifier_id="56" value="Right" />
+    </Event>
+    <Event id="2575371895" event_id="23" type_id="44" period_id="1" min="1" sec="38" player_id="463170" team_id="1564" outcome="0" x="38.1" y="94.7" timestamp="2023-08-11T18:32:16.336" timestamp_utc="2023-08-11T17:32:16.336" last_modified="2023-08-12T06:42:08" version="1691818928392">
+      <Q id="4429299851" qualifier_id="56" value="Back" />
+      <Q id="4429299853" qualifier_id="285" />
+      <Q id="4429299895" qualifier_id="233" value="20" />
+    </Event>
+    <Event id="2575371915" event_id="21" type_id="1" period_id="1" min="1" sec="38" player_id="434078" team_id="184" outcome="1" x="61.8" y="6.0" timestamp="2023-08-11T18:32:16.386" timestamp_utc="2023-08-11T17:32:16.386" last_modified="2023-08-12T09:38:13" version="1691829492419">
+      <Q id="4429299995" qualifier_id="168" />
+      <Q id="4429300001" qualifier_id="141" value="6.9" />
+      <Q id="4429299997" qualifier_id="56" value="Right" />
+      <Q id="4429300003" qualifier_id="212" value="8.0" />
+      <Q id="4429299993" qualifier_id="3" />
+      <Q id="4430536441" qualifier_id="388" />
+      <Q id="4429300005" qualifier_id="213" value="0.08" />
+      <Q id="4429299999" qualifier_id="140" value="69.4" />
+    </Event>
+    <Event id="2575371919" event_id="22" type_id="61" period_id="1" min="1" sec="40" player_id="449300" team_id="184" outcome="0" x="67.9" y="7.6" timestamp="2023-08-11T18:32:18.271" timestamp_utc="2023-08-11T17:32:18.271" last_modified="2023-08-12T06:43:32" version="1691819013223">
+      <Q id="4430536571" qualifier_id="178" />
+      <Q id="4429300023" qualifier_id="56" value="Right" />
+    </Event>
+    <Event id="2575371911" event_id="24" type_id="61" period_id="1" min="1" sec="41" player_id="220871" team_id="1564" outcome="1" x="34.1" y="94.7" timestamp="2023-08-11T18:32:19.050" timestamp_utc="2023-08-11T17:32:19.050" last_modified="2023-08-12T06:43:41" version="1691819021879">
+      <Q id="4430537327" qualifier_id="178" />
+      <Q id="4429299973" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575371927" event_id="25" type_id="49" period_id="1" min="1" sec="41" player_id="233681" team_id="1564" outcome="1" x="35.7" y="86.2" timestamp="2023-08-11T18:32:19.357" timestamp_utc="2023-08-11T17:32:19.357" last_modified="2023-08-12T06:43:54" version="1691819034702" />
+    <Event id="2575371939" event_id="26" type_id="1" period_id="1" min="1" sec="41" player_id="233681" team_id="1564" outcome="1" x="35.9" y="83.8" timestamp="2023-08-11T18:32:19.473" timestamp_utc="2023-08-11T17:32:19.473" last_modified="2023-08-12T06:43:57" version="1691819038175">
+      <Q id="4429300085" qualifier_id="212" value="17.2" />
+      <Q id="4429300081" qualifier_id="141" value="80.3" />
+      <Q id="4429300077" qualifier_id="56" value="Back" />
+      <Q id="4429300089" qualifier_id="213" value="3.28" />
+      <Q id="4430537607" qualifier_id="178" />
+      <Q id="4429300079" qualifier_id="140" value="19.7" />
+    </Event>
+    <Event id="2575371981" event_id="27" type_id="1" period_id="1" min="1" sec="44" player_id="210977" team_id="1564" outcome="1" x="19.7" y="80.3" timestamp="2023-08-11T18:32:21.990" timestamp_utc="2023-08-11T17:32:21.990" last_modified="2023-08-12T06:44:00" version="1691819040762">
+      <Q id="4430537635" qualifier_id="178" />
+      <Q id="4429300309" qualifier_id="141" value="56.0" />
+      <Q id="4429300313" qualifier_id="213" value="4.05" />
+      <Q id="4429300307" qualifier_id="140" value="7.4" />
+      <Q id="4429300311" qualifier_id="212" value="21.0" />
+      <Q id="4429300305" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575372001" event_id="28" type_id="1" period_id="1" min="1" sec="52" player_id="76611" team_id="1564" outcome="1" x="7.9" y="47.9" timestamp="2023-08-11T18:32:30.419" timestamp_utc="2023-08-11T17:32:30.419" last_modified="2023-08-12T06:44:03" version="1691819044105">
+      <Q id="4429300427" qualifier_id="213" value="4.82" />
+      <Q id="4429300419" qualifier_id="56" value="Back" />
+      <Q id="4429300421" qualifier_id="140" value="9.5" />
+      <Q id="4429300425" qualifier_id="212" value="15.1" />
+      <Q id="4429300423" qualifier_id="141" value="25.8" />
+      <Q id="4430537703" qualifier_id="178" />
+    </Event>
+    <Event id="2575372025" event_id="29" type_id="1" period_id="1" min="1" sec="54" player_id="469402" team_id="1564" outcome="1" x="9.7" y="24.4" timestamp="2023-08-11T18:32:32.546" timestamp_utc="2023-08-11T17:32:32.546" last_modified="2023-08-12T06:44:05" version="1691819046185">
+      <Q id="4429300593" qualifier_id="140" value="24.9" />
+      <Q id="4429300595" qualifier_id="141" value="57.8" />
+      <Q id="4430537727" qualifier_id="178" />
+      <Q id="4429300591" qualifier_id="56" value="Back" />
+      <Q id="4429300601" qualifier_id="213" value="0.96" />
+      <Q id="4429300597" qualifier_id="212" value="27.8" />
+    </Event>
+    <Event id="2575372063" event_id="30" type_id="1" period_id="1" min="1" sec="57" player_id="463170" team_id="1564" outcome="1" x="18.8" y="54.3" timestamp="2023-08-11T18:32:35.289" timestamp_utc="2023-08-11T17:32:35.289" last_modified="2023-08-12T06:44:09" version="1691819050071">
+      <Q id="4430537763" qualifier_id="178" />
+      <Q id="4429300763" qualifier_id="56" value="Back" />
+      <Q id="4429300765" qualifier_id="140" value="12.6" />
+      <Q id="4429300769" qualifier_id="212" value="15.8" />
+      <Q id="4429300771" qualifier_id="213" value="2.00" />
+      <Q id="4429300767" qualifier_id="141" value="75.4" />
+    </Event>
+    <Event id="2575372103" event_id="31" type_id="1" period_id="1" min="2" sec="3" player_id="210977" team_id="1564" outcome="1" x="23.8" y="72.1" timestamp="2023-08-11T18:32:41.185" timestamp_utc="2023-08-11T17:32:41.185" last_modified="2023-08-12T06:44:11" version="1691819052195">
+      <Q id="4429300943" qualifier_id="140" value="14.3" />
+      <Q id="4429300945" qualifier_id="141" value="32.5" />
+      <Q id="4429300947" qualifier_id="212" value="28.7" />
+      <Q id="4430537803" qualifier_id="178" />
+      <Q id="4429300941" qualifier_id="56" value="Back" />
+      <Q id="4429300949" qualifier_id="213" value="4.36" />
+    </Event>
+    <Event id="2575372127" event_id="32" type_id="1" period_id="1" min="2" sec="7" player_id="469402" team_id="1564" outcome="1" x="24.6" y="26.2" timestamp="2023-08-11T18:32:45.232" timestamp_utc="2023-08-11T17:32:45.232" last_modified="2023-08-12T06:44:14" version="1691819055185">
+      <Q id="4429301095" qualifier_id="212" value="10.1" />
+      <Q id="4429301093" qualifier_id="141" value="24.1" />
+      <Q id="4429301089" qualifier_id="56" value="Back" />
+      <Q id="4430537839" qualifier_id="178" />
+      <Q id="4429301097" qualifier_id="213" value="6.14" />
+      <Q id="4429301091" qualifier_id="140" value="34.1" />
+    </Event>
+    <Event id="2575372129" event_id="33" type_id="61" period_id="1" min="2" sec="9" player_id="433952" team_id="1564" outcome="0" x="30.1" y="17.6" timestamp="2023-08-11T18:32:47.620" timestamp_utc="2023-08-11T17:32:47.620" last_modified="2023-08-12T06:44:19" version="1691819060185">
+      <Q id="4429301101" qualifier_id="56" value="Back" />
+      <Q id="4430537907" qualifier_id="178" />
+    </Event>
+    <Event id="2575372149" event_id="23" type_id="49" period_id="1" min="2" sec="10" player_id="433161" team_id="184" outcome="1" x="70.4" y="90.4" timestamp="2023-08-11T18:32:48.648" timestamp_utc="2023-08-11T17:32:48.648" last_modified="2023-08-12T06:45:01" version="1691819101894" />
+    <Event id="2575372175" event_id="24" type_id="1" period_id="1" min="2" sec="10" player_id="433161" team_id="184" outcome="1" x="70.4" y="90.4" timestamp="2023-08-11T18:32:48.722" timestamp_utc="2023-08-11T17:32:48.722" last_modified="2023-08-12T06:45:05" version="1691819106109">
+      <Q id="4430538517" qualifier_id="178" />
+      <Q id="4429301353" qualifier_id="212" value="12.3" />
+      <Q id="4429301355" qualifier_id="213" value="3.12" />
+      <Q id="4429301349" qualifier_id="140" value="58.7" />
+      <Q id="4429301347" qualifier_id="56" value="Left" />
+      <Q id="4429301351" qualifier_id="141" value="90.8" />
+    </Event>
+    <Event id="2575372177" event_id="25" type_id="1" period_id="1" min="2" sec="13" player_id="178424" team_id="184" outcome="0" x="52.8" y="94.6" timestamp="2023-08-11T18:32:51.514" timestamp_utc="2023-08-11T17:32:51.514" last_modified="2023-08-12T06:45:11" version="1691819111578">
+      <Q id="4429301365" qualifier_id="212" value="1.8" />
+      <Q id="4429301363" qualifier_id="141" value="92.1" />
+      <Q id="4429301367" qualifier_id="213" value="5.07" />
+      <Q id="4430538611" qualifier_id="178" />
+      <Q id="4429301359" qualifier_id="56" value="Left" />
+      <Q id="4429301361" qualifier_id="140" value="53.4" />
+    </Event>
+    <Event id="2575372171" event_id="34" type_id="61" period_id="1" min="2" sec="13" player_id="441293" team_id="1564" outcome="1" x="42.5" y="7.4" timestamp="2023-08-11T18:32:51.599" timestamp_utc="2023-08-11T17:32:51.599" last_modified="2023-08-12T06:45:14" version="1691819114919">
+      <Q id="4429301333" qualifier_id="56" value="Back" />
+      <Q id="4430538681" qualifier_id="178" />
+    </Event>
+    <Event id="2575372215" event_id="26" type_id="1" period_id="1" min="2" sec="15" player_id="183462" team_id="184" outcome="1" x="47.2" y="83.0" timestamp="2023-08-11T18:32:53.563" timestamp_utc="2023-08-11T17:32:53.563" last_modified="2023-08-12T06:45:17" version="1691819117927">
+      <Q id="4430538737" qualifier_id="178" />
+      <Q id="4429301591" qualifier_id="141" value="53.1" />
+      <Q id="4429301595" qualifier_id="213" value="3.96" />
+      <Q id="4429301593" qualifier_id="212" value="27.8" />
+      <Q id="4429301587" qualifier_id="56" value="Back" />
+      <Q id="4429301589" qualifier_id="140" value="29.2" />
+    </Event>
+    <Event id="2575372259" event_id="27" type_id="1" period_id="1" min="2" sec="18" player_id="89399" team_id="184" outcome="1" x="28.5" y="47.8" timestamp="2023-08-11T18:32:56.521" timestamp_utc="2023-08-11T17:32:56.521" last_modified="2023-08-12T06:45:21" version="1691819121934">
+      <Q id="4429301841" qualifier_id="213" value="5.20" />
+      <Q id="4429301839" qualifier_id="212" value="33.6" />
+      <Q id="4429301837" qualifier_id="141" value="4.2" />
+      <Q id="4430538799" qualifier_id="178" />
+      <Q id="4429301843" qualifier_id="1" />
+      <Q id="4429301835" qualifier_id="140" value="43.6" />
+      <Q id="4429301833" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575372285" event_id="28" type_id="1" period_id="1" min="2" sec="25" player_id="97624" team_id="184" outcome="1" x="64.0" y="4.5" timestamp="2023-08-11T18:33:03.593" timestamp_utc="2023-08-11T17:33:03.593" last_modified="2023-08-12T06:45:27" version="1691819127618">
+      <Q id="4429301963" qualifier_id="213" value="1.76" />
+      <Q id="4429301955" qualifier_id="56" value="Right" />
+      <Q id="4429301957" qualifier_id="140" value="63.1" />
+      <Q id="4430538883" qualifier_id="178" />
+      <Q id="4429301961" qualifier_id="212" value="4.9" />
+      <Q id="4429301959" qualifier_id="141" value="11.6" />
+    </Event>
+    <Event id="2575372317" event_id="29" type_id="1" period_id="1" min="2" sec="28" player_id="434078" team_id="184" outcome="1" x="58.3" y="7.2" timestamp="2023-08-11T18:33:06.154" timestamp_utc="2023-08-11T17:33:06.154" last_modified="2023-08-12T06:45:30" version="1691819130329">
+      <Q id="4429302117" qualifier_id="140" value="43.9" />
+      <Q id="4429302121" qualifier_id="212" value="16.4" />
+      <Q id="4429302119" qualifier_id="141" value="16.7" />
+      <Q id="4429302115" qualifier_id="56" value="Back" />
+      <Q id="4430538933" qualifier_id="178" />
+      <Q id="4429302125" qualifier_id="213" value="2.74" />
+    </Event>
+    <Event id="2575372359" event_id="30" type_id="1" period_id="1" min="2" sec="31" player_id="183462" team_id="184" outcome="1" x="44.1" y="26.3" timestamp="2023-08-11T18:33:09.168" timestamp_utc="2023-08-11T17:33:09.168" last_modified="2023-08-12T06:45:31" version="1691819132200">
+      <Q id="4429302313" qualifier_id="213" value="1.72" />
+      <Q id="4429302309" qualifier_id="141" value="64.1" />
+      <Q id="4429302307" qualifier_id="140" value="40.3" />
+      <Q id="4430538993" qualifier_id="178" />
+      <Q id="4429302305" qualifier_id="56" value="Back" />
+      <Q id="4429302311" qualifier_id="212" value="26.0" />
+    </Event>
+    <Event id="2575372407" event_id="31" type_id="1" period_id="1" min="2" sec="34" player_id="77359" team_id="184" outcome="1" x="42.4" y="67.4" timestamp="2023-08-11T18:33:11.970" timestamp_utc="2023-08-11T17:33:11.970" last_modified="2023-08-12T06:45:34" version="1691819134363">
+      <Q id="4429302571" qualifier_id="213" value="0.84" />
+      <Q id="4429302567" qualifier_id="212" value="24.9" />
+      <Q id="4429302561" qualifier_id="56" value="Left" />
+      <Q id="4429302563" qualifier_id="140" value="58.3" />
+      <Q id="4430539023" qualifier_id="178" />
+      <Q id="4429302565" qualifier_id="141" value="94.6" />
+    </Event>
+    <Event id="2575372453" event_id="32" type_id="1" period_id="1" min="2" sec="36" player_id="178424" team_id="184" outcome="1" x="58.9" y="91.7" timestamp="2023-08-11T18:33:14.478" timestamp_utc="2023-08-11T17:33:14.478" last_modified="2023-08-12T06:45:37" version="1691819138049">
+      <Q id="4429302833" qualifier_id="140" value="59.2" />
+      <Q id="4429302835" qualifier_id="141" value="72.5" />
+      <Q id="4429302831" qualifier_id="56" value="Center" />
+      <Q id="4429302839" qualifier_id="213" value="4.74" />
+      <Q id="4429302837" qualifier_id="212" value="13.1" />
+      <Q id="4430539071" qualifier_id="178" />
+    </Event>
+    <Event id="2575372469" event_id="33" type_id="1" period_id="1" min="2" sec="37" player_id="433161" team_id="184" outcome="1" x="59.2" y="71.7" timestamp="2023-08-11T18:33:15.282" timestamp_utc="2023-08-11T17:33:15.282" last_modified="2023-08-12T06:45:53" version="1691819154286">
+      <Q id="4429302905" qualifier_id="140" value="55.9" />
+      <Q id="4429302903" qualifier_id="56" value="Left" />
+      <Q id="4429302911" qualifier_id="213" value="2.02" />
+      <Q id="4430539221" qualifier_id="178" />
+      <Q id="4429302907" qualifier_id="141" value="82.3" />
+      <Q id="4429302909" qualifier_id="212" value="8.0" />
+    </Event>
+    <Event id="2575372431" event_id="35" type_id="43" period_id="1" min="2" sec="37" player_id="433952" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:33:15.318" timestamp_utc="2023-08-11T17:33:15.318" last_modified="2023-08-12T09:39:08" version="1691819162554">
+      <Q id="4430646681" qualifier_id="144" value="83" />
+      <Q id="4429327933" qualifier_id="399" value="433161" />
+    </Event>
+    <Event id="2575372491" event_id="34" type_id="1" period_id="1" min="2" sec="38" player_id="178424" team_id="184" outcome="1" x="55.6" y="81.5" timestamp="2023-08-11T18:33:16.284" timestamp_utc="2023-08-11T17:33:16.284" last_modified="2023-08-12T06:47:16" version="1691819236989">
+      <Q id="4429303013" qualifier_id="140" value="45.1" />
+      <Q id="4429303009" qualifier_id="56" value="Back" />
+      <Q id="4429303025" qualifier_id="213" value="4.23" />
+      <Q id="4430540355" qualifier_id="178" />
+      <Q id="4429303017" qualifier_id="141" value="50.4" />
+      <Q id="4429303021" qualifier_id="212" value="23.8" />
+    </Event>
+    <Event id="2575372521" event_id="35" type_id="1" period_id="1" min="2" sec="40" player_id="89399" team_id="184" outcome="1" x="45.1" y="49.6" timestamp="2023-08-11T18:33:18.278" timestamp_utc="2023-08-11T17:33:18.278" last_modified="2023-08-12T06:47:19" version="1691819239535">
+      <Q id="4429303165" qualifier_id="212" value="19.5" />
+      <Q id="4430540409" qualifier_id="178" />
+      <Q id="4429303163" qualifier_id="141" value="27.0" />
+      <Q id="4429303167" qualifier_id="213" value="5.37" />
+      <Q id="4429303159" qualifier_id="56" value="Center" />
+      <Q id="4429303161" qualifier_id="140" value="56.5" />
+    </Event>
+    <Event id="2575372553" event_id="36" type_id="1" period_id="1" min="2" sec="45" player_id="183462" team_id="184" outcome="1" x="61.2" y="14.3" timestamp="2023-08-11T18:33:23.289" timestamp_utc="2023-08-11T17:33:23.289" last_modified="2023-08-12T06:47:23" version="1691819243609">
+      <Q id="4429303335" qualifier_id="212" value="6.4" />
+      <Q id="4429303333" qualifier_id="141" value="5.6" />
+      <Q id="4429303331" qualifier_id="140" value="59.0" />
+      <Q id="4429303329" qualifier_id="56" value="Right" />
+      <Q id="4429303337" qualifier_id="213" value="4.34" />
+      <Q id="4430540485" qualifier_id="178" />
+    </Event>
+    <Event id="2575372585" event_id="37" type_id="1" period_id="1" min="2" sec="46" player_id="97624" team_id="184" outcome="1" x="60.4" y="8.0" timestamp="2023-08-11T18:33:24.603" timestamp_utc="2023-08-11T17:33:24.603" last_modified="2023-08-12T06:47:26" version="1691819246679">
+      <Q id="4429303549" qualifier_id="212" value="18.9" />
+      <Q id="4430540561" qualifier_id="178" />
+      <Q id="4429303545" qualifier_id="140" value="52.6" />
+      <Q id="4429303543" qualifier_id="56" value="Center" />
+      <Q id="4429303547" qualifier_id="141" value="33.1" />
+      <Q id="4429303551" qualifier_id="213" value="2.02" />
+    </Event>
+    <Event id="2575372613" event_id="38" type_id="1" period_id="1" min="2" sec="51" player_id="89399" team_id="184" outcome="1" x="53.6" y="44.4" timestamp="2023-08-11T18:33:29.368" timestamp_utc="2023-08-11T17:33:29.368" last_modified="2023-08-12T06:47:35" version="1691819255823">
+      <Q id="4429303719" qualifier_id="140" value="58.9" />
+      <Q id="4429303723" qualifier_id="212" value="22.4" />
+      <Q id="4429303725" qualifier_id="213" value="1.32" />
+      <Q id="4429303721" qualifier_id="141" value="76.3" />
+      <Q id="4429303717" qualifier_id="56" value="Center" />
+      <Q id="4430540659" qualifier_id="178" />
+    </Event>
+    <Event id="2575372619" event_id="39" type_id="1" period_id="1" min="2" sec="56" player_id="433161" team_id="184" outcome="1" x="58.4" y="78.3" timestamp="2023-08-11T18:33:34.288" timestamp_utc="2023-08-11T17:33:34.288" last_modified="2023-08-12T06:47:39" version="1691819259329">
+      <Q id="4429303753" qualifier_id="56" value="Back" />
+      <Q id="4429303755" qualifier_id="140" value="46.4" />
+      <Q id="4429303757" qualifier_id="141" value="70.5" />
+      <Q id="4429303761" qualifier_id="213" value="3.54" />
+      <Q id="4429303759" qualifier_id="212" value="13.7" />
+      <Q id="4430540721" qualifier_id="178" />
+    </Event>
+    <Event id="2575372655" event_id="40" type_id="1" period_id="1" min="2" sec="59" player_id="77359" team_id="184" outcome="1" x="45.5" y="67.2" timestamp="2023-08-11T18:33:36.890" timestamp_utc="2023-08-11T17:33:36.890" last_modified="2023-08-12T06:47:41" version="1691819261354">
+      <Q id="4430540741" qualifier_id="178" />
+      <Q id="4429303955" qualifier_id="56" value="Back" />
+      <Q id="4429303963" qualifier_id="213" value="4.77" />
+      <Q id="4429303961" qualifier_id="212" value="24.2" />
+      <Q id="4429303959" qualifier_id="141" value="31.7" />
+      <Q id="4429303957" qualifier_id="140" value="46.8" />
+    </Event>
+    <Event id="2575372685" event_id="41" type_id="1" period_id="1" min="3" sec="3" player_id="183462" team_id="184" outcome="1" x="59.8" y="26.6" timestamp="2023-08-11T18:33:41.637" timestamp_utc="2023-08-11T17:33:41.637" last_modified="2023-08-12T06:47:44" version="1691819265057">
+      <Q id="4429304125" qualifier_id="141" value="5.2" />
+      <Q id="4429304123" qualifier_id="140" value="66.4" />
+      <Q id="4429304129" qualifier_id="213" value="5.16" />
+      <Q id="4430540803" qualifier_id="178" />
+      <Q id="4429304121" qualifier_id="56" value="Right" />
+      <Q id="4429304127" qualifier_id="212" value="16.1" />
+    </Event>
+    <Event id="2575372707" event_id="42" type_id="1" period_id="1" min="3" sec="8" player_id="434078" team_id="184" outcome="1" x="69.1" y="4.2" timestamp="2023-08-11T18:33:46.496" timestamp_utc="2023-08-11T17:33:46.496" last_modified="2023-08-12T06:47:53" version="1691819273624">
+      <Q id="4429304229" qualifier_id="56" value="Right" />
+      <Q id="4429304231" qualifier_id="140" value="80.3" />
+      <Q id="4429304237" qualifier_id="213" value="0.03" />
+      <Q id="4429304235" qualifier_id="212" value="11.8" />
+      <Q id="4429304233" qualifier_id="141" value="4.7" />
+      <Q id="4430540961" qualifier_id="178" />
+    </Event>
+    <Event id="2575372763" event_id="43" type_id="1" period_id="1" min="3" sec="11" player_id="97624" team_id="184" outcome="1" x="82.4" y="4.5" keypass="1" timestamp="2023-08-11T18:33:48.994" timestamp_utc="2023-08-11T17:33:48.994" last_modified="2023-08-12T06:48:04" version="1691819284969">
+      <Q id="4429304489" qualifier_id="56" value="Center" />
+      <Q id="4430274431" qualifier_id="224" />
+      <Q id="4429304495" qualifier_id="212" value="28.8" />
+      <Q id="4429304497" qualifier_id="213" value="1.22" />
+      <Q id="4430274433" qualifier_id="20" />
+      <Q id="4430540993" qualifier_id="178" />
+      <Q id="4429305563" qualifier_id="154" />
+      <Q id="4429304493" qualifier_id="141" value="44.2" />
+      <Q id="4429304487" qualifier_id="155" />
+      <Q id="4429304491" qualifier_id="140" value="91.9" />
+      <Q id="4429305561" qualifier_id="210" value="13" />
+      <Q id="4429304485" qualifier_id="2" />
+    </Event>
+    <Event id="2575372767" event_id="44" type_id="13" period_id="1" min="3" sec="12" player_id="449300" team_id="184" outcome="1" x="93.5" y="42.9" timestamp="2023-08-11T18:33:50.082" timestamp_utc="2023-08-11T17:33:50.082" last_modified="2023-08-12T06:48:05" version="1691819284974">
+      <Q id="4429305601" qualifier_id="103" value="11.1" />
+      <Q id="4429304887" qualifier_id="15" />
+      <Q id="4429304893" qualifier_id="328" />
+      <Q id="4429304519" qualifier_id="17" />
+      <Q id="4429305595" qualifier_id="55" value="43" />
+      <Q id="4429305603" qualifier_id="230" value="98.4" />
+      <Q id="4429305589" qualifier_id="75" />
+      <Q id="4429305591" qualifier_id="29" />
+      <Q id="4429305599" qualifier_id="102" value="39.0" />
+      <Q id="4430541151" qualifier_id="178" />
+      <Q id="4429305593" qualifier_id="154" />
+      <Q id="4429304517" qualifier_id="22" />
+      <Q id="4429304521" qualifier_id="56" value="Center" />
+      <Q id="4429305605" qualifier_id="231" value="48.6" />
+    </Event>
+    <Event id="2575372771" event_id="37" type_id="5" period_id="1" min="3" sec="13" player_id="469402" team_id="1564" outcome="1" x="-1.2" y="61.9" timestamp="2023-08-11T18:33:50.998" timestamp_utc="2023-08-11T17:33:50.998" last_modified="2023-08-12T06:48:09" version="1691819289351">
+      <Q id="4429304603" qualifier_id="233" value="45" />
+      <Q id="4429304551" qualifier_id="346" />
+      <Q id="4429304549" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575372777" event_id="45" type_id="5" period_id="1" min="3" sec="13" player_id="449300" team_id="184" outcome="0" x="101.2" y="38.1" timestamp="2023-08-11T18:33:50.998" timestamp_utc="2023-08-11T17:33:50.998" last_modified="2023-08-12T06:48:09" version="1691819289344">
+      <Q id="4429304567" qualifier_id="56" value="Center" />
+      <Q id="4429304641" qualifier_id="233" value="37" />
+      <Q id="4429304571" qualifier_id="346" />
+    </Event>
+    <Event id="2575372747" event_id="36" type_id="43" period_id="1" min="3" sec="14" player_id="469402" team_id="1564" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:33:52.484" timestamp_utc="2023-08-11T17:33:52.484" last_modified="2023-08-11T18:33:55" version="1691775232557">
+      <Q id="4429304415" qualifier_id="56" value="Back" />
+      <Q id="4429304419" qualifier_id="285" value="0" />
+      <Q id="4429304677" qualifier_id="144" value="44" />
+    </Event>
+    <Event id="2575373057" event_id="38" type_id="1" period_id="1" min="3" sec="40" player_id="76611" team_id="1564" outcome="1" x="4.6" y="53.1" timestamp="2023-08-11T18:34:18.745" timestamp_utc="2023-08-11T17:34:18.745" last_modified="2023-08-12T06:48:14" version="1691819294550">
+      <Q id="4429306167" qualifier_id="212" value="17.6" />
+      <Q id="4429306159" qualifier_id="124" />
+      <Q id="4429306161" qualifier_id="56" value="Back" />
+      <Q id="4429306169" qualifier_id="213" value="4.87" />
+      <Q id="4429306181" qualifier_id="189" />
+      <Q id="4429306165" qualifier_id="141" value="27.6" />
+      <Q id="4429306163" qualifier_id="140" value="7.3" />
+      <Q id="4429306173" qualifier_id="237" />
+    </Event>
+    <Event id="2575373075" event_id="39" type_id="1" period_id="1" min="3" sec="42" player_id="469402" team_id="1564" outcome="1" x="7.3" y="27.6" timestamp="2023-08-11T18:34:20.524" timestamp_utc="2023-08-11T17:34:20.524" last_modified="2023-08-12T06:48:21" version="1691819301743">
+      <Q id="4429306281" qualifier_id="141" value="8.5" />
+      <Q id="4429306277" qualifier_id="56" value="Back" />
+      <Q id="4429306279" qualifier_id="140" value="10.6" />
+      <Q id="4430541331" qualifier_id="178" />
+      <Q id="4429306283" qualifier_id="212" value="13.4" />
+      <Q id="4429306285" qualifier_id="213" value="4.97" />
+    </Event>
+    <Event id="2575373081" event_id="40" type_id="1" period_id="1" min="3" sec="44" player_id="234548" team_id="1564" outcome="0" x="10.8" y="8.6" timestamp="2023-08-11T18:34:22.603" timestamp_utc="2023-08-11T17:34:22.603" last_modified="2023-08-12T06:48:24" version="1691819304552">
+      <Q id="4429306321" qualifier_id="56" value="Back" />
+      <Q id="4429306329" qualifier_id="213" value="0.08" />
+      <Q id="4430541377" qualifier_id="178" />
+      <Q id="4429306327" qualifier_id="212" value="1.7" />
+      <Q id="4429306319" qualifier_id="155" />
+      <Q id="4429306325" qualifier_id="141" value="8.8" />
+      <Q id="4429306323" qualifier_id="140" value="12.4" />
+    </Event>
+    <Event id="2575373071" event_id="46" type_id="61" period_id="1" min="3" sec="44" player_id="165682" team_id="184" outcome="1" x="72.8" y="88.0" timestamp="2023-08-11T18:34:22.742" timestamp_utc="2023-08-11T17:34:22.742" last_modified="2023-08-12T06:48:33" version="1691819314117">
+      <Q id="4429306259" qualifier_id="56" value="Left" />
+      <Q id="4430541495" qualifier_id="21" />
+      <Q id="4430541497" qualifier_id="178" />
+    </Event>
+    <Event id="2575373125" event_id="47" type_id="1" period_id="1" min="3" sec="48" player_id="178424" team_id="184" outcome="1" x="58.2" y="87.0" timestamp="2023-08-11T18:34:26.225" timestamp_utc="2023-08-11T17:34:26.225" last_modified="2023-08-12T06:48:40" version="1691819321130">
+      <Q id="4429306539" qualifier_id="140" value="59.0" />
+      <Q id="4429306541" qualifier_id="141" value="72.3" />
+      <Q id="4429306537" qualifier_id="56" value="Center" />
+      <Q id="4430541539" qualifier_id="388" />
+      <Q id="4429306543" qualifier_id="212" value="10.0" />
+      <Q id="4429306545" qualifier_id="213" value="4.80" />
+      <Q id="4429306535" qualifier_id="3" />
+    </Event>
+    <Event id="2575373139" event_id="48" type_id="1" period_id="1" min="3" sec="49" player_id="434078" team_id="184" outcome="0" x="58.8" y="70.7" timestamp="2023-08-11T18:34:27.053" timestamp_utc="2023-08-11T17:34:27.053" last_modified="2023-08-12T06:48:43" version="1691819323842">
+      <Q id="4430541567" qualifier_id="388" />
+      <Q id="4429306615" qualifier_id="213" value="4.77" />
+      <Q id="4429306609" qualifier_id="140" value="59.2" />
+      <Q id="4429306613" qualifier_id="212" value="6.8" />
+      <Q id="4429306607" qualifier_id="56" value="Center" />
+      <Q id="4429306611" qualifier_id="141" value="60.7" />
+      <Q id="4429306605" qualifier_id="3" />
+    </Event>
+    <Event id="2575373171" event_id="41" type_id="1" period_id="1" min="3" sec="53" player_id="433952" team_id="1564" outcome="0" x="53.7" y="41.8" timestamp="2023-08-11T18:34:31.875" timestamp_utc="2023-08-11T17:34:31.875" last_modified="2023-08-12T06:48:47" version="1691819328053">
+      <Q id="4429306799" qualifier_id="56" value="Center" />
+      <Q id="4429306807" qualifier_id="213" value="0.41" />
+      <Q id="4430541607" qualifier_id="178" />
+      <Q id="4429306801" qualifier_id="140" value="68.7" />
+      <Q id="4429306805" qualifier_id="212" value="17.2" />
+      <Q id="4429306803" qualifier_id="141" value="51.8" />
+    </Event>
+    <Event id="2575373169" event_id="49" type_id="61" period_id="1" min="3" sec="54" player_id="89399" team_id="184" outcome="1" x="29.6" y="50.9" timestamp="2023-08-11T18:34:32.365" timestamp_utc="2023-08-11T17:34:32.365" last_modified="2023-08-12T06:48:53" version="1691819333815">
+      <Q id="4429306797" qualifier_id="56" value="Back" />
+      <Q id="4430541649" qualifier_id="178" />
+    </Event>
+    <Event id="2575373187" event_id="50" type_id="49" period_id="1" min="3" sec="55" player_id="434078" team_id="184" outcome="1" x="42.9" y="48.6" timestamp="2023-08-11T18:34:33.286" timestamp_utc="2023-08-11T17:34:33.286" last_modified="2023-08-12T06:48:56" version="1691819337009" />
+    <Event id="2575373259" event_id="51" type_id="1" period_id="1" min="3" sec="58" player_id="434078" team_id="184" outcome="1" x="45.0" y="46.0" timestamp="2023-08-11T18:34:35.927" timestamp_utc="2023-08-11T17:34:35.927" last_modified="2023-08-12T06:49:06" version="1691819346884">
+      <Q id="4429307323" qualifier_id="141" value="20.5" />
+      <Q id="4429307325" qualifier_id="212" value="17.4" />
+      <Q id="4430541793" qualifier_id="178" />
+      <Q id="4429307327" qualifier_id="213" value="4.76" />
+      <Q id="4429307319" qualifier_id="56" value="Back" />
+      <Q id="4429307321" qualifier_id="140" value="45.8" />
+    </Event>
+    <Event id="2575373321" event_id="52" type_id="1" period_id="1" min="4" sec="3" player_id="97624" team_id="184" outcome="1" x="61.8" y="6.5" timestamp="2023-08-11T18:34:41.358" timestamp_utc="2023-08-11T17:34:41.358" last_modified="2023-08-12T06:49:11" version="1691819351944">
+      <Q id="4429307669" qualifier_id="56" value="Right" />
+      <Q id="4430541887" qualifier_id="178" />
+      <Q id="4429307677" qualifier_id="213" value="1.36" />
+      <Q id="4429307671" qualifier_id="140" value="63.6" />
+      <Q id="4429307675" qualifier_id="212" value="8.8" />
+      <Q id="4429307673" qualifier_id="141" value="19.2" />
+    </Event>
+    <Event id="2575373347" event_id="53" type_id="1" period_id="1" min="4" sec="5" player_id="434078" team_id="184" outcome="1" x="60.6" y="23.0" timestamp="2023-08-11T18:34:43.550" timestamp_utc="2023-08-11T17:34:43.550" last_modified="2023-08-12T06:49:20" version="1691819360895">
+      <Q id="4430541999" qualifier_id="178" />
+      <Q id="4429307825" qualifier_id="140" value="52.5" />
+      <Q id="4429307823" qualifier_id="56" value="Center" />
+      <Q id="4429307827" qualifier_id="141" value="29.7" />
+      <Q id="4429307831" qualifier_id="213" value="2.65" />
+      <Q id="4429307829" qualifier_id="212" value="9.6" />
+    </Event>
+    <Event id="2575373365" event_id="54" type_id="1" period_id="1" min="4" sec="7" player_id="183462" team_id="184" outcome="1" x="52.8" y="31.0" timestamp="2023-08-11T18:34:45.621" timestamp_utc="2023-08-11T17:34:45.621" last_modified="2023-08-12T06:49:24" version="1691819364685">
+      <Q id="4430542037" qualifier_id="178" />
+      <Q id="4429307913" qualifier_id="56" value="Back" />
+      <Q id="4429307915" qualifier_id="140" value="42.7" />
+      <Q id="4429307917" qualifier_id="141" value="67.6" />
+      <Q id="4429307921" qualifier_id="213" value="1.97" />
+      <Q id="4429307919" qualifier_id="212" value="27.1" />
+    </Event>
+    <Event id="2575373381" event_id="55" type_id="1" period_id="1" min="4" sec="11" player_id="77359" team_id="184" outcome="1" x="42.7" y="69.4" timestamp="2023-08-11T18:34:48.907" timestamp_utc="2023-08-11T17:34:48.907" last_modified="2023-08-12T06:49:31" version="1691819372146">
+      <Q id="4430542093" qualifier_id="178" />
+      <Q id="4429308013" qualifier_id="212" value="13.4" />
+      <Q id="4429308015" qualifier_id="213" value="0.29" />
+      <Q id="4429308009" qualifier_id="140" value="54.9" />
+      <Q id="4429308007" qualifier_id="56" value="Center" />
+      <Q id="4429308011" qualifier_id="141" value="75.0" />
+    </Event>
+    <Event id="2575373383" event_id="56" type_id="1" period_id="1" min="4" sec="11" player_id="40721" team_id="184" outcome="1" x="55.1" y="77.0" timestamp="2023-08-11T18:34:49.797" timestamp_utc="2023-08-11T17:34:49.797" last_modified="2023-08-12T06:49:35" version="1691819375736">
+      <Q id="4429308031" qualifier_id="56" value="Back" />
+      <Q id="4429308039" qualifier_id="213" value="3.59" />
+      <Q id="4429308037" qualifier_id="212" value="12.6" />
+      <Q id="4430275357" qualifier_id="156" />
+      <Q id="4429308035" qualifier_id="141" value="69.0" />
+      <Q id="4429308033" qualifier_id="140" value="44.3" />
+      <Q id="4430542131" qualifier_id="178" />
+    </Event>
+    <Event id="2575373411" event_id="57" type_id="1" period_id="1" min="4" sec="13" player_id="77359" team_id="184" outcome="1" x="44.3" y="69.0" timestamp="2023-08-11T18:34:50.890" timestamp_utc="2023-08-11T17:34:50.890" last_modified="2023-08-12T06:49:37" version="1691819377569">
+      <Q id="4429308187" qualifier_id="140" value="54.5" />
+      <Q id="4429308193" qualifier_id="213" value="0.95" />
+      <Q id="4430542161" qualifier_id="178" />
+      <Q id="4429308189" qualifier_id="141" value="90.9" />
+      <Q id="4429308185" qualifier_id="56" value="Left" />
+      <Q id="4429308191" qualifier_id="212" value="18.3" />
+    </Event>
+    <Event id="2575373447" event_id="58" type_id="1" period_id="1" min="4" sec="15" player_id="178424" team_id="184" outcome="1" x="54.1" y="79.0" timestamp="2023-08-11T18:34:53.605" timestamp_utc="2023-08-11T17:34:53.605" last_modified="2023-08-12T06:49:40" version="1691819380599">
+      <Q id="4429308431" qualifier_id="1" />
+      <Q id="4429308421" qualifier_id="56" value="Back" />
+      <Q id="4429308429" qualifier_id="213" value="4.34" />
+      <Q id="4429308427" qualifier_id="212" value="51.3" />
+      <Q id="4429308419" qualifier_id="196" />
+      <Q id="4430542183" qualifier_id="178" />
+      <Q id="4429308423" qualifier_id="140" value="36.4" />
+      <Q id="4429308425" qualifier_id="141" value="8.7" />
+    </Event>
+    <Event id="2575373465" event_id="59" type_id="1" period_id="1" min="4" sec="20" player_id="183462" team_id="184" outcome="1" x="36.4" y="7.1" timestamp="2023-08-11T18:34:58.432" timestamp_utc="2023-08-11T17:34:58.432" last_modified="2023-08-12T06:49:44" version="1691819384328">
+      <Q id="4429308505" qualifier_id="56" value="Back" />
+      <Q id="4429308511" qualifier_id="212" value="13.3" />
+      <Q id="4429308509" qualifier_id="141" value="2.5" />
+      <Q id="4429308513" qualifier_id="213" value="6.05" />
+      <Q id="4430542201" qualifier_id="178" />
+      <Q id="4429308507" qualifier_id="140" value="48.7" />
+    </Event>
+    <Event id="2575373477" event_id="60" type_id="1" period_id="1" min="4" sec="22" player_id="97624" team_id="184" outcome="1" x="48.7" y="2.5" timestamp="2023-08-11T18:35:00.244" timestamp_utc="2023-08-11T17:35:00.244" last_modified="2023-08-12T06:49:47" version="1691819388106">
+      <Q id="4430542229" qualifier_id="178" />
+      <Q id="4429308575" qualifier_id="56" value="Back" />
+      <Q id="4429308583" qualifier_id="213" value="2.74" />
+      <Q id="4429308581" qualifier_id="212" value="7.6" />
+      <Q id="4429308577" qualifier_id="140" value="42.0" />
+      <Q id="4429308579" qualifier_id="141" value="6.9" />
+    </Event>
+    <Event id="2575373533" event_id="61" type_id="1" period_id="1" min="4" sec="24" player_id="183462" team_id="184" outcome="1" x="41.8" y="12.0" timestamp="2023-08-11T18:35:02.697" timestamp_utc="2023-08-11T17:35:02.697" last_modified="2023-08-12T06:49:50" version="1691819390583">
+      <Q id="4429308847" qualifier_id="1" />
+      <Q id="4430542249" qualifier_id="178" />
+      <Q id="4429308837" qualifier_id="56" value="Back" />
+      <Q id="4429308841" qualifier_id="141" value="67.6" />
+      <Q id="4429308839" qualifier_id="140" value="34.5" />
+      <Q id="4429308843" qualifier_id="212" value="38.6" />
+      <Q id="4429308845" qualifier_id="213" value="1.77" />
+    </Event>
+    <Event id="2575373545" event_id="62" type_id="1" period_id="1" min="4" sec="28" player_id="77359" team_id="184" outcome="1" x="38.9" y="70.3" timestamp="2023-08-11T18:35:06.259" timestamp_utc="2023-08-11T17:35:06.259" last_modified="2023-08-12T06:49:53" version="1691819393471">
+      <Q id="4429308931" qualifier_id="56" value="Left" />
+      <Q id="4429308941" qualifier_id="1" />
+      <Q id="4429308939" qualifier_id="213" value="0.50" />
+      <Q id="4429308937" qualifier_id="212" value="34.1" />
+      <Q id="4430542281" qualifier_id="178" />
+      <Q id="4429308935" qualifier_id="141" value="94.4" />
+      <Q id="4429308933" qualifier_id="140" value="67.4" />
+    </Event>
+    <Event id="2575373583" event_id="63" type_id="1" period_id="1" min="4" sec="30" player_id="165682" team_id="184" outcome="1" x="68.8" y="94.4" timestamp="2023-08-11T18:35:08.242" timestamp_utc="2023-08-11T17:35:08.242" last_modified="2023-08-12T06:49:55" version="1691819396214">
+      <Q id="4429309147" qualifier_id="140" value="64.8" />
+      <Q id="4429309149" qualifier_id="141" value="87.5" />
+      <Q id="4429309153" qualifier_id="213" value="3.98" />
+      <Q id="4429309151" qualifier_id="212" value="6.3" />
+      <Q id="4429309145" qualifier_id="56" value="Left" />
+      <Q id="4430542303" qualifier_id="178" />
+    </Event>
+    <Event id="2575373613" event_id="64" type_id="1" period_id="1" min="4" sec="34" player_id="40721" team_id="184" outcome="1" x="66.4" y="89.3" timestamp="2023-08-11T18:35:12.363" timestamp_utc="2023-08-11T17:35:12.363" last_modified="2023-08-12T06:49:58" version="1691819398897">
+      <Q id="4429309315" qualifier_id="56" value="Left" />
+      <Q id="4429309323" qualifier_id="213" value="5.95" />
+      <Q id="4430542329" qualifier_id="178" />
+      <Q id="4429309321" qualifier_id="212" value="7.5" />
+      <Q id="4429309317" qualifier_id="140" value="73.2" />
+      <Q id="4429309319" qualifier_id="141" value="85.7" />
+    </Event>
+    <Event id="2575373623" event_id="65" type_id="1" period_id="1" min="4" sec="35" player_id="178424" team_id="184" outcome="1" x="73.4" y="85.1" timestamp="2023-08-11T18:35:12.987" timestamp_utc="2023-08-11T17:35:12.987" last_modified="2023-08-12T06:50:02" version="1691819403126">
+      <Q id="4430542377" qualifier_id="178" />
+      <Q id="4429309389" qualifier_id="212" value="2.9" />
+      <Q id="4429309387" qualifier_id="141" value="89.3" />
+      <Q id="4429309391" qualifier_id="213" value="1.68" />
+      <Q id="4429309383" qualifier_id="56" value="Left" />
+      <Q id="4429309385" qualifier_id="140" value="73.1" />
+    </Event>
+    <Event id="2575373643" event_id="66" type_id="1" period_id="1" min="4" sec="36" player_id="40721" team_id="184" outcome="1" x="73.1" y="89.9" timestamp="2023-08-11T18:35:13.934" timestamp_utc="2023-08-11T17:35:13.934" last_modified="2023-08-12T06:50:07" version="1691819407655">
+      <Q id="4429309505" qualifier_id="141" value="93.7" />
+      <Q id="4429309503" qualifier_id="140" value="83.0" />
+      <Q id="4429309501" qualifier_id="56" value="Left" />
+      <Q id="4429309509" qualifier_id="213" value="0.24" />
+      <Q id="4430542415" qualifier_id="178" />
+      <Q id="4429309507" qualifier_id="212" value="10.7" />
+    </Event>
+    <Event id="2575373647" event_id="67" type_id="1" period_id="1" min="4" sec="38" player_id="165682" team_id="184" outcome="0" x="84.3" y="94.8" timestamp="2023-08-11T18:35:16.620" timestamp_utc="2023-08-11T17:35:16.620" last_modified="2023-08-12T06:50:11" version="1691819411895">
+      <Q id="4429309539" qualifier_id="213" value="5.97" />
+      <Q id="4430542453" qualifier_id="178" />
+      <Q id="4429309531" qualifier_id="56" value="Left" />
+      <Q id="4430426507" qualifier_id="233" value="42" />
+      <Q id="4430275735" qualifier_id="236" />
+      <Q id="4429309533" qualifier_id="140" value="88.1" />
+      <Q id="4430275737" qualifier_id="286" />
+      <Q id="4429309537" qualifier_id="212" value="4.2" />
+      <Q id="4429309535" qualifier_id="141" value="92.9" />
+    </Event>
+    <Event id="2575373641" event_id="42" type_id="74" period_id="1" min="4" sec="38" player_id="234548" team_id="1564" outcome="1" x="16.5" y="7.3" timestamp="2023-08-11T18:35:16.766" timestamp_utc="2023-08-11T17:35:16.766" last_modified="2023-08-12T06:50:14" version="1691819414398">
+      <Q id="4429309499" qualifier_id="56" value="Back" />
+      <Q id="4430275693" qualifier_id="285" />
+      <Q id="4430542481" qualifier_id="178" />
+      <Q id="4430426511" qualifier_id="233" value="67" />
+    </Event>
+    <Event id="2575373653" event_id="43" type_id="5" period_id="1" min="4" sec="40" player_id="234548" team_id="1564" outcome="0" x="15.6" y="-1.3" timestamp="2023-08-11T18:35:18.037" timestamp_utc="2023-08-11T17:35:18.037" last_modified="2023-08-12T06:50:19" version="1691819419629">
+      <Q id="4429309663" qualifier_id="233" value="68" />
+      <Q id="4429309571" qualifier_id="56" value="Back" />
+      <Q id="4429309573" qualifier_id="347" />
+    </Event>
+    <Event id="2575373665" event_id="68" type_id="5" period_id="1" min="4" sec="40" player_id="165682" team_id="184" outcome="1" x="84.4" y="101.3" timestamp="2023-08-11T18:35:18.037" timestamp_utc="2023-08-11T17:35:18.037" last_modified="2023-08-12T06:50:19" version="1691819419623">
+      <Q id="4429309637" qualifier_id="56" value="Left" />
+      <Q id="4429309639" qualifier_id="347" />
+      <Q id="4429309653" qualifier_id="233" value="43" />
+    </Event>
+    <Event id="2575373787" event_id="69" type_id="1" period_id="1" min="4" sec="53" player_id="178424" team_id="184" outcome="1" x="85.6" y="100.0" timestamp="2023-08-11T18:35:31.733" timestamp_utc="2023-08-11T17:35:31.733" last_modified="2023-08-12T06:50:23" version="1691819424031">
+      <Q id="4429310269" qualifier_id="141" value="87.1" />
+      <Q id="4429310267" qualifier_id="140" value="78.6" />
+      <Q id="4429310271" qualifier_id="212" value="12.0" />
+      <Q id="4429310273" qualifier_id="213" value="4.05" />
+      <Q id="4429310263" qualifier_id="107" />
+      <Q id="4429310265" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575373797" event_id="70" type_id="1" period_id="1" min="4" sec="54" player_id="165682" team_id="184" outcome="0" x="78.5" y="87.1" timestamp="2023-08-11T18:35:32.681" timestamp_utc="2023-08-11T17:35:32.681" last_modified="2023-08-12T06:50:31" version="1691819431951">
+      <Q id="4429310353" qualifier_id="140" value="94.3" />
+      <Q id="4429310355" qualifier_id="141" value="93.8" />
+      <Q id="4430542705" qualifier_id="178" />
+      <Q id="4429310359" qualifier_id="213" value="0.27" />
+      <Q id="4429310351" qualifier_id="56" value="Left" />
+      <Q id="4429310357" qualifier_id="212" value="17.2" />
+    </Event>
+    <Event id="2575373809" event_id="44" type_id="12" period_id="1" min="4" sec="56" player_id="234548" team_id="1564" outcome="1" x="5.8" y="10.3" timestamp="2023-08-11T18:35:34.189" timestamp_utc="2023-08-11T17:35:34.189" last_modified="2023-08-12T06:50:35" version="1691819436081">
+      <Q id="4429310445" qualifier_id="213" value="5.21" />
+      <Q id="4430542777" qualifier_id="178" />
+      <Q id="4429310443" qualifier_id="212" value="1.3" />
+      <Q id="4429310439" qualifier_id="140" value="6.4" />
+      <Q id="4429310441" qualifier_id="141" value="8.6" />
+      <Q id="4429310437" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575373829" event_id="72" type_id="61" period_id="1" min="4" sec="56" player_id="178424" team_id="184" outcome="1" x="93.2" y="95.8" timestamp="2023-08-11T18:35:34.235" timestamp_utc="2023-08-11T17:35:34.235" last_modified="2023-08-12T06:50:40" version="1691819440606">
+      <Q id="4429310535" qualifier_id="56" value="Left" />
+      <Q id="4430542853" qualifier_id="178" />
+    </Event>
+    <Event id="2575373823" event_id="45" type_id="5" period_id="1" min="4" sec="57" player_id="234548" team_id="1564" outcome="1" x="4.8" y="-1.0" timestamp="2023-08-11T18:35:35.098" timestamp_utc="2023-08-11T17:35:35.098" last_modified="2023-08-12T06:50:42" version="1691819442574">
+      <Q id="4429310521" qualifier_id="347" />
+      <Q id="4429310519" qualifier_id="56" value="Back" />
+      <Q id="4429310691" qualifier_id="233" value="71" />
+    </Event>
+    <Event id="2575373827" event_id="71" type_id="5" period_id="1" min="4" sec="57" player_id="165682" team_id="184" outcome="0" x="95.2" y="101.0" timestamp="2023-08-11T18:35:35.098" timestamp_utc="2023-08-11T17:35:35.098" last_modified="2023-08-12T06:50:42" version="1691819442566">
+      <Q id="4429310697" qualifier_id="233" value="45" />
+      <Q id="4429310531" qualifier_id="56" value="Left" />
+      <Q id="4429310533" qualifier_id="347" />
+    </Event>
+    <Event id="2575373875" event_id="46" type_id="1" period_id="1" min="5" sec="4" player_id="234548" team_id="1564" outcome="1" x="6.1" y="0.0" timestamp="2023-08-11T18:35:42.836" timestamp_utc="2023-08-11T17:35:42.836" last_modified="2023-08-12T06:50:45" version="1691819446142">
+      <Q id="4429310819" qualifier_id="213" value="1.68" />
+      <Q id="4429310811" qualifier_id="56" value="Back" />
+      <Q id="4429310817" qualifier_id="212" value="9.7" />
+      <Q id="4429310815" qualifier_id="141" value="12.9" />
+      <Q id="4429310809" qualifier_id="107" />
+      <Q id="4429310813" qualifier_id="140" value="5.1" />
+    </Event>
+    <Event id="2575373883" event_id="47" type_id="1" period_id="1" min="5" sec="6" player_id="233681" team_id="1564" outcome="1" x="5.1" y="12.9" timestamp="2023-08-11T18:35:44.035" timestamp_utc="2023-08-11T17:35:44.035" last_modified="2023-08-12T06:50:48" version="1691819449078">
+      <Q id="4429310859" qualifier_id="141" value="6.4" />
+      <Q id="4429310861" qualifier_id="212" value="4.6" />
+      <Q id="4430542985" qualifier_id="178" />
+      <Q id="4429310855" qualifier_id="56" value="Back" />
+      <Q id="4429310863" qualifier_id="213" value="4.41" />
+      <Q id="4429310857" qualifier_id="140" value="3.8" />
+    </Event>
+    <Event id="2575373903" event_id="48" type_id="1" period_id="1" min="5" sec="7" player_id="234548" team_id="1564" outcome="1" x="3.8" y="6.4" timestamp="2023-08-11T18:35:44.938" timestamp_utc="2023-08-11T17:35:44.938" last_modified="2023-08-12T06:50:50" version="1691819451273">
+      <Q id="4429310963" qualifier_id="56" value="Back" />
+      <Q id="4429310965" qualifier_id="140" value="3.2" />
+      <Q id="4429310969" qualifier_id="212" value="3.6" />
+      <Q id="4430543027" qualifier_id="178" />
+      <Q id="4429310971" qualifier_id="213" value="1.75" />
+      <Q id="4429310967" qualifier_id="141" value="11.6" />
+    </Event>
+    <Event id="2575373907" event_id="49" type_id="61" period_id="1" min="5" sec="8" player_id="233681" team_id="1564" outcome="0" x="2.9" y="12.2" timestamp="2023-08-11T18:35:46.109" timestamp_utc="2023-08-11T17:35:46.109" last_modified="2023-08-12T06:50:56" version="1691819457110">
+      <Q id="4430543117" qualifier_id="178" />
+      <Q id="4429310981" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575373915" event_id="50" type_id="6" period_id="1" min="5" sec="9" player_id="233681" team_id="1564" outcome="0" x="5.0" y="12.8" timestamp="2023-08-11T18:35:47.401" timestamp_utc="2023-08-11T17:35:47.401" last_modified="2023-08-12T06:50:59" version="1691819459751">
+      <Q id="4429311069" qualifier_id="73" />
+      <Q id="4429311133" qualifier_id="233" value="73" />
+      <Q id="4429311067" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575373917" event_id="73" type_id="6" period_id="1" min="5" sec="9" player_id="178424" team_id="184" outcome="1" x="95.0" y="87.2" timestamp="2023-08-11T18:35:47.401" timestamp_utc="2023-08-11T17:35:47.401" last_modified="2023-08-12T06:50:59" version="1691819459745">
+      <Q id="4429311115" qualifier_id="233" value="50" />
+      <Q id="4429311089" qualifier_id="73" />
+      <Q id="4429311087" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575374265" event_id="74" type_id="1" period_id="1" min="5" sec="37" player_id="183462" team_id="184" outcome="0" x="99.5" y="99.5" timestamp="2023-08-11T18:36:15.573" timestamp_utc="2023-08-11T17:36:15.573" last_modified="2023-08-12T06:51:04" version="1691819464559">
+      <Q id="4429312871" qualifier_id="141" value="73.2" />
+      <Q id="4429312867" qualifier_id="140" value="92.0" />
+      <Q id="4429312877" qualifier_id="213" value="4.30" />
+      <Q id="4429312859" qualifier_id="6" />
+      <Q id="4429312863" qualifier_id="56" value="Center" />
+      <Q id="4430543231" qualifier_id="178" />
+      <Q id="4429312875" qualifier_id="212" value="19.5" />
+    </Event>
+    <Event id="2575374337" event_id="51" type_id="12" period_id="1" min="5" sec="38" player_id="234548" team_id="1564" outcome="1" x="4.4" y="30.7" timestamp="2023-08-11T18:36:16.575" timestamp_utc="2023-08-11T17:36:16.575" last_modified="2023-08-12T06:51:09" version="1691819469295">
+      <Q id="4429313233" qualifier_id="140" value="12.7" />
+      <Q id="4429313235" qualifier_id="141" value="18.0" />
+      <Q id="4429313237" qualifier_id="212" value="12.3" />
+      <Q id="4430543305" qualifier_id="178" />
+      <Q id="4429313239" qualifier_id="213" value="5.50" />
+      <Q id="4429313231" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575374325" event_id="75" type_id="1" period_id="1" min="5" sec="40" player_id="165682" team_id="184" outcome="1" x="87.7" y="83.7" timestamp="2023-08-11T18:36:18.449" timestamp_utc="2023-08-11T17:36:18.449" last_modified="2023-08-12T06:51:14" version="1691819474970">
+      <Q id="4429313185" qualifier_id="212" value="6.8" />
+      <Q id="4429313183" qualifier_id="141" value="93.1" />
+      <Q id="4429313181" qualifier_id="140" value="89.9" />
+      <Q id="4429313187" qualifier_id="213" value="1.22" />
+      <Q id="4430543427" qualifier_id="178" />
+      <Q id="4429313179" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575374333" event_id="76" type_id="1" period_id="1" min="5" sec="43" player_id="183462" team_id="184" outcome="0" x="88.1" y="92.8" timestamp="2023-08-11T18:36:20.894" timestamp_utc="2023-08-11T17:36:20.894" last_modified="2023-08-12T06:51:18" version="1691819478488">
+      <Q id="4430277445" qualifier_id="20" />
+      <Q id="4429313217" qualifier_id="213" value="5.03" />
+      <Q id="4429313215" qualifier_id="212" value="29.5" />
+      <Q id="4429313209" qualifier_id="56" value="Center" />
+      <Q id="4430277443" qualifier_id="223" />
+      <Q id="4429313205" qualifier_id="2" />
+      <Q id="4429313211" qualifier_id="140" value="96.9" />
+      <Q id="4429313213" qualifier_id="141" value="51.6" />
+      <Q id="4430543483" qualifier_id="178" />
+      <Q id="4429313207" qualifier_id="155" />
+    </Event>
+    <Event id="2575374343" event_id="52" type_id="52" period_id="1" min="5" sec="44" player_id="76611" team_id="1564" outcome="1" x="2.3" y="46.9" timestamp="2023-08-11T18:36:22.812" timestamp_utc="2023-08-11T17:36:22.812" last_modified="2023-08-12T06:51:22" version="1691819483161">
+      <Q id="4430277521" qualifier_id="377" />
+      <Q id="4430543535" qualifier_id="178" />
+    </Event>
+    <Event id="2575374469" event_id="53" type_id="1" period_id="1" min="5" sec="48" player_id="76611" team_id="1564" outcome="1" x="14.6" y="47.6" timestamp="2023-08-11T18:36:26.629" timestamp_utc="2023-08-11T17:36:26.629" last_modified="2023-08-12T06:51:25" version="1691819485888">
+      <Q id="4430543579" qualifier_id="178" />
+      <Q id="4429313927" qualifier_id="213" value="1.09" />
+      <Q id="4429313919" qualifier_id="56" value="Back" />
+      <Q id="4429313917" qualifier_id="123" />
+      <Q id="4429313921" qualifier_id="140" value="24.5" />
+      <Q id="4429313925" qualifier_id="212" value="22.7" />
+      <Q id="4429313923" qualifier_id="141" value="77.2" />
+    </Event>
+    <Event id="2575374487" event_id="54" type_id="1" period_id="1" min="5" sec="56" player_id="220871" team_id="1564" outcome="1" x="44.1" y="69.6" timestamp="2023-08-11T18:36:34.683" timestamp_utc="2023-08-11T17:36:34.683" last_modified="2023-08-12T06:51:35" version="1691819495665">
+      <Q id="4429314001" qualifier_id="141" value="78.8" />
+      <Q id="4429314005" qualifier_id="213" value="2.05" />
+      <Q id="4429314003" qualifier_id="212" value="7.1" />
+      <Q id="4429313999" qualifier_id="140" value="41.0" />
+      <Q id="4429313997" qualifier_id="56" value="Back" />
+      <Q id="4430543691" qualifier_id="178" />
+    </Event>
+    <Event id="2575374565" event_id="55" type_id="1" period_id="1" min="5" sec="58" player_id="463170" team_id="1564" outcome="1" x="41.9" y="82.1" timestamp="2023-08-11T18:36:36.492" timestamp_utc="2023-08-11T17:36:36.492" last_modified="2023-08-12T06:51:37" version="1691819498146">
+      <Q id="4429314479" qualifier_id="141" value="95.9" />
+      <Q id="4430543717" qualifier_id="178" />
+      <Q id="4429314481" qualifier_id="212" value="20.4" />
+      <Q id="4429314477" qualifier_id="140" value="59.2" />
+      <Q id="4429314483" qualifier_id="213" value="0.48" />
+      <Q id="4429314475" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575374593" event_id="56" type_id="1" period_id="1" min="6" sec="2" player_id="441293" team_id="1564" outcome="1" x="47.2" y="83.9" timestamp="2023-08-11T18:36:40.589" timestamp_utc="2023-08-11T17:36:40.589" last_modified="2023-08-12T06:51:43" version="1691819503279">
+      <Q id="4429314633" qualifier_id="56" value="Back" />
+      <Q id="4430543757" qualifier_id="178" />
+      <Q id="4429314635" qualifier_id="140" value="37.3" />
+      <Q id="4429314637" qualifier_id="141" value="61.2" />
+      <Q id="4429314641" qualifier_id="213" value="4.12" />
+      <Q id="4429314639" qualifier_id="212" value="18.6" />
+    </Event>
+    <Event id="2575374617" event_id="57" type_id="1" period_id="1" min="6" sec="5" player_id="210977" team_id="1564" outcome="1" x="38.4" y="52.8" timestamp="2023-08-11T18:36:43.787" timestamp_utc="2023-08-11T17:36:43.787" last_modified="2023-08-12T06:51:50" version="1691819510681">
+      <Q id="4429314783" qualifier_id="140" value="38.1" />
+      <Q id="4429314785" qualifier_id="141" value="36.1" />
+      <Q id="4429314781" qualifier_id="56" value="Back" />
+      <Q id="4429314789" qualifier_id="213" value="4.68" />
+      <Q id="4429314787" qualifier_id="212" value="11.4" />
+      <Q id="4430543847" qualifier_id="178" />
+    </Event>
+    <Event id="2575374629" event_id="58" type_id="1" period_id="1" min="6" sec="9" player_id="469402" team_id="1564" outcome="1" x="38.1" y="36.1" timestamp="2023-08-11T18:36:47.165" timestamp_utc="2023-08-11T17:36:47.165" last_modified="2023-08-12T06:51:54" version="1691819514703">
+      <Q id="4430543913" qualifier_id="178" />
+      <Q id="4429314823" qualifier_id="140" value="54.9" />
+      <Q id="4429314825" qualifier_id="141" value="7.4" />
+      <Q id="4429314829" qualifier_id="213" value="5.45" />
+      <Q id="4429314821" qualifier_id="56" value="Right" />
+      <Q id="4429314827" qualifier_id="212" value="26.3" />
+    </Event>
+    <Event id="2575374653" event_id="59" type_id="1" period_id="1" min="6" sec="11" player_id="234548" team_id="1564" outcome="1" x="55.3" y="7.4" timestamp="2023-08-11T18:36:49.680" timestamp_utc="2023-08-11T17:36:49.680" last_modified="2023-08-12T06:51:57" version="1691819518047">
+      <Q id="4429314921" qualifier_id="213" value="0.99" />
+      <Q id="4429314917" qualifier_id="141" value="31.8" />
+      <Q id="4429314911" qualifier_id="155" />
+      <Q id="4430543955" qualifier_id="178" />
+      <Q id="4429314919" qualifier_id="212" value="19.9" />
+      <Q id="4429314915" qualifier_id="140" value="65.7" />
+      <Q id="4429314913" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575374663" event_id="60" type_id="1" period_id="1" min="6" sec="12" player_id="433952" team_id="1564" outcome="1" x="65.8" y="31.8" timestamp="2023-08-11T18:36:50.782" timestamp_utc="2023-08-11T17:36:50.782" last_modified="2023-08-12T06:52:07" version="1691819527750">
+      <Q id="4429314989" qualifier_id="212" value="23.4" />
+      <Q id="4429314981" qualifier_id="3" />
+      <Q id="4430544081" qualifier_id="388" />
+      <Q id="4429314987" qualifier_id="141" value="39.5" />
+      <Q id="4429314991" qualifier_id="213" value="0.23" />
+      <Q id="4429314985" qualifier_id="140" value="87.5" />
+      <Q id="4429314983" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575374665" event_id="61" type_id="61" period_id="1" min="6" sec="15" player_id="132161" team_id="1564" outcome="0" x="87.5" y="39.5" timestamp="2023-08-11T18:36:53.301" timestamp_utc="2023-08-11T17:36:53.301" last_modified="2023-08-12T06:52:24" version="1691819545089">
+      <Q id="4429314995" qualifier_id="56" value="Center" />
+      <Q id="4430544277" qualifier_id="178" />
+    </Event>
+    <Event id="2575374689" event_id="77" type_id="52" period_id="1" min="6" sec="17" player_id="94878" team_id="184" outcome="1" x="9.4" y="48.7" timestamp="2023-08-11T18:36:54.883" timestamp_utc="2023-08-11T17:36:54.883" last_modified="2023-08-12T06:52:33" version="1691819553822">
+      <Q id="4430544367" qualifier_id="178" />
+      <Q id="4430278159" qualifier_id="376" />
+    </Event>
+    <Event id="2575374719" event_id="78" type_id="1" period_id="1" min="6" sec="21" player_id="94878" team_id="184" outcome="1" x="13.4" y="44.7" timestamp="2023-08-11T18:36:59.757" timestamp_utc="2023-08-11T17:36:59.757" last_modified="2023-08-12T06:52:42" version="1691819562833">
+      <Q id="4430544513" qualifier_id="178" />
+      <Q id="4429315295" qualifier_id="56" value="Back" />
+      <Q id="4429315303" qualifier_id="213" value="0.98" />
+      <Q id="4429315293" qualifier_id="123" />
+      <Q id="4430278425" qualifier_id="189" />
+      <Q id="4429315297" qualifier_id="140" value="29.3" />
+      <Q id="4429315325" qualifier_id="287" />
+      <Q id="4429315301" qualifier_id="212" value="30.1" />
+      <Q id="4429315299" qualifier_id="141" value="81.5" />
+    </Event>
+    <Event id="2575374759" event_id="79" type_id="3" period_id="1" min="6" sec="24" player_id="40721" team_id="184" outcome="0" x="43.4" y="92.5" timestamp="2023-08-11T18:37:02.783" timestamp_utc="2023-08-11T17:37:02.783" last_modified="2023-08-12T06:52:49" version="1691819570111">
+      <Q id="4429315491" qualifier_id="286" />
+      <Q id="4430426533" qualifier_id="233" value="62" />
+      <Q id="4430279107" qualifier_id="465" />
+      <Q id="4429315489" qualifier_id="56" value="Back" />
+      <Q id="4430544631" qualifier_id="178" />
+    </Event>
+    <Event id="2575374771" event_id="62" type_id="7" period_id="1" min="6" sec="25" player_id="233681" team_id="1564" outcome="1" x="56.6" y="7.5" timestamp="2023-08-11T18:37:03.291" timestamp_utc="2023-08-11T17:37:03.291" last_modified="2023-08-12T06:52:54" version="1691819574956">
+      <Q id="4430544705" qualifier_id="178" />
+      <Q id="4429315567" qualifier_id="56" value="Right" />
+      <Q id="4429315593" qualifier_id="233" value="79" />
+      <Q id="4429315569" qualifier_id="285" />
+      <Q id="4430279217" qualifier_id="384" />
+    </Event>
+    <Event id="2575374775" event_id="63" type_id="49" period_id="1" min="6" sec="26" player_id="234548" team_id="1564" outcome="1" x="44.4" y="8.2" timestamp="2023-08-11T18:37:04.425" timestamp_utc="2023-08-11T17:37:04.425" last_modified="2023-08-12T06:52:59" version="1691819580062" />
+    <Event id="2575374791" event_id="64" type_id="3" period_id="1" min="6" sec="27" player_id="234548" team_id="1564" outcome="0" x="45.1" y="8.5" timestamp="2023-08-11T18:37:05.130" timestamp_utc="2023-08-11T17:37:05.130" last_modified="2023-08-12T06:53:17" version="1691819597879">
+      <Q id="4429315637" qualifier_id="56" value="Back" />
+      <Q id="4429315749" qualifier_id="233" value="80" />
+      <Q id="4429315641" qualifier_id="286" />
+      <Q id="4430279311" qualifier_id="464" />
+      <Q id="4430545021" qualifier_id="178" />
+    </Event>
+    <Event id="2575374787" event_id="80" type_id="7" period_id="1" min="6" sec="27" player_id="40721" team_id="184" outcome="0" x="54.9" y="91.5" timestamp="2023-08-11T18:37:05.290" timestamp_utc="2023-08-11T17:37:05.290" last_modified="2023-08-12T06:53:22" version="1691819603118">
+      <Q id="4429315635" qualifier_id="285" />
+      <Q id="4429315715" qualifier_id="233" value="64" />
+      <Q id="4430545107" qualifier_id="178" />
+      <Q id="4430279321" qualifier_id="383" />
+      <Q id="4429315629" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575375433" event_id="71" type_id="61" period_id="1" min="6" sec="27" player_id="234548" team_id="1564" outcome="1" x="44.5" y="6.1" timestamp="2023-08-11T18:37:05.464" timestamp_utc="2023-08-11T17:37:05.464" last_modified="2023-08-12T06:53:26" version="1691819606818">
+      <Q id="4430545135" qualifier_id="178" />
+      <Q id="4429318989" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575374793" event_id="81" type_id="49" period_id="1" min="6" sec="28" player_id="40721" team_id="184" outcome="1" x="56.3" y="92.0" timestamp="2023-08-11T18:37:06.218" timestamp_utc="2023-08-11T17:37:06.218" last_modified="2023-08-12T06:53:30" version="1691819610943" />
+    <Event id="2575374851" event_id="82" type_id="1" period_id="1" min="6" sec="28" player_id="40721" team_id="184" outcome="1" x="56.3" y="92.0" timestamp="2023-08-11T18:37:06.283" timestamp_utc="2023-08-11T17:37:06.283" last_modified="2023-08-12T06:53:34" version="1691819614823">
+      <Q id="4429315991" qualifier_id="213" value="0.17" />
+      <Q id="4429315983" qualifier_id="56" value="Left" />
+      <Q id="4429315985" qualifier_id="140" value="69.8" />
+      <Q id="4429315989" qualifier_id="212" value="14.4" />
+      <Q id="4430545285" qualifier_id="178" />
+      <Q id="4429315987" qualifier_id="141" value="95.5" />
+    </Event>
+    <Event id="2575374859" event_id="83" type_id="3" period_id="1" min="6" sec="32" player_id="165682" team_id="184" outcome="0" x="79.6" y="81.4" timestamp="2023-08-11T18:37:10.164" timestamp_utc="2023-08-11T17:37:10.164" last_modified="2023-08-12T06:53:39" version="1691819619583">
+      <Q id="4429316021" qualifier_id="286" />
+      <Q id="4429316019" qualifier_id="56" value="Left" />
+      <Q id="4429316075" qualifier_id="233" value="65" />
+      <Q id="4430545337" qualifier_id="178" />
+      <Q id="4430279483" qualifier_id="465" />
+    </Event>
+    <Event id="2575374863" event_id="65" type_id="7" period_id="1" min="6" sec="32" player_id="469402" team_id="1564" outcome="0" x="20.4" y="18.6" timestamp="2023-08-11T18:37:10.199" timestamp_utc="2023-08-11T17:37:10.199" last_modified="2023-08-12T06:53:41" version="1691819622143">
+      <Q id="4429316049" qualifier_id="285" />
+      <Q id="4430279521" qualifier_id="385" />
+      <Q id="4429316067" qualifier_id="233" value="83" />
+      <Q id="4430545365" qualifier_id="178" />
+      <Q id="4429316047" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575549643" event_id="718" type_id="61" period_id="1" min="6" sec="32" player_id="165682" team_id="184" outcome="1" x="76.5" y="85.9" timestamp="2023-08-11T18:37:10.325" timestamp_utc="2023-08-11T17:37:10.325" last_modified="2023-08-12T06:53:45" version="1691819625402">
+      <Q id="4430279695" qualifier_id="56" value="Left" />
+      <Q id="4430545395" qualifier_id="178" />
+    </Event>
+    <Event id="2575374919" event_id="84" type_id="1" period_id="1" min="6" sec="35" player_id="40721" team_id="184" outcome="1" x="74.7" y="87.1" timestamp="2023-08-11T18:37:13.448" timestamp_utc="2023-08-11T17:37:13.448" last_modified="2023-08-12T06:53:51" version="1691819632194">
+      <Q id="4430545457" qualifier_id="178" />
+      <Q id="4429316341" qualifier_id="141" value="68.8" />
+      <Q id="4429316339" qualifier_id="140" value="69.9" />
+      <Q id="4429316345" qualifier_id="213" value="4.33" />
+      <Q id="4429316337" qualifier_id="56" value="Center" />
+      <Q id="4429316343" qualifier_id="212" value="13.4" />
+    </Event>
+    <Event id="2575374931" event_id="85" type_id="1" period_id="1" min="6" sec="37" player_id="183462" team_id="184" outcome="1" x="70.2" y="71.6" timestamp="2023-08-11T18:37:15.297" timestamp_utc="2023-08-11T17:37:15.297" last_modified="2023-08-12T06:53:54" version="1691819635255">
+      <Q id="4429316391" qualifier_id="141" value="73.2" />
+      <Q id="4429316393" qualifier_id="212" value="6.5" />
+      <Q id="4429316395" qualifier_id="213" value="0.17" />
+      <Q id="4430545483" qualifier_id="178" />
+      <Q id="4429316387" qualifier_id="56" value="Center" />
+      <Q id="4429316389" qualifier_id="140" value="76.3" />
+    </Event>
+    <Event id="2575374939" event_id="86" type_id="61" period_id="1" min="6" sec="37" player_id="40721" team_id="184" outcome="0" x="76.3" y="73.4" timestamp="2023-08-11T18:37:15.781" timestamp_utc="2023-08-11T17:37:15.781" last_modified="2023-08-12T06:54:02" version="1691819642230">
+      <Q id="4429316435" qualifier_id="56" value="Center" />
+      <Q id="4430545537" qualifier_id="178" />
+    </Event>
+    <Event id="2575374951" event_id="66" type_id="12" period_id="1" min="6" sec="38" player_id="234548" team_id="1564" outcome="1" x="18.0" y="28.9" timestamp="2023-08-11T18:37:16.335" timestamp_utc="2023-08-11T17:37:16.335" last_modified="2023-08-12T06:54:06" version="1691819646487">
+      <Q id="4429316575" qualifier_id="140" value="25.2" />
+      <Q id="4429316585" qualifier_id="212" value="10.4" />
+      <Q id="4430545583" qualifier_id="178" />
+      <Q id="4429316571" qualifier_id="56" value="Back" />
+      <Q id="4429316587" qualifier_id="213" value="0.76" />
+      <Q id="4429316579" qualifier_id="141" value="39.4" />
+    </Event>
+    <Event id="2575374953" event_id="67" type_id="49" period_id="1" min="6" sec="38" player_id="463170" team_id="1564" outcome="1" x="25.2" y="39.4" timestamp="2023-08-11T18:37:16.613" timestamp_utc="2023-08-11T17:37:16.613" last_modified="2023-08-12T06:54:12" version="1691819652615" />
+    <Event id="2575375017" event_id="68" type_id="1" period_id="1" min="6" sec="41" player_id="463170" team_id="1564" outcome="1" x="25.3" y="40.0" timestamp="2023-08-11T18:37:19.439" timestamp_utc="2023-08-11T17:37:19.439" last_modified="2023-08-12T06:54:16" version="1691819656743">
+      <Q id="4429316937" qualifier_id="141" value="53.4" />
+      <Q id="4430545667" qualifier_id="178" />
+      <Q id="4429316941" qualifier_id="213" value="0.68" />
+      <Q id="4429316939" qualifier_id="212" value="14.5" />
+      <Q id="4429316933" qualifier_id="56" value="Back" />
+      <Q id="4429316935" qualifier_id="140" value="36.0" />
+    </Event>
+    <Event id="2575375089" event_id="69" type_id="1" period_id="1" min="6" sec="47" player_id="132161" team_id="1564" outcome="1" x="63.6" y="60.0" timestamp="2023-08-11T18:37:25.600" timestamp_utc="2023-08-11T17:37:25.600" last_modified="2023-08-12T06:54:19" version="1691819659808">
+      <Q id="4429317299" qualifier_id="140" value="76.5" />
+      <Q id="4429317301" qualifier_id="141" value="78.5" />
+      <Q id="4430545693" qualifier_id="178" />
+      <Q id="4429317297" qualifier_id="56" value="Center" />
+      <Q id="4429317305" qualifier_id="213" value="0.75" />
+      <Q id="4429317303" qualifier_id="212" value="18.5" />
+    </Event>
+    <Event id="2575375115" event_id="87" type_id="4" period_id="1" min="6" sec="50" team_id="184" outcome="1" x="22.4" y="22.4" timestamp="2023-08-11T18:37:28.071" timestamp_utc="2023-08-11T17:37:28.071" last_modified="2023-08-12T06:54:45" version="1691819685857">
+      <Q id="4429317445" qualifier_id="152" />
+      <Q id="4429317443" qualifier_id="56" value="Back" />
+      <Q id="4429317471" qualifier_id="233" value="70" />
+      <Q id="4429317447" qualifier_id="285" />
+      <Q id="4429317441" qualifier_id="10" />
+    </Event>
+    <Event id="2575375095" event_id="70" type_id="4" period_id="1" min="6" sec="50" player_id="433952" team_id="1564" outcome="0" x="77.6" y="77.6" timestamp="2023-08-11T18:37:28.072" timestamp_utc="2023-08-11T17:37:28.072" last_modified="2023-08-12T06:54:45" version="1691819685853">
+      <Q id="4429317391" qualifier_id="56" value="Center" />
+      <Q id="4430545945" qualifier_id="389" />
+      <Q id="4429317491" qualifier_id="233" value="87" />
+      <Q id="4429317389" qualifier_id="10" />
+      <Q id="4429317393" qualifier_id="152" />
+      <Q id="4429317395" qualifier_id="286" />
+    </Event>
+    <Event id="2575375487" event_id="88" type_id="1" period_id="1" min="7" sec="25" player_id="89399" team_id="184" outcome="1" x="22.9" y="29.7" timestamp="2023-08-11T18:38:03.464" timestamp_utc="2023-08-11T17:38:03.464" last_modified="2023-08-12T06:55:00" version="1691819700838">
+      <Q id="4429319247" qualifier_id="152" />
+      <Q id="4429319475" qualifier_id="189" />
+      <Q id="4429319253" qualifier_id="141" value="68.3" />
+      <Q id="4429319251" qualifier_id="140" value="22.3" />
+      <Q id="4430546131" qualifier_id="178" />
+      <Q id="4429319245" qualifier_id="5" />
+      <Q id="4429319249" qualifier_id="56" value="Back" />
+      <Q id="4429319255" qualifier_id="212" value="26.3" />
+      <Q id="4429319257" qualifier_id="213" value="1.59" />
+    </Event>
+    <Event id="2575375503" event_id="89" type_id="1" period_id="1" min="7" sec="26" player_id="77359" team_id="184" outcome="1" x="18.1" y="76.7" timestamp="2023-08-11T18:38:04.547" timestamp_utc="2023-08-11T17:38:04.547" last_modified="2023-08-12T06:55:04" version="1691819705094">
+      <Q id="4430546187" qualifier_id="178" />
+      <Q id="4429319315" qualifier_id="56" value="Back" />
+      <Q id="4429319323" qualifier_id="213" value="4.70" />
+      <Q id="4429319321" qualifier_id="212" value="18.6" />
+      <Q id="4429319317" qualifier_id="140" value="17.8" />
+      <Q id="4429319319" qualifier_id="141" value="49.3" />
+    </Event>
+    <Event id="2575375523" event_id="90" type_id="1" period_id="1" min="7" sec="30" player_id="89399" team_id="184" outcome="1" x="18.4" y="52.8" timestamp="2023-08-11T18:38:07.882" timestamp_utc="2023-08-11T17:38:07.882" last_modified="2023-08-12T06:55:09" version="1691819710128">
+      <Q id="4429319449" qualifier_id="212" value="12.3" />
+      <Q id="4429319447" qualifier_id="141" value="68.3" />
+      <Q id="4430546253" qualifier_id="178" />
+      <Q id="4429319445" qualifier_id="140" value="24.5" />
+      <Q id="4429319443" qualifier_id="56" value="Back" />
+      <Q id="4429319451" qualifier_id="213" value="1.02" />
+    </Event>
+    <Event id="2575375605" event_id="91" type_id="1" period_id="1" min="7" sec="34" player_id="77359" team_id="184" outcome="1" x="30.3" y="76.5" timestamp="2023-08-11T18:38:12.580" timestamp_utc="2023-08-11T17:38:12.580" last_modified="2023-08-12T06:55:14" version="1691819714855">
+      <Q id="4429319851" qualifier_id="212" value="63.4" />
+      <Q id="4429319845" qualifier_id="56" value="Left" />
+      <Q id="4429319843" qualifier_id="155" />
+      <Q id="4429319847" qualifier_id="140" value="90.5" />
+      <Q id="4430546303" qualifier_id="178" />
+      <Q id="4429319855" qualifier_id="1" />
+      <Q id="4429319849" qualifier_id="141" value="83.5" />
+      <Q id="4429319853" qualifier_id="213" value="0.08" />
+    </Event>
+    <Event id="2575375591" event_id="72" type_id="83" period_id="1" min="7" sec="39" player_id="234548" team_id="1564" outcome="0" x="5.7" y="23.3" timestamp="2023-08-11T18:38:17.807" timestamp_utc="2023-08-11T17:38:17.807" last_modified="2023-08-12T09:46:22" version="1691829976198">
+      <Q id="4429327917" qualifier_id="399" value="165682" />
+    </Event>
+    <Event id="2575375621" event_id="92" type_id="1" period_id="1" min="7" sec="41" player_id="165682" team_id="184" outcome="1" x="89.2" y="85.0" timestamp="2023-08-11T18:38:19.522" timestamp_utc="2023-08-11T17:38:19.522" last_modified="2023-08-12T06:55:34" version="1691819734817">
+      <Q id="4429319965" qualifier_id="213" value="4.36" />
+      <Q id="4429319963" qualifier_id="212" value="7.9" />
+      <Q id="4429319959" qualifier_id="140" value="86.6" />
+      <Q id="4429319961" qualifier_id="141" value="74.1" />
+      <Q id="4429319957" qualifier_id="56" value="Center" />
+      <Q id="4430546549" qualifier_id="178" />
+    </Event>
+    <Event id="2575375645" event_id="93" type_id="1" period_id="1" min="7" sec="43" player_id="40721" team_id="184" outcome="0" x="89.4" y="74.1" timestamp="2023-08-11T18:38:21.177" timestamp_utc="2023-08-11T17:38:21.177" last_modified="2023-08-12T06:55:38" version="1691819738422">
+      <Q id="4429320079" qualifier_id="213" value="4.67" />
+      <Q id="4429320071" qualifier_id="56" value="Center" />
+      <Q id="4430546583" qualifier_id="178" />
+      <Q id="4429320077" qualifier_id="212" value="12.6" />
+      <Q id="4429320075" qualifier_id="141" value="55.6" />
+      <Q id="4429320073" qualifier_id="140" value="88.9" />
+    </Event>
+    <Event id="2575375639" event_id="73" type_id="8" period_id="1" min="7" sec="44" player_id="463170" team_id="1564" outcome="1" x="10.1" y="36.3" timestamp="2023-08-11T18:38:22.102" timestamp_utc="2023-08-11T17:38:22.102" last_modified="2023-08-12T09:40:58" version="1691829658170">
+      <Q id="4429320043" qualifier_id="56" value="Back" />
+      <Q id="4430280849" qualifier_id="383" />
+      <Q id="4430546833" qualifier_id="178" />
+    </Event>
+    <Event id="2575376127" event_id="74" type_id="12" period_id="1" min="7" sec="45" player_id="469402" team_id="1564" outcome="1" x="10.1" y="40.8" timestamp="2023-08-11T18:38:23.124" timestamp_utc="2023-08-11T17:38:23.124" last_modified="2023-08-12T07:35:01" version="1691822101543">
+      <Q id="4429322625" qualifier_id="213" value="0.70" />
+      <Q id="4429322619" qualifier_id="140" value="11.1" />
+      <Q id="4429322623" qualifier_id="212" value="1.4" />
+      <Q id="4430546859" qualifier_id="178" />
+      <Q id="4429322617" qualifier_id="56" value="Back" />
+      <Q id="4429322621" qualifier_id="141" value="42.1" />
+    </Event>
+    <Event id="2575376199" event_id="111" type_id="61" period_id="1" min="7" sec="45" player_id="449300" team_id="184" outcome="1" x="88.5" y="55.1" timestamp="2023-08-11T18:38:23.168" timestamp_utc="2023-08-11T17:38:23.168" last_modified="2023-08-12T06:56:23" version="1691819783829">
+      <Q id="4430546893" qualifier_id="178" />
+      <Q id="4429322997" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575375655" event_id="94" type_id="43" period_id="1" min="7" sec="46" player_id="449300" team_id="184" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:38:24.592" timestamp_utc="2023-08-11T17:38:24.592" last_modified="2023-08-11T18:38:52" version="1691775504598">
+      <Q id="4429321813" qualifier_id="144" value="61" />
+      <Q id="4429320141" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575375769" event_id="95" type_id="1" period_id="1" min="7" sec="52" player_id="434078" team_id="184" outcome="1" x="70.9" y="68.7" timestamp="2023-08-11T18:38:30.166" timestamp_utc="2023-08-11T17:38:30.166" last_modified="2023-08-12T06:56:36" version="1691819796793">
+      <Q id="4429320791" qualifier_id="140" value="67.2" />
+      <Q id="4430546989" qualifier_id="178" />
+      <Q id="4429320797" qualifier_id="213" value="4.23" />
+      <Q id="4429320789" qualifier_id="56" value="Center" />
+      <Q id="4429320795" qualifier_id="212" value="8.4" />
+      <Q id="4429320793" qualifier_id="141" value="57.8" />
+    </Event>
+    <Event id="2575375793" event_id="96" type_id="1" period_id="1" min="7" sec="55" player_id="183462" team_id="184" outcome="1" x="68.0" y="52.2" timestamp="2023-08-11T18:38:32.888" timestamp_utc="2023-08-11T17:38:32.888" last_modified="2023-08-12T06:56:38" version="1691819798642">
+      <Q id="4429320925" qualifier_id="212" value="10.6" />
+      <Q id="4429320923" qualifier_id="141" value="40.6" />
+      <Q id="4430547005" qualifier_id="178" />
+      <Q id="4429320919" qualifier_id="56" value="Center" />
+      <Q id="4429320927" qualifier_id="213" value="5.45" />
+      <Q id="4429320921" qualifier_id="140" value="74.8" />
+    </Event>
+    <Event id="2575375809" event_id="97" type_id="1" period_id="1" min="7" sec="57" player_id="449300" team_id="184" outcome="1" x="70.2" y="30.1" timestamp="2023-08-11T18:38:35.218" timestamp_utc="2023-08-11T17:38:35.218" last_modified="2023-08-12T06:56:45" version="1691819805514">
+      <Q id="4429321003" qualifier_id="212" value="7.7" />
+      <Q id="4429321005" qualifier_id="213" value="2.36" />
+      <Q id="4429320999" qualifier_id="140" value="65.0" />
+      <Q id="4430547061" qualifier_id="178" />
+      <Q id="4429320997" qualifier_id="56" value="Center" />
+      <Q id="4429321001" qualifier_id="141" value="38.0" />
+    </Event>
+    <Event id="2575375867" event_id="98" type_id="1" period_id="1" min="7" sec="58" player_id="183462" team_id="184" outcome="1" x="64.3" y="36.4" timestamp="2023-08-11T18:38:36.840" timestamp_utc="2023-08-11T17:38:36.840" last_modified="2023-08-12T06:56:52" version="1691819812575">
+      <Q id="4429321279" qualifier_id="213" value="5.10" />
+      <Q id="4429321271" qualifier_id="140" value="68.4" />
+      <Q id="4429321277" qualifier_id="212" value="11.4" />
+      <Q id="4429321269" qualifier_id="56" value="Right" />
+      <Q id="4430547135" qualifier_id="178" />
+      <Q id="4429321275" qualifier_id="141" value="20.8" />
+    </Event>
+    <Event id="2575375883" event_id="99" type_id="1" period_id="1" min="8" sec="3" player_id="449300" team_id="184" outcome="1" x="70.9" y="25.4" timestamp="2023-08-11T18:38:41.041" timestamp_utc="2023-08-11T17:38:41.041" last_modified="2023-08-12T06:56:59" version="1691819819617">
+      <Q id="4429321315" qualifier_id="140" value="68.5" />
+      <Q id="4429321313" qualifier_id="56" value="Center" />
+      <Q id="4429321319" qualifier_id="212" value="5.8" />
+      <Q id="4430547197" qualifier_id="178" />
+      <Q id="4429321321" qualifier_id="213" value="2.02" />
+      <Q id="4429321317" qualifier_id="141" value="33.1" />
+    </Event>
+    <Event id="2575375899" event_id="100" type_id="1" period_id="1" min="8" sec="3" player_id="434078" team_id="184" outcome="1" x="68.6" y="30.6" timestamp="2023-08-11T18:38:41.690" timestamp_utc="2023-08-11T17:38:41.690" last_modified="2023-08-12T06:57:02" version="1691819822784">
+      <Q id="4429321407" qualifier_id="56" value="Right" />
+      <Q id="4429321415" qualifier_id="213" value="5.09" />
+      <Q id="4430547239" qualifier_id="178" />
+      <Q id="4429321409" qualifier_id="140" value="75.1" />
+      <Q id="4429321413" qualifier_id="212" value="18.6" />
+      <Q id="4429321411" qualifier_id="141" value="5.1" />
+    </Event>
+    <Event id="2575375919" event_id="101" type_id="1" period_id="1" min="8" sec="6" player_id="97624" team_id="184" outcome="1" x="76.0" y="4.2" timestamp="2023-08-11T18:38:44.511" timestamp_utc="2023-08-11T17:38:44.511" last_modified="2023-08-12T06:57:05" version="1691819825369">
+      <Q id="4429321535" qualifier_id="141" value="8.5" />
+      <Q id="4429321533" qualifier_id="140" value="66.4" />
+      <Q id="4430547247" qualifier_id="178" />
+      <Q id="4429321537" qualifier_id="212" value="10.5" />
+      <Q id="4429321539" qualifier_id="213" value="2.86" />
+      <Q id="4429321531" qualifier_id="56" value="Right" />
+    </Event>
+    <Event id="2575375943" event_id="102" type_id="1" period_id="1" min="8" sec="8" player_id="183462" team_id="184" outcome="1" x="65.1" y="8.5" timestamp="2023-08-11T18:38:46.263" timestamp_utc="2023-08-11T17:38:46.263" last_modified="2023-08-12T06:57:07" version="1691819828110">
+      <Q id="4429321673" qualifier_id="140" value="55.4" />
+      <Q id="4429321675" qualifier_id="141" value="32.1" />
+      <Q id="4429321677" qualifier_id="212" value="19.0" />
+      <Q id="4429321679" qualifier_id="213" value="2.14" />
+      <Q id="4429321671" qualifier_id="56" value="Center" />
+      <Q id="4430547297" qualifier_id="178" />
+    </Event>
+    <Event id="2575375991" event_id="103" type_id="1" period_id="1" min="8" sec="10" player_id="89399" team_id="184" outcome="1" x="54.9" y="33.3" timestamp="2023-08-11T18:38:48.658" timestamp_utc="2023-08-11T17:38:48.658" last_modified="2023-08-12T06:57:10" version="1691819830334">
+      <Q id="4429321951" qualifier_id="141" value="68.5" />
+      <Q id="4429321947" qualifier_id="56" value="Center" />
+      <Q id="4429321953" qualifier_id="212" value="24.2" />
+      <Q id="4429321949" qualifier_id="140" value="58.0" />
+      <Q id="4429321955" qualifier_id="213" value="1.44" />
+      <Q id="4430547317" qualifier_id="178" />
+    </Event>
+    <Event id="2575376027" event_id="104" type_id="1" period_id="1" min="8" sec="14" player_id="77359" team_id="184" outcome="1" x="57.9" y="80.3" timestamp="2023-08-11T18:38:52.313" timestamp_utc="2023-08-11T17:38:52.313" last_modified="2023-08-12T06:57:15" version="1691819835316">
+      <Q id="4429322141" qualifier_id="141" value="94.4" />
+      <Q id="4430547359" qualifier_id="178" />
+      <Q id="4429322139" qualifier_id="140" value="73.6" />
+      <Q id="4429322145" qualifier_id="213" value="0.53" />
+      <Q id="4429322143" qualifier_id="212" value="19.1" />
+      <Q id="4429322135" qualifier_id="56" value="Left" />
+    </Event>
+    <Event id="2575376089" event_id="105" type_id="1" period_id="1" min="8" sec="17" player_id="178424" team_id="184" outcome="1" x="72.3" y="92.2" timestamp="2023-08-11T18:38:55.802" timestamp_utc="2023-08-11T17:38:55.802" last_modified="2023-08-12T06:57:17" version="1691819837375">
+      <Q id="4430547383" qualifier_id="178" />
+      <Q id="4429322451" qualifier_id="212" value="13.8" />
+      <Q id="4429322445" qualifier_id="56" value="Left" />
+      <Q id="4429322453" qualifier_id="213" value="3.82" />
+      <Q id="4429322449" qualifier_id="141" value="79.5" />
+      <Q id="4429322447" qualifier_id="140" value="62.1" />
+    </Event>
+    <Event id="2575376107" event_id="106" type_id="1" period_id="1" min="8" sec="21" player_id="77359" team_id="184" outcome="1" x="60.3" y="76.3" timestamp="2023-08-11T18:38:59.758" timestamp_utc="2023-08-11T17:38:59.758" last_modified="2023-08-12T06:57:20" version="1691819840695">
+      <Q id="4429322533" qualifier_id="140" value="52.2" />
+      <Q id="4429322535" qualifier_id="141" value="61.1" />
+      <Q id="4429322531" qualifier_id="56" value="Center" />
+      <Q id="4429322539" qualifier_id="213" value="4.02" />
+      <Q id="4429322537" qualifier_id="212" value="13.4" />
+      <Q id="4430547427" qualifier_id="178" />
+    </Event>
+    <Event id="2575376133" event_id="107" type_id="1" period_id="1" min="8" sec="24" player_id="433161" team_id="184" outcome="1" x="53.2" y="57.8" timestamp="2023-08-11T18:39:02.118" timestamp_utc="2023-08-11T17:39:02.118" last_modified="2023-08-12T06:57:25" version="1691819845968">
+      <Q id="4429322653" qualifier_id="213" value="5.12" />
+      <Q id="4429322649" qualifier_id="141" value="30.6" />
+      <Q id="4429322647" qualifier_id="140" value="60.9" />
+      <Q id="4430547507" qualifier_id="178" />
+      <Q id="4429322651" qualifier_id="212" value="20.2" />
+      <Q id="4429322645" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575376141" event_id="108" type_id="1" period_id="1" min="8" sec="27" player_id="89399" team_id="184" outcome="1" x="61.6" y="29.2" timestamp="2023-08-11T18:39:05.644" timestamp_utc="2023-08-11T17:39:05.644" last_modified="2023-08-12T06:57:28" version="1691819849166">
+      <Q id="4429322691" qualifier_id="212" value="20.0" />
+      <Q id="4430547533" qualifier_id="178" />
+      <Q id="4429322685" qualifier_id="56" value="Center" />
+      <Q id="4429322689" qualifier_id="141" value="51.4" />
+      <Q id="4429322687" qualifier_id="140" value="74.1" />
+      <Q id="4429322693" qualifier_id="213" value="0.86" />
+    </Event>
+    <Event id="2575376165" event_id="109" type_id="1" period_id="1" min="8" sec="29" player_id="449300" team_id="184" outcome="1" x="74.7" y="52.5" timestamp="2023-08-11T18:39:06.920" timestamp_utc="2023-08-11T17:39:06.920" last_modified="2023-08-12T06:57:34" version="1691819855106">
+      <Q id="4429322803" qualifier_id="140" value="75.1" />
+      <Q id="4429322805" qualifier_id="141" value="43.5" />
+      <Q id="4429322801" qualifier_id="56" value="Center" />
+      <Q id="4429322809" qualifier_id="213" value="4.78" />
+      <Q id="4430547629" qualifier_id="178" />
+      <Q id="4429322807" qualifier_id="212" value="6.1" />
+    </Event>
+    <Event id="2575550055" event_id="719" type_id="3" period_id="1" min="8" sec="30" player_id="40721" team_id="184" outcome="0" x="80.1" y="47.6" timestamp="2023-08-11T18:39:08.702" timestamp_utc="2023-08-11T17:39:08.702" last_modified="2023-08-12T06:57:42" version="1691819863071">
+      <Q id="4430547741" qualifier_id="178" />
+      <Q id="4430281899" qualifier_id="467" value="210977" />
+      <Q id="4430281897" qualifier_id="465" />
+      <Q id="4430281893" qualifier_id="56" value="Center" />
+      <Q id="4430281895" qualifier_id="286" />
+    </Event>
+    <Event id="2575376167" event_id="110" type_id="4" period_id="1" min="8" sec="30" player_id="40721" team_id="184" outcome="1" x="79.4" y="44.6" timestamp="2023-08-11T18:39:08.814" timestamp_utc="2023-08-11T17:39:08.814" last_modified="2023-08-12T06:57:47" version="1691819867199">
+      <Q id="4429322895" qualifier_id="233" value="75" />
+      <Q id="4429322867" qualifier_id="152" />
+      <Q id="4429322871" qualifier_id="286" />
+      <Q id="4429322869" qualifier_id="265" />
+      <Q id="4429322865" qualifier_id="56" value="Center" />
+      <Q id="4429322863" qualifier_id="13" />
+    </Event>
+    <Event id="2575376177" event_id="75" type_id="4" period_id="1" min="8" sec="30" player_id="210977" team_id="1564" outcome="0" x="20.6" y="55.4" timestamp="2023-08-11T18:39:08.815" timestamp_utc="2023-08-11T17:39:08.815" last_modified="2023-08-12T06:57:47" version="1691819867194">
+      <Q id="4429322877" qualifier_id="152" />
+      <Q id="4429322881" qualifier_id="285" />
+      <Q id="4429322907" qualifier_id="233" value="110" />
+      <Q id="4429322879" qualifier_id="265" />
+      <Q id="4430547809" qualifier_id="178" />
+      <Q id="4429322873" qualifier_id="13" />
+      <Q id="4429322875" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575376877" event_id="112" type_id="13" period_id="1" min="9" sec="48" player_id="434078" team_id="184" outcome="1" x="81.4" y="50.4" timestamp="2023-08-11T18:40:26.407" timestamp_utc="2023-08-11T17:40:26.407" last_modified="2023-08-12T06:57:50" version="1691819871226">
+      <Q id="4430547881" qualifier_id="178" />
+      <Q id="4429327179" qualifier_id="72" />
+      <Q id="4429327003" qualifier_id="56" value="Center" />
+      <Q id="4429327479" qualifier_id="458" />
+      <Q id="4429327471" qualifier_id="113" />
+      <Q id="4429327473" qualifier_id="77" />
+      <Q id="4429326999" qualifier_id="26" />
+      <Q id="4429327001" qualifier_id="18" />
+      <Q id="4429327477" qualifier_id="103" value="81.9" />
+      <Q id="4429327481" qualifier_id="230" value="98.9" />
+      <Q id="4429327475" qualifier_id="102" value="56.8" />
+      <Q id="4429327483" qualifier_id="231" value="50.5" />
+    </Event>
+    <Event id="2575376879" event_id="76" type_id="5" period_id="1" min="9" sec="49" player_id="76611" team_id="1564" outcome="1" x="-1.2" y="44.8" timestamp="2023-08-11T18:40:27.386" timestamp_utc="2023-08-11T17:40:27.386" last_modified="2023-08-12T06:57:53" version="1691819873681">
+      <Q id="4429327011" qualifier_id="56" value="Back" />
+      <Q id="4429327085" qualifier_id="233" value="113" />
+      <Q id="4429327013" qualifier_id="346" />
+    </Event>
+    <Event id="2575376887" event_id="113" type_id="5" period_id="1" min="9" sec="49" player_id="434078" team_id="184" outcome="0" x="101.2" y="55.2" timestamp="2023-08-11T18:40:27.386" timestamp_utc="2023-08-11T17:40:27.386" last_modified="2023-08-12T06:57:53" version="1691819873672">
+      <Q id="4429327115" qualifier_id="233" value="76" />
+      <Q id="4429327065" qualifier_id="56" value="Center" />
+      <Q id="4429327067" qualifier_id="346" />
+    </Event>
+    <Event id="2575377131" event_id="77" type_id="1" period_id="1" min="10" sec="6" player_id="76611" team_id="1564" outcome="1" x="4.1" y="42.3" timestamp="2023-08-11T18:40:43.930" timestamp_utc="2023-08-11T17:40:43.930" last_modified="2023-08-12T06:58:02" version="1691819882762">
+      <Q id="4429329253" qualifier_id="189" />
+      <Q id="4429328419" qualifier_id="140" value="8.3" />
+      <Q id="4429328417" qualifier_id="56" value="Back" />
+      <Q id="4429328421" qualifier_id="141" value="24.4" />
+      <Q id="4429328429" qualifier_id="237" />
+      <Q id="4429328425" qualifier_id="213" value="5.06" />
+      <Q id="4429328423" qualifier_id="212" value="12.9" />
+      <Q id="4429328415" qualifier_id="124" />
+    </Event>
+    <Event id="2575377235" event_id="78" type_id="2" period_id="1" min="10" sec="9" player_id="469402" team_id="1564" outcome="1" x="8.4" y="22.5" timestamp="2023-08-11T18:40:47.704" timestamp_utc="2023-08-11T17:40:47.704" last_modified="2023-08-12T06:58:12" version="1691819892723">
+      <Q id="4429329001" qualifier_id="140" value="50.9" />
+      <Q id="4429329025" qualifier_id="7" value="432838" />
+      <Q id="4430548139" qualifier_id="178" />
+      <Q id="4429329029" qualifier_id="56" value="Center" />
+      <Q id="4429329027" qualifier_id="1" />
+      <Q id="4429329003" qualifier_id="141" value="44.5" />
+    </Event>
+    <Event id="2575377097" event_id="114" type_id="55" period_id="1" min="10" sec="9" player_id="89399" team_id="184" outcome="1" x="49.0" y="53.6" timestamp="2023-08-11T18:40:47.705" timestamp_utc="2023-08-11T17:40:47.705" last_modified="2023-08-12T06:58:12" version="1691819892728" />
+    <Event id="2575377397" event_id="115" type_id="1" period_id="1" min="10" sec="44" player_id="77359" team_id="184" outcome="0" x="42.9" y="66.0" timestamp="2023-08-11T18:41:22.333" timestamp_utc="2023-08-11T17:41:22.333" last_modified="2023-08-12T06:58:17" version="1691819897271">
+      <Q id="4429329887" qualifier_id="56" value="Right" />
+      <Q id="4429329893" qualifier_id="212" value="54.2" />
+      <Q id="4429330321" qualifier_id="189" />
+      <Q id="4429329885" qualifier_id="241" />
+      <Q id="4429329891" qualifier_id="141" value="6.3" />
+      <Q id="4429329895" qualifier_id="213" value="5.44" />
+      <Q id="4429329881" qualifier_id="5" />
+      <Q id="4430548201" qualifier_id="178" />
+      <Q id="4429329889" qualifier_id="140" value="77.1" />
+      <Q id="4429329897" qualifier_id="1" />
+      <Q id="4429329883" qualifier_id="155" />
+    </Event>
+    <Event id="2575377391" event_id="79" type_id="44" period_id="1" min="10" sec="46" player_id="220871" team_id="1564" outcome="1" x="24.2" y="93.8" timestamp="2023-08-11T18:41:24.160" timestamp_utc="2023-08-11T17:41:24.160" last_modified="2023-08-12T09:38:13" version="1691829492422">
+      <Q id="4429329855" qualifier_id="56" value="Back" />
+      <Q id="4429329999" qualifier_id="233" value="116" />
+      <Q id="4429329857" qualifier_id="285" />
+    </Event>
+    <Event id="2575377405" event_id="116" type_id="44" period_id="1" min="10" sec="46" player_id="434078" team_id="184" outcome="0" x="75.8" y="6.2" timestamp="2023-08-11T18:41:24.161" timestamp_utc="2023-08-11T17:41:24.161" last_modified="2023-08-12T06:58:21" version="1691819900933">
+      <Q id="4429329945" qualifier_id="56" value="Right" />
+      <Q id="4429330003" qualifier_id="233" value="79" />
+      <Q id="4429329947" qualifier_id="286" />
+    </Event>
+    <Event id="2575377395" event_id="80" type_id="12" period_id="1" min="10" sec="46" player_id="220871" team_id="1564" outcome="1" x="25.2" y="92.3" timestamp="2023-08-11T18:41:24.198" timestamp_utc="2023-08-11T17:41:24.198" last_modified="2023-08-12T09:38:13" version="1691829492425">
+      <Q id="4429329879" qualifier_id="213" value="0.75" />
+      <Q id="4429329871" qualifier_id="56" value="Back" />
+      <Q id="4430548309" qualifier_id="388" />
+      <Q id="4429329873" qualifier_id="140" value="31.5" />
+      <Q id="4429330021" qualifier_id="15" />
+      <Q id="4429329877" qualifier_id="212" value="9.1" />
+      <Q id="4429329875" qualifier_id="141" value="100.0" />
+      <Q id="4429329955" qualifier_id="167" />
+    </Event>
+    <Event id="2575377399" event_id="81" type_id="5" period_id="1" min="10" sec="48" player_id="220871" team_id="1564" outcome="0" x="31.1" y="101.4" timestamp="2023-08-11T18:41:26.324" timestamp_utc="2023-08-11T17:41:26.324" last_modified="2023-08-12T06:58:30" version="1691819910768">
+      <Q id="4429329905" qualifier_id="347" />
+      <Q id="4429329903" qualifier_id="56" value="Back" />
+      <Q id="4429330077" qualifier_id="233" value="117" />
+    </Event>
+    <Event id="2575377423" event_id="117" type_id="5" period_id="1" min="10" sec="48" player_id="434078" team_id="184" outcome="1" x="68.9" y="-1.4" timestamp="2023-08-11T18:41:26.324" timestamp_utc="2023-08-11T17:41:26.324" last_modified="2023-08-12T06:58:30" version="1691819910762">
+      <Q id="4429330041" qualifier_id="347" />
+      <Q id="4429330039" qualifier_id="56" value="Right" />
+      <Q id="4429330073" qualifier_id="233" value="81" />
+    </Event>
+    <Event id="2575377509" event_id="118" type_id="1" period_id="1" min="10" sec="54" player_id="97624" team_id="184" outcome="0" x="80.4" y="0.0" timestamp="2023-08-11T18:41:32.283" timestamp_utc="2023-08-11T17:41:32.283" last_modified="2023-08-12T06:58:38" version="1691819918400">
+      <Q id="4429330427" qualifier_id="141" value="28.8" />
+      <Q id="4429330431" qualifier_id="213" value="1.26" />
+      <Q id="4429330421" qualifier_id="107" />
+      <Q id="4429330429" qualifier_id="212" value="22.0" />
+      <Q id="4429330433" qualifier_id="1" />
+      <Q id="4429330423" qualifier_id="56" value="Center" />
+      <Q id="4429330425" qualifier_id="140" value="86.8" />
+    </Event>
+    <Event id="2575377559" event_id="82" type_id="12" period_id="1" min="10" sec="57" player_id="469402" team_id="1564" outcome="1" x="15.3" y="65.8" timestamp="2023-08-11T18:41:35.493" timestamp_utc="2023-08-11T17:41:35.493" last_modified="2023-08-12T06:58:43" version="1691819924007">
+      <Q id="4429330657" qualifier_id="140" value="40.1" />
+      <Q id="4429330659" qualifier_id="141" value="89.7" />
+      <Q id="4429330661" qualifier_id="212" value="30.7" />
+      <Q id="4430548561" qualifier_id="178" />
+      <Q id="4429330655" qualifier_id="56" value="Back" />
+      <Q id="4429330663" qualifier_id="213" value="0.56" />
+    </Event>
+    <Event id="2575377565" event_id="83" type_id="49" period_id="1" min="10" sec="59" player_id="432838" team_id="1564" outcome="1" x="40.0" y="89.4" timestamp="2023-08-11T18:41:37.488" timestamp_utc="2023-08-11T17:41:37.488" last_modified="2023-08-12T06:59:44" version="1691819984735" />
+    <Event id="2575377537" event_id="119" type_id="43" period_id="1" min="11" sec="0" player_id="89399" team_id="184" outcome="1" x="0.0" y="0.0" timestamp="2023-08-11T18:41:38.795" timestamp_utc="2023-08-11T17:41:38.795" last_modified="2023-08-12T09:40:03" version="1691822483022">
+      <Q id="4429331287" qualifier_id="399" value="432838" />
+      <Q id="4430647565" qualifier_id="144" value="83" />
+    </Event>
+    <Event id="2575377571" event_id="84" type_id="4" period_id="1" min="11" sec="1" player_id="432838" team_id="1564" outcome="1" x="38.6" y="90.0" timestamp="2023-08-11T18:41:39.199" timestamp_utc="2023-08-11T17:41:39.199" last_modified="2023-08-12T07:00:06" version="1691820006650">
+      <Q id="4429330759" qualifier_id="286" />
+      <Q id="4429330891" qualifier_id="233" value="120" />
+      <Q id="4429330757" qualifier_id="152" />
+      <Q id="4429330747" qualifier_id="13" />
+      <Q id="4429330753" qualifier_id="295" />
+      <Q id="4429330755" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575377575" event_id="120" type_id="4" period_id="1" min="11" sec="1" player_id="89399" team_id="184" outcome="0" x="61.4" y="10.0" timestamp="2023-08-11T18:41:39.200" timestamp_utc="2023-08-11T17:41:39.200" last_modified="2023-08-12T07:00:06" version="1691820006642">
+      <Q id="4430549391" qualifier_id="178" />
+      <Q id="4429330857" qualifier_id="295" />
+      <Q id="4429330861" qualifier_id="152" />
+      <Q id="4429330859" qualifier_id="56" value="Right" />
+      <Q id="4429330863" qualifier_id="285" />
+      <Q id="4429330855" qualifier_id="13" />
+      <Q id="4429330917" qualifier_id="233" value="84" />
+    </Event>
+    <Event id="2575377767" event_id="85" type_id="1" period_id="1" min="11" sec="20" player_id="220871" team_id="1564" outcome="1" x="40.0" y="89.4" timestamp="2023-08-11T18:41:58.483" timestamp_utc="2023-08-11T17:41:58.483" last_modified="2023-08-12T07:00:14" version="1691820014370">
+      <Q id="4429331807" qualifier_id="141" value="35.4" />
+      <Q id="4429331799" qualifier_id="155" />
+      <Q id="4429331813" qualifier_id="1" />
+      <Q id="4429331811" qualifier_id="213" value="4.53" />
+      <Q id="4429331805" qualifier_id="140" value="33.5" />
+      <Q id="4430549471" qualifier_id="178" />
+      <Q id="4429331801" qualifier_id="152" />
+      <Q id="4429331797" qualifier_id="5" />
+      <Q id="4429331809" qualifier_id="212" value="37.3" />
+      <Q id="4429332765" qualifier_id="189" />
+      <Q id="4429331803" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575377773" event_id="86" type_id="1" period_id="1" min="11" sec="23" player_id="469402" team_id="1564" outcome="1" x="33.4" y="34.2" timestamp="2023-08-11T18:42:01.145" timestamp_utc="2023-08-11T17:42:01.145" last_modified="2023-08-12T07:00:19" version="1691820019906">
+      <Q id="4430549525" qualifier_id="178" />
+      <Q id="4429331855" qualifier_id="141" value="32.1" />
+      <Q id="4429331853" qualifier_id="140" value="42.0" />
+      <Q id="4429331851" qualifier_id="56" value="Back" />
+      <Q id="4429331859" qualifier_id="213" value="6.13" />
+      <Q id="4429331857" qualifier_id="212" value="9.1" />
+    </Event>
+    <Event id="2575377805" event_id="87" type_id="1" period_id="1" min="11" sec="25" player_id="233681" team_id="1564" outcome="1" x="41.3" y="21.9" timestamp="2023-08-11T18:42:03.175" timestamp_utc="2023-08-11T17:42:03.175" last_modified="2023-08-12T07:00:22" version="1691820022463">
+      <Q id="4430549563" qualifier_id="178" />
+      <Q id="4429332007" qualifier_id="213" value="6.13" />
+      <Q id="4429332001" qualifier_id="140" value="82.5" />
+      <Q id="4429332009" qualifier_id="1" />
+      <Q id="4429332005" qualifier_id="212" value="43.8" />
+      <Q id="4429331999" qualifier_id="56" value="Right" />
+      <Q id="4429332003" qualifier_id="141" value="12.2" />
+      <Q id="4429331997" qualifier_id="155" />
+    </Event>
+    <Event id="2575377817" event_id="88" type_id="1" period_id="1" min="11" sec="30" player_id="234548" team_id="1564" outcome="1" x="94.0" y="18.6" keypass="1" timestamp="2023-08-11T18:42:08.134" timestamp_utc="2023-08-11T17:42:08.134" last_modified="2023-08-12T07:00:27" version="1691820028066">
+      <Q id="4430549575" qualifier_id="178" />
+      <Q id="4429332087" qualifier_id="213" value="2.09" />
+      <Q id="4429332079" qualifier_id="56" value="Center" />
+      <Q id="4429332081" qualifier_id="140" value="86.7" />
+      <Q id="4429332591" qualifier_id="154" />
+      <Q id="4429332085" qualifier_id="212" value="15.6" />
+      <Q id="4429332083" qualifier_id="141" value="38.5" />
+      <Q id="4429332589" qualifier_id="210" value="13" />
+      <Q id="4429332091" qualifier_id="195" />
+    </Event>
+    <Event id="2575377835" event_id="89" type_id="13" period_id="1" min="11" sec="31" player_id="132161" team_id="1564" outcome="1" x="87.0" y="41.5" timestamp="2023-08-11T18:42:09.268" timestamp_utc="2023-08-11T17:42:09.268" last_modified="2023-08-12T07:00:28" version="1691820028076">
+      <Q id="4429332639" qualifier_id="231" value="48.6" />
+      <Q id="4429332317" qualifier_id="20" />
+      <Q id="4429332631" qualifier_id="102" value="39.0" />
+      <Q id="4429332195" qualifier_id="56" value="Center" />
+      <Q id="4429332611" qualifier_id="29" />
+      <Q id="4429332633" qualifier_id="103" value="84.7" />
+      <Q id="4430549601" qualifier_id="178" />
+      <Q id="4429332621" qualifier_id="55" value="88" />
+      <Q id="4429332187" qualifier_id="22" />
+      <Q id="4429332637" qualifier_id="230" value="99.0" />
+      <Q id="4429332615" qualifier_id="154" />
+      <Q id="4429332609" qualifier_id="81" />
+      <Q id="4429332191" qualifier_id="17" />
+      <Q id="4429332635" qualifier_id="328" />
+    </Event>
+    <Event id="2575377839" event_id="90" type_id="5" period_id="1" min="11" sec="32" player_id="132161" team_id="1564" outcome="0" x="101.0" y="36.2" timestamp="2023-08-11T18:42:10.553" timestamp_utc="2023-08-11T17:42:10.553" last_modified="2023-08-12T07:00:32" version="1691820032686">
+      <Q id="4429332243" qualifier_id="233" value="121" />
+      <Q id="4429332229" qualifier_id="56" value="Center" />
+      <Q id="4429332231" qualifier_id="346" />
+    </Event>
+    <Event id="2575377823" event_id="121" type_id="5" period_id="1" min="11" sec="32" player_id="77359" team_id="184" outcome="1" x="-1.0" y="63.8" timestamp="2023-08-11T18:42:10.553" timestamp_utc="2023-08-11T17:42:10.553" last_modified="2023-08-12T07:00:32" version="1691820032697">
+      <Q id="4429332239" qualifier_id="233" value="90" />
+      <Q id="4429332127" qualifier_id="346" />
+      <Q id="4429332125" qualifier_id="56" value="Back" />
+    </Event>
+    <Event id="2575378153" event_id="122" type_id="1" period_id="1" min="12" sec="1" player_id="94878" team_id="184" outcome="1" x="4.3" y="49.6" timestamp="2023-08-11T18:42:39.098" timestamp_utc="2023-08-11T17:42:39.098" last_modified="2023-08-12T07:00:35" version="1691820035266">
+      <Q id="4429333915" qualifier_id="140" value="61.3" />
+      <Q id="4429333909" qualifier_id="124" />
+      <Q id="4429333923" qualifier_id="1" />
+      <Q id="4429333917" qualifier_id="141" value="62.1" />
+      <Q id="4429333921" qualifier_id="213" value="0.14" />
+      <Q id="4429333913" qualifier_id="56" value="Center" />
+      <Q id="4429333911" qualifier_id="155" />
+      <Q id="4429333927" qualifier_id="74" />
+      <Q id="4429333919" qualifier_id="212" value="60.5" />
+    </Event>
+    <Event id="2575378155" event_id="123" type_id="44" period_id="1" min="12" sec="4" player_id="449300" team_id="184" outcome="1" x="63.4" y="63.6" timestamp="2023-08-11T18:42:42.472" timestamp_utc="2023-08-11T17:42:42.472" last_modified="2023-08-12T09:38:14" version="1691829492428">
+      <Q id="4429333931" qualifier_id="286" />
+      <Q id="4429333929" qualifier_id="56" value="Center" />
+      <Q id="4429333939" qualifier_id="233" value="91" />
+    </Event>
+    <Event id="2575378151" event_id="91" type_id="44" period_id="1" min="12" sec="4" player_id="469402" team_id="1564" outcome="0" x="36.6" y="36.4" timestamp="2023-08-11T18:42:42.473" timestamp_utc="2023-08-11T17:42:42.473" last_modified="2023-08-12T07:00:49" version="1691820050150">
+      <Q id="4429333907" qualifier_id="285" />
+      <Q id="4429333905" qualifier_id="56" value="Back" />
+      <Q id="4429333951" qualifier_id="233" value="123" />
+    </Event>
+    <Event id="2575378165" event_id="124" type_id="1" period_id="1" min="12" sec="4" player_id="449300" team_id="184" outcome="0" x="62.1" y="62.5" timestamp="2023-08-11T18:42:42.511" timestamp_utc="2023-08-11T17:42:42.511" last_modified="2023-08-12T09:38:14" version="1691829492431">
+      <Q id="4429333965" qualifier_id="140" value="65.7" />
+      <Q id="4430549913" qualifier_id="388" />
+      <Q id="4429333963" qualifier_id="56" value="Center" />
+      <Q id="4429333971" qualifier_id="213" value="0.09" />
+      <Q id="4429333967" qualifier_id="141" value="63.0" />
+      <Q id="4429333969" qualifier_id="212" value="3.8" />
+      <Q id="4429333959" qualifier_id="3" />
+      <Q id="4429333961" qualifier_id="168" />
+    </Event>
+    <Event id="2575378157" event_id="92" type_id="61" period_id="1" min="12" sec="4" player_id="469402" team_id="1564" outcome="1" x="35.4" y="35.2" timestamp="2023-08-11T18:42:42.551" timestamp_utc="2023-08-11T17:42:42.551" last_modified="2023-08-12T07:00:58" version="1691820059134">
+      <Q id="4429333937" qualifier_id="56" value="Back" />
+      <Q id="4430549965" qualifier_id="15" />
+      <Q id="4430549967" qualifier_id="388" />
+    </Event>
+    <Event id="2575378179" event_id="93" type_id="49" period_id="1" min="12" sec="6" player_id="463170" team_id="1564" outcome="1" x="30.1" y="40.4" timestamp="2023-08-11T18:42:44.449" timestamp_utc="2023-08-11T17:42:44.449" last_modified="2023-08-12T07:01:08" version="1691820068879" />
+    <Event id="2575378187" event_id="94" type_id="1" period_id="1" min="12" sec="6" player_id="463170" team_id="1564" outcome="1" x="30.1" y="40.4" timestamp="2023-08-11T18:42:44.484" timestamp_utc="2023-08-11T17:42:44.484" last_modified="2023-08-12T07:01:16" version="1691820077128">
+      <Q id="4429334073" qualifier_id="1" />
+      <Q id="4429334065" qualifier_id="140" value="32.7" />
+      <Q id="4429334063" qualifier_id="56" value="Back" />
+      <Q id="4429334069" qualifier_id="212" value="13.1" />
+      <Q id="4429334061" qualifier_id="157" />
+      <Q id="4429334071" qualifier_id="213" value="1.36" />
+      <Q id="4430550207" qualifier_id="178" />
+      <Q id="4429334067" qualifier_id="141" value="59.3" />
+    </Event>
+    <Event id="2575378191" event_id="95" type_id="61" period_id="1" min="12" sec="7" player_id="220871" team_id="1564" outcome="0" x="32.7" y="59.3" timestamp="2023-08-11T18:42:45.519" timestamp_utc="2023-08-11T17:42:45.519" last_modified="2023-08-12T07:01:43" version="1691820103703">
+      <Q id="4429334091" qualifier_id="56" value="Back" />
+      <Q id="4430550505" qualifier_id="178" />
+    </Event>
+    <Event id="2575378197" event_id="125" type_id="61" period_id="1" min="12" sec="7" player_id="434078" team_id="184" outcome="1" x="64.8" y="27.2" timestamp="2023-08-11T18:42:45.588" timestamp_utc="2023-08-11T17:42:45.588" last_modified="2023-08-12T07:01:49" version="1691820109823">
+      <Q id="4430550571" qualifier_id="178" />
+      <Q id="4429334101" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575378227" event_id="126" type_id="49" period_id="1" min="12" sec="11" player_id="449300" team_id="184" outcome="1" x="70.9" y="17.2" timestamp="2023-08-11T18:42:49.829" timestamp_utc="2023-08-11T17:42:49.829" last_modified="2023-08-12T07:02:09" version="1691820129729" />
+    <Event id="2575378239" event_id="127" type_id="1" period_id="1" min="12" sec="12" player_id="449300" team_id="184" outcome="1" x="73.1" y="15.2" timestamp="2023-08-11T18:42:50.344" timestamp_utc="2023-08-11T17:42:50.344" last_modified="2023-08-12T07:02:13" version="1691820134026">
+      <Q id="4429334335" qualifier_id="140" value="69.1" />
+      <Q id="4429334333" qualifier_id="56" value="Right" />
+      <Q id="4430550843" qualifier_id="178" />
+      <Q id="4429334341" qualifier_id="213" value="4.16" />
+      <Q id="4429334339" qualifier_id="212" value="8.1" />
+      <Q id="4429334337" qualifier_id="141" value="5.1" />
+    </Event>
+    <Event id="2575378255" event_id="128" type_id="1" period_id="1" min="12" sec="14" player_id="97624" team_id="184" outcome="1" x="69.9" y="3.8" timestamp="2023-08-11T18:42:51.936" timestamp_utc="2023-08-11T17:42:51.936" last_modified="2023-08-12T07:02:15" version="1691820135947">
+      <Q id="4429334391" qualifier_id="141" value="13.0" />
+      <Q id="4430550859" qualifier_id="178" />
+      <Q id="4429334389" qualifier_id="140" value="66.0" />
+      <Q id="4429334387" qualifier_id="56" value="Right" />
+      <Q id="4429334395" qualifier_id="213" value="2.15" />
+      <Q id="4429334393" qualifier_id="212" value="7.5" />
+    </Event>
+    <Event id="2575378275" event_id="129" type_id="1" period_id="1" min="12" sec="15" player_id="183462" team_id="184" outcome="1" x="65.2" y="20.1" timestamp="2023-08-11T18:42:53.877" timestamp_utc="2023-08-11T17:42:53.877" last_modified="2023-08-12T07:02:18" version="1691820138496">
+      <Q id="4429334559" qualifier_id="56" value="Center" />
+      <Q id="4430550875" qualifier_id="178" />
+      <Q id="4429334571" qualifier_id="212" value="12.5" />
+      <Q id="4429334567" qualifier_id="141" value="30.6" />
+      <Q id="4429334575" qualifier_id="213" value="0.61" />
+      <Q id="4429334563" qualifier_id="140" value="75.0" />
+    </Event>
+    <Event id="2575378299" event_id="96" type_id="83" period_id="1" min="12" sec="17" player_id="233681" team_id="1564" outcome="0" x="26.2" y="76.9" timestamp="2023-08-11T18:42:55.617" timestamp_utc="2023-08-11T17:42:55.617" last_modified="2023-08-12T09:46:21" version="1691829976186">
+      <Q id="4429334885" qualifier_id="399" value="40721" />
+    </Event>
+    <Event id="2575378287" event_id="130" type_id="1" period_id="1" min="12" sec="18" player_id="40721" team_id="184" outcome="1" x="69.0" y="27.2" timestamp="2023-08-11T18:42:56.122" timestamp_utc="2023-08-11T17:42:56.122" last_modified="2023-08-12T07:03:08" version="1691820188872">
+      <Q id="4429334647" qualifier_id="141" value="25.7" />
+      <Q id="4429334649" qualifier_id="212" value="6.1" />
+      <Q id="4430551375" qualifier_id="178" />
+      <Q id="4429334651" qualifier_id="213" value="6.11" />
+      <Q id="4429334645" qualifier_id="140" value="74.7" />
+      <Q id="4429334643" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575378307" event_id="131" type_id="1" period_id="1" min="12" sec="19" player_id="449300" team_id="184" outcome="1" x="75.1" y="28.3" timestamp="2023-08-11T18:42:57.548" timestamp_utc="2023-08-11T17:42:57.548" last_modified="2023-08-12T07:03:55" version="1691820235510">
+      <Q id="4429334765" qualifier_id="213" value="5.22" />
+      <Q id="4429334763" qualifier_id="212" value="0.9" />
+      <Q id="4430551947" qualifier_id="178" />
+      <Q id="4429334759" qualifier_id="140" value="75.5" />
+      <Q id="4429334761" qualifier_id="141" value="27.2" />
+      <Q id="4429334757" qualifier_id="56" value="Center" />
+    </Event>
+    <Event id="2575551619" event_id="720" type_id="3" period_id="1" min="12" sec="21" player_id="40721" team_id="184" outcome="1" x="83.1" y="29.4" timestamp="2023-08-11T18:42:59.152" timestamp_utc="2023-08-11T17:42:59.152" last_modified="2023-08-12T07:04:13" version="1691820254146">
+      <Q id="4430426559" qualifier_id="233" value="918" />
+      <Q id="4430290947" qualifier_id="465" />
+      <Q id="4430552183" qualifier_id="178" />
+      <Q id="4430290927" qualifier_id="56" value="Center" />
+      <Q id="4430290929" qualifier_id="286" />
+    </Event>
+    <Event id="2575551621" event_id="918" type_id="45" period_id="1" min="12" sec="21" player_id="220871" team_id="1564" outcome="0" x="16.9" y="70.6" timestamp="2023-08-11T18:42:59.152" timestamp_utc="2023-08-11T17:42:59.152" last_modified="2023-08-12T07:04:14" version="1691820254156">
+      <Q id="4430290931" qualifier_id="56" value="Back" />
+      <Q id="4430426579" qualifier_id="233" value="720" />
+      <Q id="4430290933" qualifier_id="285" />
+    </Event>
+  </Game>
+</Games>
