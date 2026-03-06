@@ -1,11 +1,6 @@
 import React from "react";
-import useOptaCoordinates from "@/hooks/useOptaCoordinates.ts";
 import PassArrow from "./PassArrow";
-
-// Must match OptaPitch viewBox constants
-const VB_WIDTH = 200;
-const VB_HEIGHT = 300;
-const MARGIN = 5;
+import useOptaPitchConfigStore from "@/store/optaPitchConfigStore";
 
 export interface OptaQualifier {
   qualifier_id: string;
@@ -33,7 +28,10 @@ export interface OptaMarkersProps {
 }
 
 const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) => {
-  const { transformX, transformY } = useOptaCoordinates(VB_WIDTH, VB_HEIGHT, MARGIN);
+  // Subscribe to orientation so the component re-renders on layout changes;
+  // transformOptaToSvg reads state via get() at call time.
+  useOptaPitchConfigStore((s) => s.orientation);
+  const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
 
   return (
     <>
@@ -42,8 +40,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
 
         if (x == null || y == null) return null;
 
-        const svgX1 = transformX(x);
-        const svgY1 = transformY(y);
+        const { x: svgX1, y: svgY1 } = transformOptaToSvg(x, y);
         const color =
           team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff";
 
@@ -54,8 +51,10 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
 
           if (!endXQ || !endYQ) return null;
 
-          const svgX2 = transformX(parseFloat(endXQ.value));
-          const svgY2 = transformY(parseFloat(endYQ.value));
+          const { x: svgX2, y: svgY2 } = transformOptaToSvg(
+            parseFloat(endXQ.value),
+            parseFloat(endYQ.value),
+          );
 
           return (
             <PassArrow

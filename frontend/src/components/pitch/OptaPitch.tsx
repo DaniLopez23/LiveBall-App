@@ -1,44 +1,108 @@
-import React from "react";
+import React, { useEffect } from "react";
+import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
 
-const OptaPitch: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const vW = 200;
-  const vH = 300;
-  const m = 5; // margin
+interface OptaPitchProps {
+  children: React.ReactNode;
+  /** Override store orientation. Useful when rendering multiple pitches. */
+  orientation?: Orientation;
+  /** Pitch surface background color (default: #2d7a3a). */
+  fieldColor?: string;
+}
 
-  const fX = m;              // field left edge
-  const fY = m;              // field top edge
-  const fW = vW - 2 * m;    // 190
-  const fH = vH - 2 * m;    // 290
-  const cX = vW / 2;        // 100
-  const cY = vH / 2;        // 150
+const OptaPitch: React.FC<OptaPitchProps> = ({
+  children,
+  orientation: orientationProp,
+  fieldColor = "#2d7a3a",
+}) => {
+  const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
+  const setOrientation = useOptaPitchConfigStore((s) => s.setOrientation);
+  const getViewBoxDimensions = useOptaPitchConfigStore((s) => s.getViewBoxDimensions);
 
-  // Penalty area (top & bottom)
-  const pbW = fW * 0.6;                 // ~114  (≈ 40m on 68m-wide pitch)
-  const pbH = fH * 0.159;               // ~46   (≈ 16.5m on 105m-long pitch)
-  const pbX = cX - pbW / 2;            // 43
+  // Sync prop → store so children (OptaMarkers) use the correct transform.
+  useEffect(() => {
+    if (orientationProp) setOrientation(orientationProp);
+  }, [orientationProp, setOrientation]);
 
-  // Goal area (top & bottom)
-  const gbW = fW * 0.3;                 // ~57   (≈ 18.32m)
-  const gbH = fH * 0.052;              // ~15   (≈ 5.5m)
-  const gbX = cX - gbW / 2;            // ~71.5
+  const orientation = orientationProp ?? storeOrientation;
+  const { width: vW, height: vH } = getViewBoxDimensions();
+
+  const isVertical = orientation === "vertical";
+  const m = 5;
+
+  const fX = m;
+  const fY = m;
+  const fW = vW - 2 * m;  // SVG x-extent of the field
+  const fH = vH - 2 * m;  // SVG y-extent of the field
+
+  // Canonical axes: fLong = pitch length (290), fShort = pitch width (190)
+  const fLong  = isVertical ? fH : fW;  // 290
+  const fShort = isVertical ? fW : fH;  // 190
+
+  // Helper: maps (shortOffset, longOffset, shortSpan, longSpan) → <rect> props
+  const rct = (sc: number, lc: number, sw: number, lh: number) =>
+    isVertical
+      ? { x: fX + sc, y: fY + lc, width: sw,  height: lh }
+      : { x: fX + lc, y: fY + sc, width: lh,  height: sw };
+
+  // Helper: maps (shortOffset, longOffset) → { cx, cy } for <circle>
+  const pt = (sc: number, lc: number) =>
+    isVertical ? { cx: fX + sc, cy: fY + lc } : { cx: fX + lc, cy: fY + sc };
+
+  // ── Pitch geometry (proportions based on real dimensions) ───────────
+
+  // Penalty area: ~16.5m deep, ~40m wide on a 105×68 pitch
+  const pbL  = fLong  * 0.159;               // ~46  (depth)
+  const pbS  = fShort * 0.6;                 // ~114 (span)
+  const pbSO = (fShort - pbS) / 2;           // ~38  (short-axis offset)
+
+  // Goal area
+  const gbL  = fLong  * 0.052;               // ~15
+  const gbS  = fShort * 0.3;                 // ~57
+  const gbSO = (fShort - gbS) / 2;           // ~67.5
 
   // Penalty spot distance from goal line
-  const psD = fH * 0.12;               // ~35   (≈ 11m)
+  const psL = fLong * 0.12;                  // ~35
 
-  // Center circle radius
-  const ccR = fW * 0.132;              // ~25   (≈ 9.15m on 68m width)
+  // Center circle
+  const ccR = fShort * 0.132;                // ~25
 
   // Penalty arc
-  const arcYOffset = pbH - psD;        // distance from spot to box edge
-  const arcDX = Math.sqrt(ccR ** 2 - arcYOffset ** 2); // horizontal reach of arc at box edge
+  const arcOff  = pbL - psL;                 // spot-to-box-edge distance
+  const arcSpan = Math.sqrt(Math.max(0, ccR ** 2 - arcOff ** 2));
 
-  // Goals (outside the field)
-  const gW = fW * 0.121;               // ~23
-  const gH = 3;
-  const gX = cX - gW / 2;             // ~88.5
+  // Goals (sit outside the field boundary)
+  const gDepth = 3;
+  const gSpan  = fShort * 0.121;             // ~23
+  const gSO    = (fShort - gSpan) / 2;       // ~83.5
 
   // Corner arc radius
   const caR = 3;
+
+  // Center in SVG coords
+  const cSVGX = vW / 2;
+  const cSVGY = vH / 2;
+
+  // Penalty arc paths: arc bulges toward the field center (away from each goal)
+  //   Vertical  → horizontal chord at the penalty-box line
+  //   Horizontal → vertical chord at the penalty-box line
+  // sweep=0 (CCW / decreasing θ) bulges away from the near goal (into the field center)
+  // sweep=1 (CW  / increasing θ) bulges away from the far  goal
+  const nearArcPath = isVertical
+    ? `M ${cSVGX - arcSpan} ${fY + pbL} A ${ccR} ${ccR} 0 0 0 ${cSVGX + arcSpan} ${fY + pbL}`
+    : `M ${fX + pbL} ${cSVGY - arcSpan} A ${ccR} ${ccR} 0 0 1 ${fX + pbL} ${cSVGY + arcSpan}`;
+
+  const farArcPath = isVertical
+    ? `M ${cSVGX - arcSpan} ${fY + fH - pbL} A ${ccR} ${ccR} 0 0 1 ${cSVGX + arcSpan} ${fY + fH - pbL}`
+    : `M ${fX + fW - pbL} ${cSVGY - arcSpan} A ${ccR} ${ccR} 0 0 0 ${fX + fW - pbL} ${cSVGY + arcSpan}`;
+
+  // Goals protrude outside the field on each end
+  const nearGoalProps = isVertical
+    ? { x: fX + gSO, y: fY - gDepth,  width: gSpan,  height: gDepth }
+    : { x: fX - gDepth, y: fY + gSO,  width: gDepth, height: gSpan  };
+
+  const farGoalProps = isVertical
+    ? { x: fX + gSO, y: fY + fH,      width: gSpan,  height: gDepth }
+    : { x: fX + fW,  y: fY + gSO,     width: gDepth, height: gSpan  };
 
   const fg = { fill: "none", stroke: "white", strokeWidth: 0.5 };
 
@@ -51,59 +115,65 @@ const OptaPitch: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         style={{ display: "block" }}
       >
         {/* Field background */}
-        <rect x={0} y={0} width={vW} height={vH} fill="#2d7a3a" />
+        <rect x={0} y={0} width={vW} height={vH} fill={fieldColor} />
 
         <g {...fg}>
           {/* Outer rectangle */}
           <rect x={fX} y={fY} width={fW} height={fH} />
 
           {/* Halfway line */}
-          <line x1={fX} y1={cY} x2={fX + fW} y2={cY} />
+          {isVertical
+            ? <line x1={fX} y1={cSVGY} x2={fX + fW} y2={cSVGY} />
+            : <line x1={cSVGX} y1={fY} x2={cSVGX} y2={fY + fH} />}
 
           {/* Center circle */}
-          <circle cx={cX} cy={cY} r={ccR} />
+          <circle cx={cSVGX} cy={cSVGY} r={ccR} />
 
           {/* Center dot */}
-          <circle cx={cX} cy={cY} r={1} fill="white" />
+          <circle cx={cSVGX} cy={cSVGY} r={1} fill="white" />
 
-          {/* ── TOP HALF ─────────────────────────────── */}
+          {/* ── NEAR END (top / left) ─────────────────── */}
 
-          {/* Top penalty area */}
-          <rect x={pbX} y={fY} width={pbW} height={pbH} />
+          {/* Penalty area */}
+          <rect {...rct(pbSO, 0, pbS, pbL)} />
 
-          {/* Top goal area */}
-          <rect x={gbX} y={fY} width={gbW} height={gbH} />
+          {/* Goal area */}
+          <rect {...rct(gbSO, 0, gbS, gbL)} />
 
-          {/* Top penalty spot */}
-          <circle cx={cX} cy={fY + psD} r={1} fill="white" />
+          {/* Penalty spot */}
+          <circle {...pt(fShort / 2, psL)} r={1} fill="white" />
 
-          {/* Top penalty arc (outside penalty box) */}
-          <path d={`M ${cX - arcDX} ${fY + pbH} A ${ccR} ${ccR} 0 0 1 ${cX + arcDX} ${fY + pbH}`} />
+          {/* Penalty arc */}
+          <path d={nearArcPath} />
 
-          {/* Top goal */}
-          <rect x={gX} y={fY - gH} width={gW} height={gH} />
+          {/* Goal */}
+          <rect {...nearGoalProps} />
 
-          {/* ── BOTTOM HALF ──────────────────────────── */}
+          {/* ── FAR END (bottom / right) ──────────────── */}
 
-          {/* Bottom penalty area */}
-          <rect x={pbX} y={fY + fH - pbH} width={pbW} height={pbH} />
+          {/* Penalty area */}
+          <rect {...rct(pbSO, fLong - pbL, pbS, pbL)} />
 
-          {/* Bottom goal area */}
-          <rect x={gbX} y={fY + fH - gbH} width={gbW} height={gbH} />
+          {/* Goal area */}
+          <rect {...rct(gbSO, fLong - gbL, gbS, gbL)} />
 
-          {/* Bottom penalty spot */}
-          <circle cx={cX} cy={fY + fH - psD} r={1} fill="white" />
+          {/* Penalty spot */}
+          <circle {...pt(fShort / 2, fLong - psL)} r={1} fill="white" />
 
-          {/* Bottom penalty arc (outside penalty box) */}
-          <path d={`M ${cX - arcDX} ${fY + fH - pbH} A ${ccR} ${ccR} 0 0 0 ${cX + arcDX} ${fY + fH - pbH}`} />
+          {/* Penalty arc */}
+          <path d={farArcPath} />
 
-          {/* Bottom goal */}
-          <rect x={gX} y={fY + fH} width={gW} height={gH} />
+          {/* Goal */}
+          <rect {...farGoalProps} />
 
           {/* ── CORNER ARCS ──────────────────────────── */}
-          <path d={`M ${fX} ${fY + caR} A ${caR} ${caR} 0 0 1 ${fX + caR} ${fY}`} />
-          <path d={`M ${fX + fW - caR} ${fY} A ${caR} ${caR} 0 0 1 ${fX + fW} ${fY + caR}`} />
-          <path d={`M ${fX} ${fY + fH - caR} A ${caR} ${caR} 0 0 0 ${fX + caR} ${fY + fH}`} />
+          {/* TL: A=θ90→B=θ0  short arc = decreasing θ → sweep=0 */}
+          <path d={`M ${fX} ${fY + caR} A ${caR} ${caR} 0 0 0 ${fX + caR} ${fY}`} />
+          {/* TR: A=θ180→B=θ90 short arc = decreasing θ → sweep=0 */}
+          <path d={`M ${fX + fW - caR} ${fY} A ${caR} ${caR} 0 0 0 ${fX + fW} ${fY + caR}`} />
+          {/* BL: A=θ270→B=θ0  short arc = increasing θ → sweep=1 */}
+          <path d={`M ${fX} ${fY + fH - caR} A ${caR} ${caR} 0 0 1 ${fX + caR} ${fY + fH}`} />
+          {/* BR: A=θ180→B=θ270 short arc = increasing θ → sweep=1 */}
           <path d={`M ${fX + fW - caR} ${fY + fH} A ${caR} ${caR} 0 0 1 ${fX + fW} ${fY + fH - caR}`} />
         </g>
 
