@@ -52,11 +52,13 @@ async def watch_xml_file(
         try:
             content = reader.read_if_changed(str(xml_file))
             if content is None:
+                await asyncio.sleep(poll_interval + 5)
                 continue
 
             parsed_root = parser.parse_xml_string(content)
             if parsed_root is None:
                 logger.warning("Failed to parse '%s', skipping.", xml_file)
+                await asyncio.sleep(poll_interval + 5)
                 continue
 
             messages = process_service.process_game(parsed_root)

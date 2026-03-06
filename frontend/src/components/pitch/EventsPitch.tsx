@@ -15,7 +15,7 @@ interface EventsPitchProps {
 
 const EventsPitch: React.FC<EventsPitchProps> = ({ events, teamColors, orientation, fieldColor }) => {
   return (
-    <OptaPitch orientation={"horizontal"} fieldColor={fieldColor}>
+    <OptaPitch orientation={orientation} fieldColor={fieldColor}>
       <OptaMarkers events={events} teamColors={teamColors} />
     </OptaPitch>
   );

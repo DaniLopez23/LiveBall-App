@@ -30,9 +30,13 @@ const useOptaPitchConfigStore = create<OptaPitchConfigState>((set, get) => ({
   },
 
   /**
-   * Vertical  – optaX (lateral 0-100) → SVG X, optaY (longitudinal 0-100) → SVG Y (inverted)
-   * Horizontal – 90° CW rotation: optaY → SVG X, optaX → SVG Y
-   *   (the two inversions cancel out, so neither axis is inverted in horizontal mode)
+   * Opta coordinates always come in horizontal field format:
+   *   optaX: lateral (0=left, 100=right)
+   *   optaY: longitudinal (0=bottom, 100=top)
+   * 
+   * Vertical – Rotation 90° CW + inversion: optaY (inverted) → SVG X, optaX (inverted) → SVG Y
+   *   Opta (0,0) = bottom-right, (100,100) = top-left
+   * Horizontal – Direct mapping: optaY → SVG X, optaX → SVG Y
    */
   transformOptaToSvg: (optaX: number, optaY: number) => {
     const { orientation } = get();
@@ -42,14 +46,16 @@ const useOptaPitchConfigStore = create<OptaPitchConfigState>((set, get) => ({
     const fieldLong  = VB_LONG  - 2 * MARGIN;  // 290
 
     if (orientation === 'vertical') {
+      // Rotate 90° CW: Opta Y (long) → SVG X (short), Opta X (short) → SVG Y (long)
+      // Both axes inverted for correct positioning
       return {
-        x: MARGIN + (cx / 100) * fieldShort,
-        y: MARGIN + ((100 - cy) / 100) * fieldLong,
+        x: MARGIN + ((100 - cy) / 100) * fieldShort,
+        y: MARGIN + ((100 - cx) / 100) * fieldLong,
       };
     } else {
-      // Horizontal: Opta longitudinal (y) → SVG X, Opta lateral (x) → SVG Y
+      // Horizontal: Opta Y (longitudinal) → SVG X, Opta X (lateral) → SVG Y
       return {
-        x: MARGIN + (cy / 100) * fieldLong,
+        x: MARGIN + ((100 - cy) / 100) * fieldLong,
         y: MARGIN + (cx / 100) * fieldShort,
       };
     }

@@ -1,84 +1,69 @@
 import React from "react";
-import EventsPitch from "@/components/pitch/EventsPitch";
-import { type OptaEvent } from "@/components/pitch/figures/OptaMarkers";
+import useWebsocket from "@/hooks/useWebsocket";
 
-// Sample pass sequence – Opta coordinates (0-100 range)
-const SAMPLE_PASSES: OptaEvent[] = [
-  {
-    id: "1", event_id: "1", type_id: "1", event_name: "Pass",
-    x: 100, y: 100, outcome: 1, team_id: "home",
-    player_id: "101",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "35" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "25" },
-    ],
-  },
-  {
-    id: "2", event_id: "2", type_id: "1", event_name: "Pass",
-    x: 10, y: 10, outcome: 1, team_id: "home",
-    player_id: "102",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "60" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "40" },
-    ],
-  },
-  {
-    id: "3", event_id: "3", type_id: "1", event_name: "Pass",
-    x: 60, y: 40, outcome: 0, team_id: "home",
-    player_id: "103",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "75" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "55" },
-    ],
-  },
-  {
-    id: "4", event_id: "4", type_id: "1", event_name: "Pass",
-    x: 20, y: 60, outcome: 1, team_id: "away",
-    player_id: "201",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "45" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "70" },
-    ],
-  },
-  {
-    id: "5", event_id: "5", type_id: "1", event_name: "Pass",
-    x: 45, y: 70, outcome: 1, team_id: "away",
-    player_id: "202",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "65" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "85" },
-    ],
-  },
-  {
-    id: "6", event_id: "6", type_id: "1", event_name: "Pass",
-    x: 65, y: 85, outcome: 0, team_id: "away",
-    player_id: "203",
-    qualifiers: [
-      { qualifier_id: "140", qualifier_name: "Pass End X", value: "50" },
-      { qualifier_id: "141", qualifier_name: "Pass End Y", value: "95" },
-    ],
-  },
-];
-
-const TEAM_COLORS: Record<string, string> = {
-  home: "#3b82f6",  // blue
-  away: "#f97316",  // orange
-};
+const GAME_ID = "2372222";
 
 const EventsPage: React.FC = () => {
+  const { status, isConnected, error, lastMessage } = useWebsocket({
+    gameId: GAME_ID,
+    enabled: true,
+  });
+
   return (
     <div className="flex flex-col h-full p-4 gap-4">
       <div>
-        <h1 className="text-2xl font-bold">Eventos</h1>
+        <h1 className="text-2xl font-bold">Eventos en Tiempo Real</h1>
         <p className="text-sm text-muted-foreground">
-          Pases de ejemplo — <span className="text-blue-500 font-medium">● Local</span>{" "}
-          <span className="text-orange-500 font-medium">● Visitante</span>
-          {"  "}· Flecha = éxito · Cruz = fallo
+          WebSocket room: <span className="font-mono">{GAME_ID}</span>
         </p>
       </div>
 
-      <div className="flex-1 min-h-0 max-w-sm">
-        <EventsPitch events={SAMPLE_PASSES} teamColors={TEAM_COLORS} />
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+        <h2 className="text-lg font-semibold mb-2">Estado de Conexión</h2>
+        <div className="space-y-1 text-sm">
+          <p>
+            <span className="font-medium">Estado:</span>{" "}
+            <span
+              className={
+                status === "connected"
+                  ? "text-green-600"
+                  : status === "error"
+                    ? "text-red-600"
+                    : "text-yellow-600"
+              }
+            >
+              {status}
+            </span>
+          </p>
+          <p>
+            <span className="font-medium">Conectado:</span>{" "}
+            {isConnected ? "✅ Sí" : "❌ No"}
+          </p>
+          {error && (
+            <p className="text-red-600">
+              <span className="font-medium">Error:</span> {error}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {lastMessage && (
+        <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+          <h2 className="text-lg font-semibold mb-2">Último Mensaje</h2>
+          <div className="text-sm">
+            <p className="mb-2">
+              <span className="font-medium">Tipo:</span>{" "}
+              <span className="font-mono">{lastMessage.type}</span>
+            </p>
+            <pre className="bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-auto max-h-96">
+              {JSON.stringify(lastMessage, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
+
+      <div className="text-xs text-muted-foreground">
+        💡 Los mensajes también se imprimen en la consola del navegador
       </div>
     </div>
   );
