@@ -11,13 +11,11 @@ interface EventsPitchProps {
   orientation?: Orientation;
   /** Pitch surface color (default: #2d7a3a). */
   fieldColor?: string;
-  /** Tailwind classes for the wrapper div (forwarded to OptaPitch). */
-  className?: string;
 }
 
-const EventsPitch: React.FC<EventsPitchProps> = ({ events, teamColors, orientation, fieldColor, className }) => {
+const EventsPitch: React.FC<EventsPitchProps> = ({ events, teamColors, orientation, fieldColor }) => {
   return (
-    <OptaPitch orientation={orientation} fieldColor={fieldColor} className={className}>
+    <OptaPitch orientation={"horizontal"} fieldColor={fieldColor}>
       <OptaMarkers events={events} teamColors={teamColors} />
     </OptaPitch>
   );
