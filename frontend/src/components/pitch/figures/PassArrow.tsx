@@ -10,10 +10,10 @@ export interface PassArrowProps {
   color?: string;
 }
 
-const CIRCLE_R = 4;
-const ARROW_LEN = 5;
+const CIRCLE_R = 2.8;
+const ARROW_LEN = 4;
 const ARROW_ANGLE = Math.PI / 6; // 30°
-const CROSS_SIZE = 2.5;
+const CROSS_SIZE = 2;
 
 const PassArrow: React.FC<PassArrowProps> = ({
   x1,
@@ -25,6 +25,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
   color = "#ffffff",
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
+  const success = outcome === 1;
 
   // Line starts from the edge of the start circle
   const lineX1 = x1 + CIRCLE_R * Math.cos(angle);
@@ -36,11 +37,14 @@ const PassArrow: React.FC<PassArrowProps> = ({
   const ax2 = x2 - ARROW_LEN * Math.cos(angle + ARROW_ANGLE);
   const ay2 = y2 - ARROW_LEN * Math.sin(angle + ARROW_ANGLE);
 
-  const success = outcome === 1;
+  // Line ends at the base of the arrow (for success) or center of cross (for fail)
+  const lineEndOffset = success ? ARROW_LEN * 0.7 : 0;
+  const lineX2 = x2 - lineEndOffset * Math.cos(angle);
+  const lineY2 = y2 - lineEndOffset * Math.sin(angle);
 
   // Adaptive font size so the number fits the circle
   const digits = String(sequence).length;
-  const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
+  const fontSize = digits === 1 ? 2.8 : digits === 2 ? 2.4 : 2;
 
   return (
     <g>
@@ -48,10 +52,10 @@ const PassArrow: React.FC<PassArrowProps> = ({
       <line
         x1={lineX1}
         y1={lineY1}
-        x2={x2}
-        y2={y2}
+        x2={lineX2}
+        y2={lineY2}
         stroke={color}
-        strokeWidth={0.8}
+        strokeWidth={0.6}
         strokeOpacity={0.8}
       />
 
@@ -82,21 +86,22 @@ const PassArrow: React.FC<PassArrowProps> = ({
       ) : (
         <g
           stroke={color}
-          strokeWidth={1.5}
+          strokeWidth={0.7}
           strokeLinecap="round"
           strokeOpacity={0.9}
         >
+          {/* Cross rotated to align with line direction */}
           <line
-            x1={x2 - CROSS_SIZE}
-            y1={y2 - CROSS_SIZE}
-            x2={x2 + CROSS_SIZE}
-            y2={y2 + CROSS_SIZE}
+            x1={x2 - CROSS_SIZE * Math.cos(angle + Math.PI / 4)}
+            y1={y2 - CROSS_SIZE * Math.sin(angle + Math.PI / 4)}
+            x2={x2 + CROSS_SIZE * Math.cos(angle + Math.PI / 4)}
+            y2={y2 + CROSS_SIZE * Math.sin(angle + Math.PI / 4)}
           />
           <line
-            x1={x2 + CROSS_SIZE}
-            y1={y2 - CROSS_SIZE}
-            x2={x2 - CROSS_SIZE}
-            y2={y2 + CROSS_SIZE}
+            x1={x2 - CROSS_SIZE * Math.cos(angle - Math.PI / 4)}
+            y1={y2 - CROSS_SIZE * Math.sin(angle - Math.PI / 4)}
+            x2={x2 + CROSS_SIZE * Math.cos(angle - Math.PI / 4)}
+            y2={y2 + CROSS_SIZE * Math.sin(angle - Math.PI / 4)}
           />
         </g>
       )}

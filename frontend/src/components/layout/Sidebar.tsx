@@ -38,7 +38,7 @@ export function AppSidebar() {
       <SidebarHeader>
         <SidebarMenu>
           {/* Toggle button - desktop only */}
-          <SidebarMenuItem className="hidden lg:block">
+          <SidebarMenuItem className="hidden md:block">
             <Button
               variant="ghost"
               size="icon"

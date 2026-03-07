@@ -8,7 +8,7 @@ function MobileTrigger() {
   const { toggleSidebar } = useSidebar();
   
   return (
-    <div className="flex items-center gap-2 border-b px-4 py-2 lg:hidden">
+    <div className="flex items-center gap-2 border-b px-4 py-2 md:hidden">
       <Button
         variant="ghost"
         size="icon"

@@ -33,23 +33,36 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
   useOptaPitchConfigStore((s) => s.orientation);
   const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
 
+  // Filter and prepare events that will actually be rendered
+  const renderableEvents = events
+    .map((event, originalIndex) => ({ event, originalIndex }))
+    .filter(({ event }) => {
+      const { type_id, x, y, qualifiers } = event;
+      if (x == null || y == null) return false;
+      
+      // Only include passes with valid end coordinates
+      if (type_id === "1") {
+        const endXQ = qualifiers.find((q) => q.qualifier_id === "140");
+        const endYQ = qualifiers.find((q) => q.qualifier_id === "141");
+        return endXQ && endYQ;
+      }
+      
+      return false; // For now, only passes are rendered
+    });
+
   return (
     <>
-      {events.map((event, index) => {
+      {renderableEvents.map(({ event }, renderIndex) => {
         const { type_id, x, y, outcome, team_id, qualifiers } = event;
 
-        if (x == null || y == null) return null;
-
-        const { x: svgX1, y: svgY1 } = transformOptaToSvg(x, y);
+        const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
         const color =
           team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff";
 
         // ── Pass (type_id = "1") ──────────────────────────────────────
         if (type_id === "1") {
-          const endXQ = qualifiers.find((q) => q.qualifier_id === "140");
-          const endYQ = qualifiers.find((q) => q.qualifier_id === "141");
-
-          if (!endXQ || !endYQ) return null;
+          const endXQ = qualifiers.find((q) => q.qualifier_id === "140")!;
+          const endYQ = qualifiers.find((q) => q.qualifier_id === "141")!;
 
           const { x: svgX2, y: svgY2 } = transformOptaToSvg(
             parseFloat(endXQ.value),
@@ -63,7 +76,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
               y1={svgY1}
               x2={svgX2}
               y2={svgY2}
-              sequence={index + 1}
+              sequence={renderIndex + 1}
               outcome={outcome ?? 0}
               color={color}
             />
