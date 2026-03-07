@@ -55,6 +55,16 @@ class ProcessEventsService:
             pn_msgs = self._update_pass_networks(parsed_root.game)
             messages.extend(pn_msgs)
 
+        # CRITICAL: Always update the full ParsedGame in cache to ensure
+        # the latest events list is available for WebSocket snapshots
+        if messages:
+            self._cache.games[parsed_root.game.game_id] = parsed_root.game
+            logger.debug(
+                "(CACHE) Updated full game in cache: %s (%d events)",
+                parsed_root.game.game_id,
+                len(parsed_root.game.events),
+            )
+
         return messages
 
     # ------------------------------------------------------------------ #

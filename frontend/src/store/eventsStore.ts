@@ -19,7 +19,7 @@ interface EventsStoreState {
 
 const toByIdMap = (events: Event[]): Record<string, Event> => {
 	return events.reduce<Record<string, Event>>((acc, event) => {
-		acc[event.event_id] = event;
+		acc[event.id] = event;
 		return acc;
 	}, {});
 };
@@ -52,10 +52,10 @@ const useEventsStore = create<EventsStoreState>((set, get) => ({
 
 		const dedupedToAppend: Event[] = [];
 		for (const event of events) {
-			if (!baseById[event.event_id]) {
+			if (!baseById[event.id]) {
 				dedupedToAppend.push(event);
 			}
-			baseById[event.event_id] = event;
+			baseById[event.id] = event;
 		}
 
 		const nextEvents = [...baseEvents, ...dedupedToAppend];
@@ -78,11 +78,11 @@ const useEventsStore = create<EventsStoreState>((set, get) => ({
 
 		const nextById = { ...eventsById };
 		for (const event of events) {
-			nextById[event.event_id] = event;
+			nextById[event.id] = event;
 		}
 
 		const nextEvents = currentEvents.map((existingEvent) => {
-			return nextById[existingEvent.event_id] ?? existingEvent;
+			return nextById[existingEvent.id] ?? existingEvent;
 		});
 
 		set({
