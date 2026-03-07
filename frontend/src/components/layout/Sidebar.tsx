@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, BarChart3, Network, Zap, HelpCircle, User } from "lucide-react";
+import { Home, BarChart3, Network, Zap, HelpCircle, User, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -11,7 +11,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
+  useSidebar,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { id: "home", label: "Inicio", icon: Home, path: "/" },
@@ -27,12 +29,28 @@ const footerItems = [
 
 export function AppSidebar() {
   const location = useLocation();
+  const { state, toggleSidebar } = useSidebar();
+  const isCollapsed = state === "collapsed";
 
   return (
     <Sidebar collapsible="icon">
       {/* Header */}
       <SidebarHeader>
         <SidebarMenu>
+          {/* Toggle button - desktop only */}
+          <SidebarMenuItem className="hidden lg:block">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              className="size-7"
+            >
+              {isCollapsed ? <ChevronRight className="size-4" /> : <ChevronLeft className="size-4" />}
+              <span className="sr-only">Toggle Sidebar</span>
+            </Button>
+          </SidebarMenuItem>
+          
+          {/* Logo */}
           <SidebarMenuItem>
             <SidebarMenuButton size="lg" asChild>
               <NavLink to="/">
