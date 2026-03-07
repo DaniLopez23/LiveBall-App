@@ -1,70 +1,75 @@
 import React from "react";
-import useWebsocket from "@/hooks/useWebsocket";
-
-const GAME_ID = "2372222";
+import useEventsStore from "@/store/eventsStore";
+import useGameStore from "@/store/gameStore";
+import EventsPitch from "@/components/pitch/EventsPitch";
 
 const EventsPage: React.FC = () => {
-  const { status, isConnected, error, lastMessage } = useWebsocket({
-    gameId: GAME_ID,
-    enabled: true,
-  });
+  const game = useGameStore((state) => state.game);
+  const events = useEventsStore((state) => state.events);
+
+  const teamColors = React.useMemo(() => {
+    if (!game) return {};
+    return {
+      [game.home_team.team_id]: "#3b82f6",
+      [game.away_team.team_id]: "#ef4444",
+    };
+  }, [game]);
 
   return (
     <div className="flex flex-col h-full p-4 gap-4">
       <div>
         <h1 className="text-2xl font-bold">Eventos en Tiempo Real</h1>
-        <p className="text-sm text-muted-foreground">
-          WebSocket room: <span className="font-mono">{GAME_ID}</span>
-        </p>
-      </div>
-
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-        <h2 className="text-lg font-semibold mb-2">Estado de Conexión</h2>
-        <div className="space-y-1 text-sm">
-          <p>
-            <span className="font-medium">Estado:</span>{" "}
-            <span
-              className={
-                status === "connected"
-                  ? "text-green-600"
-                  : status === "error"
-                    ? "text-red-600"
-                    : "text-yellow-600"
-              }
-            >
-              {status}
-            </span>
-          </p>
-          <p>
-            <span className="font-medium">Conectado:</span>{" "}
-            {isConnected ? "✅ Sí" : "❌ No"}
-          </p>
-          {error && (
-            <p className="text-red-600">
-              <span className="font-medium">Error:</span> {error}
+        {game && (
+          <div className="text-sm text-muted-foreground space-y-1">
+            <p>
+              <span className="font-semibold">{game.home_team.team_name}</span>
+              {" vs "}
+              <span className="font-semibold">{game.away_team.team_name}</span>
             </p>
-          )}
-        </div>
+            <p>
+              {game.competition_name} • {game.season_name}
+              {game.matchday && ` • Jornada ${game.matchday}`}
+            </p>
+          </div>
+        )}
       </div>
 
-      {lastMessage && (
+      <div className="flex-1 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+        {events.length > 0 ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <EventsPitch
+              events={events}
+              teamColors={teamColors}
+              orientation="horizontal"
+            />
+          </div>
+        ) : (
+          <div className="text-center text-muted-foreground">
+            <p className="text-lg font-medium">Esperando eventos...</p>
+            <p className="text-sm mt-2">Los eventos se mostrarán aquí en tiempo real</p>
+          </div>
+        )}
+      </div>
+
+      {game && (
         <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-          <h2 className="text-lg font-semibold mb-2">Último Mensaje</h2>
-          <div className="text-sm">
-            <p className="mb-2">
-              <span className="font-medium">Tipo:</span>{" "}
-              <span className="font-mono">{lastMessage.type}</span>
-            </p>
-            <pre className="bg-slate-900 text-slate-100 p-3 rounded text-xs overflow-auto max-h-96">
-              {JSON.stringify(lastMessage, null, 2)}
-            </pre>
+          <h2 className="text-lg font-semibold mb-2">Estadísticas</h2>
+          <div className="grid grid-cols-3 gap-4 text-center">
+            <div>
+              <p className="text-2xl font-bold text-blue-600">{game.home_team.score ?? 0}</p>
+              <p className="text-xs text-muted-foreground">{game.home_team.team_short || game.home_team.team_name}</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold">{game.total_events ?? events.length}</p>
+              <p className="text-xs text-muted-foreground">Eventos totales</p>
+            </div>
+            <div>
+              <p className="text-2xl font-bold text-red-600">{game.away_team.score ?? 0}</p>
+              <p className="text-xs text-muted-foreground">{game.away_team.team_short || game.away_team.team_name}</p>
+            </div>
           </div>
         </div>
       )}
-
-      <div className="text-xs text-muted-foreground">
-        💡 Los mensajes también se imprimen en la consola del navegador
-      </div>
     </div>
   );
 };

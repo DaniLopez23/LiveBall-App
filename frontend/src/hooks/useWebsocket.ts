@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
-import {
-	GameWebSocketClient,
-	type IncomingWsMessage,
-} from "@/services/websocket";
+import { GameWebSocketClient } from "@/services/websocket";
+import useEventsStore from "@/store/eventsStore";
+import useGameStore from "@/store/gameStore";
+import usePassNetworksStore from "@/store/passNetworksStore";
+import { applyWebsocketMessageToStores } from "@/store/websocketStateUpdater";
+import type { IncomingWsMessage } from "@/types/websocket";
 
 interface UseWebsocketOptions {
 	gameId: string;
@@ -26,10 +28,22 @@ export const useWebsocket = ({
 	const [lastMessage, setLastMessage] = useState<IncomingWsMessage | null>(null);
 
 	useEffect(() => {
+		const resetDomainState = () => {
+			useGameStore.getState().reset();
+			useEventsStore.getState().reset();
+			usePassNetworksStore.getState().reset();
+		};
+
 		if (!enabled) {
+			resetDomainState();
+			setIsConnected(false);
+			setLastMessage(null);
+			setError(null);
 			setStatus("idle");
 			return;
 		}
+
+		resetDomainState();
 
 		console.log(`🔌 Conectando a WebSocket room: ${gameId}`);
 
@@ -53,6 +67,7 @@ export const useWebsocket = ({
 			},
 			onMessage: (message: IncomingWsMessage) => {
 				console.log("📨 Mensaje recibido:", message);
+				applyWebsocketMessageToStores(message);
 				setLastMessage(message);
 			},
 		});
