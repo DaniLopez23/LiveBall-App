@@ -80,6 +80,14 @@ _SHOT_STRING_QUALIFIERS: Dict[str, str] = {
     "55": "assist_event_id",
 }
 
+# Shot outcome derived from type_id
+_SHOT_OUTCOME_MAP: Dict[str, str] = {
+    "13": "Miss",
+    "14": "Post",
+    "15": "Attempt Saved",
+    "16": "Goal",
+}
+
 # Shot-zone qualifiers are mutually exclusive → collapsed to a single string field
 _SHOT_ZONE_QUALIFIER_NAMES: Dict[str, str] = {
     "16": "Small Box Centre",
@@ -153,6 +161,8 @@ def flatten_event(event: Event) -> Dict[str, Any]:
         base.update(_extract_bool_qualifiers(qual_lookup, _PASS_BOOL_QUALIFIERS))
 
     elif event.type_id in _SHOT_TYPES:
+        base["type_name"] = "shot"
+        base["outcome"] = _SHOT_OUTCOME_MAP[event.type_id]
         base.update(_extract_value_qualifiers(qual_lookup, _SHOT_VALUE_QUALIFIERS))
         base.update(_extract_bool_qualifiers(qual_lookup, _SHOT_BOOL_QUALIFIERS))
 

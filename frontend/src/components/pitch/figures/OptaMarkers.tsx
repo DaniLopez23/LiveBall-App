@@ -1,6 +1,7 @@
 import React from "react";
 import PassArrow from "./PassArrow";
 import BallOutFigure, { type FieldEdge } from "./BallOutFigure";
+import ShotFigure from "./ShotFigure";
 import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
 import {
   Tooltip,
@@ -8,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { type Event, isPassEvent, isOutEvent } from "@/types/event";
+import { type Event, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
 
 /**
  * Determines which SVG viewport edge the ball crossed, derived from
@@ -66,6 +67,10 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
         return true;
       }
 
+      if (isShotEvent(event)) {
+        return true;
+      }
+
       return false;
     });
 
@@ -95,7 +100,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                     x2={svgX2}
                     y2={svgY2}
                     sequence={renderIndex + 1}
-                    outcome={outcome ?? 0}
+                    outcome={typeof outcome === "number" ? outcome : 0}
                     color={color}
                   />
                 </g>
@@ -122,6 +127,39 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                     svgY={svgY1}
                     edge={edge}
                     sequence={renderIndex + 1}
+                    color={color}
+                  />
+                </g>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={2}>
+                <div className="space-y-0.5">
+                  <div>ID {event.id}</div>
+                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        // ── Shot ──────────────────────────────────────────────────
+        if (isShotEvent(event)) {
+          // Determine goal-line endpoint:
+          // shots with x > 50 attack toward x=100, otherwise x=0.
+          const goalOptaX = (event.x ?? 50) > 50 ? 100 : 0;
+          const goalOptaY = event.goal_mouth_y ?? event.y ?? 50;
+          const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
+
+          return (
+            <Tooltip key={event.id}>
+              <TooltipTrigger asChild>
+                <g>
+                  <ShotFigure
+                    x1={svgX1}
+                    y1={svgY1}
+                    x2={svgX2}
+                    y2={svgY2}
+                    sequence={renderIndex + 1}
+                    outcome={event.outcome ?? "Miss"}
                     color={color}
                   />
                 </g>

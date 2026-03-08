@@ -12,7 +12,7 @@ export interface EventBase {
 	player_id?: string | null;
 	player_receiver_id?: string | null;
 	team_id?: string | null;
-	outcome?: number | null;
+	outcome?: number | string | null;
 	x?: number | null;
 	y?: number | null;
 	timestamp?: string | null;
@@ -51,6 +51,8 @@ export interface PassEvent extends EventBase {
 // ---------------------------------------------------------------------------
 export interface ShotEvent extends EventBase {
 	type_id: "13" | "14" | "15" | "16";
+	type_name: "shot";
+	outcome?: "Miss" | "Post" | "Attempt Saved" | "Goal" | null;
 	goal_mouth_y?: number | null;
 	goal_mouth_z?: number | null;
 	blocked_x?: number | null;
