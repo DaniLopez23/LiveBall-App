@@ -7,25 +7,10 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { type Event, isPassEvent } from "@/types/event";
 
-export interface OptaQualifier {
-  qualifier_id: string;
-  qualifier_name: string;
-  value: string;
-}
-
-export interface OptaEvent {
-  id: string;
-  event_id: string;
-  type_id: string;
-  event_name: string;
-  x?: number | null;
-  y?: number | null;
-  outcome?: number | null;
-  team_id?: string | null;
-  player_id?: string | null;
-  qualifiers: OptaQualifier[];
-}
+/** Alias so other components can import OptaEvent from this file as before. */
+export type OptaEvent = Event;
 
 export interface OptaMarkersProps {
   events: OptaEvent[];
@@ -43,36 +28,29 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
   const renderableEvents = events
     .map((event, originalIndex) => ({ event, originalIndex }))
     .filter(({ event }) => {
-      const { type_id, x, y, qualifiers } = event;
-      if (x == null || y == null) return false;
-      
-      // Only include passes with valid end coordinates
-      if (type_id === "1") {
-        const endXQ = qualifiers.find((q) => q.qualifier_id === "140");
-        const endYQ = qualifiers.find((q) => q.qualifier_id === "141");
-        return endXQ && endYQ;
+      if (event.x == null || event.y == null) return false;
+
+      if (isPassEvent(event)) {
+        return event.end_x != null && event.end_y != null;
       }
-      
+
       return false; // For now, only passes are rendered
     });
 
   return (
     <TooltipProvider delayDuration={80}>
       {renderableEvents.map(({ event }, renderIndex) => {
-        const { type_id, x, y, outcome, team_id, qualifiers } = event;
+        const { x, y, outcome, team_id } = event;
 
         const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
         const color =
           team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff";
 
-        // ── Pass (type_id = "1") ──────────────────────────────────────
-        if (type_id === "1") {
-          const endXQ = qualifiers.find((q) => q.qualifier_id === "140")!;
-          const endYQ = qualifiers.find((q) => q.qualifier_id === "141")!;
-
+        // ── Pass ──────────────────────────────────────────────────────
+        if (isPassEvent(event)) {
           const { x: svgX2, y: svgY2 } = transformOptaToSvg(
-            parseFloat(endXQ.value),
-            parseFloat(endYQ.value),
+            event.end_x!,
+            event.end_y!,
           );
 
           return (

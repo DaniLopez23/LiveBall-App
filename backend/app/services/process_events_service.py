@@ -3,6 +3,7 @@ from typing import Any, Dict, List, Optional
 
 from app.schemas.events import Event
 from app.schemas.games import ParsedGame, ParsedGamesRoot
+from app.services.qualifier_flattener import flatten_event
 from app.state.game_state import GameStateCache
 
 logger = logging.getLogger(__name__)
@@ -160,7 +161,7 @@ class ProcessEventsService:
                 {
                     "type": "new_events",
                     "game_id": game.game_id,
-                    "events": [e.model_dump() for e in new_events],
+                    "events": [flatten_event(e) for e in new_events],
                 }
             )
 
@@ -172,7 +173,7 @@ class ProcessEventsService:
                 {
                     "type": "updated_events",
                     "game_id": game.game_id,
-                    "events": [e.model_dump() for e in updated_events],
+                    "events": [flatten_event(e) for e in updated_events],
                 }
             )
 
