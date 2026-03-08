@@ -1,5 +1,5 @@
 import { Outlet } from "react-router-dom";
-import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "./Sidebar";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
@@ -26,15 +26,13 @@ export function DashboardLayout() {
   return (
     <SidebarProvider>
       <AppSidebar />
-      <SidebarInset>
-        <div className="flex flex-col h-full">
-          {/* Mobile trigger - only visible on small screens */}
-          <MobileTrigger />
-          <main className="flex-1 overflow-auto">
-            <Outlet />
-          </main>
-        </div>
-      </SidebarInset>
+      <div className="flex flex-col w-full h-screen">
+        {/* Mobile trigger - only visible on small screens */}
+        <MobileTrigger />
+        <main className="flex-1 overflow-auto">
+          <Outlet />
+        </main>
+      </div>
     </SidebarProvider>
   );
 }

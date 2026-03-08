@@ -10,7 +10,7 @@ export interface PassArrowProps {
   color?: string;
 }
 
-const CIRCLE_R = 2.8;
+const CIRCLE_R = 3.5;
 const ARROW_LEN = 4;
 const ARROW_ANGLE = Math.PI / 6; // 30°
 const CROSS_SIZE = 2;
@@ -44,7 +44,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
 
   // Adaptive font size so the number fits the circle
   const digits = String(sequence).length;
-  const fontSize = digits === 1 ? 2.8 : digits === 2 ? 2.4 : 2;
+  const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
 
   return (
     <g>

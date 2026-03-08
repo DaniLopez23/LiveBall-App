@@ -1,6 +1,6 @@
 import React from "react";
-import OptaPitch from "./OptaPitch";
-import OptaMarkers, { type OptaEvent } from "./figures/OptaMarkers";
+import OptaPitch from "@/components/pitch/OptaPitch";
+import OptaMarkers, { type OptaEvent } from "@/components/pitch/figures/OptaMarkers";
 import type { Orientation } from "@/store/optaPitchConfigStore";
 
 interface EventsPitchProps {

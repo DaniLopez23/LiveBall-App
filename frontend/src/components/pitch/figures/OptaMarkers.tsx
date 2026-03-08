@@ -1,6 +1,12 @@
 import React from "react";
 import PassArrow from "./PassArrow";
 import useOptaPitchConfigStore from "@/store/optaPitchConfigStore";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 export interface OptaQualifier {
   qualifier_id: string;
@@ -51,7 +57,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
     });
 
   return (
-    <>
+    <TooltipProvider delayDuration={80}>
       {renderableEvents.map(({ event }, renderIndex) => {
         const { type_id, x, y, outcome, team_id, qualifiers } = event;
 
@@ -70,23 +76,34 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
           );
 
           return (
-            <PassArrow
-              key={event.id}
-              x1={svgX1}
-              y1={svgY1}
-              x2={svgX2}
-              y2={svgY2}
-              sequence={renderIndex + 1}
-              outcome={outcome ?? 0}
-              color={color}
-            />
+            <Tooltip key={event.id}>
+              <TooltipTrigger asChild>
+                <g>
+                  <PassArrow
+                    x1={svgX1}
+                    y1={svgY1}
+                    x2={svgX2}
+                    y2={svgY2}
+                    sequence={renderIndex + 1}
+                    outcome={outcome ?? 0}
+                    color={color}
+                  />
+                </g>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={2}>
+                <div className="space-y-0.5">
+                  <div>ID {event.id}</div>
+                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                </div>
+              </TooltipContent>
+            </Tooltip>
           );
         }
 
         // Additional event types can be added here as new cases
         return null;
       })}
-    </>
+    </TooltipProvider>
   );
 };
 
