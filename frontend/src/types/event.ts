@@ -124,3 +124,6 @@ export const isPassEvent = (e: Event): e is PassEvent =>
 
 export const isShotEvent = (e: Event): e is ShotEvent =>
 	e.type_id === "13" || e.type_id === "14" || e.type_id === "15" || e.type_id === "16";
+
+export const isOutEvent = (e: Event): e is OutEvent =>
+	e.type_id === "5";

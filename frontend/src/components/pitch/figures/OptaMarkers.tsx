@@ -1,13 +1,41 @@
 import React from "react";
 import PassArrow from "./PassArrow";
-import useOptaPitchConfigStore from "@/store/optaPitchConfigStore";
+import BallOutFigure, { type FieldEdge } from "./BallOutFigure";
+import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { type Event, isPassEvent } from "@/types/event";
+import { type Event, isPassEvent, isOutEvent } from "@/types/event";
+
+/**
+ * Determines which SVG viewport edge the ball crossed, derived from
+ * raw (unclamped) Opta coordinates and the current pitch orientation.
+ *
+ * In Opta space x/y ∈ [0,100]. Values outside that range indicate the
+ * side the ball exited from.
+ *
+ * Vertical pitch: Opta-X → SVG-Y (long axis), Opta-Y → SVG-X (short axis)
+ * Horizontal pitch: Opta-X → SVG-X (long axis), Opta-Y → SVG-Y (short axis)
+ */
+function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation): FieldEdge {
+  const xOut = optaX < 0 ? -optaX : optaX > 100 ? optaX - 100 : 0;
+  const yOut = optaY < 0 ? -optaY : optaY > 100 ? optaY - 100 : 0;
+  const useX = xOut >= yOut;
+
+  if (orientation === "vertical") {
+    // Opta X maps to SVG Y: low optaX → high SVG Y (bottom), high → top
+    if (useX) return optaX <= 50 ? "bottom" : "top";
+    // Opta Y maps to SVG X: low optaY → high SVG X (right), high → left
+    return optaY <= 50 ? "right" : "left";
+  } else {
+    // Horizontal: Opta X maps to SVG X, Opta Y maps to SVG Y
+    if (useX) return optaX <= 50 ? "left" : "right";
+    return optaY <= 50 ? "bottom" : "top";
+  }
+}
 
 /** Alias so other components can import OptaEvent from this file as before. */
 export type OptaEvent = Event;
@@ -21,7 +49,7 @@ export interface OptaMarkersProps {
 const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) => {
   // Subscribe to orientation so the component re-renders on layout changes;
   // transformOptaToSvg reads state via get() at call time.
-  useOptaPitchConfigStore((s) => s.orientation);
+  const orientation = useOptaPitchConfigStore((s) => s.orientation);
   const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
 
   // Filter and prepare events that will actually be rendered
@@ -34,7 +62,11 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
         return event.end_x != null && event.end_y != null;
       }
 
-      return false; // For now, only passes are rendered
+      if (isOutEvent(event)) {
+        return true;
+      }
+
+      return false;
     });
 
   return (
@@ -64,6 +96,32 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                     y2={svgY2}
                     sequence={renderIndex + 1}
                     outcome={outcome ?? 0}
+                    color={color}
+                  />
+                </g>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={2}>
+                <div className="space-y-0.5">
+                  <div>ID {event.id}</div>
+                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          );
+        }
+
+        // ── Ball Out ──────────────────────────────────────────────────
+        if (isOutEvent(event)) {
+          const edge = deriveFieldEdge(x!, y!, orientation);
+          return (
+            <Tooltip key={event.id}>
+              <TooltipTrigger asChild>
+                <g>
+                  <BallOutFigure
+                    svgX={svgX1}
+                    svgY={svgY1}
+                    edge={edge}
+                    sequence={renderIndex + 1}
                     color={color}
                   />
                 </g>

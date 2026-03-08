@@ -10,7 +10,7 @@ export interface PassArrowProps {
   color?: string;
 }
 
-const CIRCLE_R = 3.5;
+const CIRCLE_R = 2.3;
 const ARROW_LEN = 4;
 const ARROW_ANGLE = Math.PI / 6; // 30°
 const CROSS_SIZE = 2;
