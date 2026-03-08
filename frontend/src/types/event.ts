@@ -129,3 +129,11 @@ export const isShotEvent = (e: Event): e is ShotEvent =>
 
 export const isOutEvent = (e: Event): e is OutEvent =>
 	e.type_id === "5";
+
+// ---------------------------------------------------------------------------
+// Pitch-renderable events – the only event types drawn on the pitch
+// ---------------------------------------------------------------------------
+export type PitchEvent = PassEvent | ShotEvent | OutEvent;
+
+export const isPitchEvent = (e: Event): e is PitchEvent =>
+	isPassEvent(e) || isShotEvent(e) || isOutEvent(e);

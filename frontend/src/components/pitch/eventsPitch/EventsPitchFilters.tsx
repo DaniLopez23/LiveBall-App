@@ -12,23 +12,20 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { cn } from "@/lib/utils";
+import {
+  type PitchEventType,
+  PITCH_EVENT_TYPES_CONFIG,
+  OUTCOME_OPTIONS_BY_TYPE,
+} from "@/types/outcomeOptions";
+
 
 export interface EventsFilters {
   mode: "last" | "all";
   lastCount: number;
   team: "home" | "away" | "both";
-  eventCategory: EventCategory;
-  selectedEventTypes: string[];
+  selectedEventType: PitchEventType | "all";
+  selectedOutcomes: string[];
 }
-
-export type EventCategory =
-  | "all"
-  | "passes"
-  | "shots"
-  | "defensive"
-  | "duels"
-  | "fouls"
-  | "other";
 
 interface EventsPitchFiltersProps {
   filters: EventsFilters;
@@ -37,81 +34,9 @@ interface EventsPitchFiltersProps {
   awayTeamName?: string;
   isOpen: boolean;
   onToggle: () => void;
+  availableTypeIds: string[];
 }
 
-const EVENT_CATEGORIES: { value: EventCategory; label: string }[] = [
-  { value: "all", label: "Todos" },
-  { value: "passes", label: "Pases" },
-  { value: "shots", label: "Disparos" },
-  { value: "defensive", label: "Defensivos" },
-  { value: "duels", label: "Duelos" },
-  { value: "fouls", label: "Faltas / Tarjetas" },
-  { value: "other", label: "Otros" },
-];
-
-const EVENT_TYPES_BY_CATEGORY: Record<
-  EventCategory,
-  { id: string; name: string }[]
-> = {
-  all: [
-    { id: "1", name: "Pase" },
-    { id: "2", name: "Pase en fuera de juego" },
-    { id: "3", name: "Regate" },
-    { id: "4", name: "Falta" },
-    { id: "5", name: "Fuera de juego" },
-    { id: "6", name: "Córner" },
-    { id: "7", name: "Entrada" },
-    { id: "8", name: "Intercepción" },
-    { id: "10", name: "Parada" },
-    { id: "11", name: "Atrapada" },
-    { id: "12", name: "Despeje" },
-    { id: "13", name: "Fallo" },
-    { id: "14", name: "Poste" },
-    { id: "15", name: "Disparo parado" },
-    { id: "16", name: "Gol" },
-    { id: "17", name: "Tarjeta" },
-    { id: "41", name: "Puñetazo" },
-    { id: "44", name: "Duelo aéreo" },
-    { id: "45", name: "Desafío" },
-    { id: "49", name: "Recuperación" },
-    { id: "50", name: "Pérdida" },
-    { id: "51", name: "Error" },
-  ],
-  passes: [
-    { id: "1", name: "Pase" },
-    { id: "2", name: "Pase en fuera de juego" },
-  ],
-  shots: [
-    { id: "13", name: "Fallo" },
-    { id: "14", name: "Poste" },
-    { id: "15", name: "Disparo parado" },
-    { id: "16", name: "Gol" },
-  ],
-  defensive: [
-    { id: "7", name: "Entrada" },
-    { id: "8", name: "Intercepción" },
-    { id: "10", name: "Parada" },
-    { id: "11", name: "Atrapada" },
-    { id: "12", name: "Despeje" },
-    { id: "41", name: "Puñetazo" },
-    { id: "49", name: "Recuperación" },
-  ],
-  duels: [
-    { id: "3", name: "Regate" },
-    { id: "44", name: "Duelo aéreo" },
-    { id: "45", name: "Desafío" },
-    { id: "50", name: "Pérdida" },
-  ],
-  fouls: [
-    { id: "4", name: "Falta" },
-    { id: "17", name: "Tarjeta" },
-  ],
-  other: [
-    { id: "5", name: "Fuera de juego" },
-    { id: "6", name: "Córner" },
-    { id: "51", name: "Error" },
-  ],
-};
 
 const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   filters,
@@ -120,11 +45,22 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   awayTeamName = "Visitante",
   isOpen,
   onToggle,
+  availableTypeIds,
 }) => {
-  const availableTypes = EVENT_TYPES_BY_CATEGORY[filters.eventCategory];
-  const allSelected =
-    availableTypes.length > 0 &&
-    availableTypes.every((t) => filters.selectedEventTypes.includes(t.id));
+  const availablePitchTypes = PITCH_EVENT_TYPES_CONFIG.filter(
+    (t) => t.value === "all" || t.typeIds.some((id) => availableTypeIds.includes(id))
+  );
+
+  const availableOutcomeOptions =
+    filters.selectedEventType === "all"
+      ? OUTCOME_OPTIONS_BY_TYPE.all.filter((opt) => availableTypeIds.includes(opt.typeId))
+      : OUTCOME_OPTIONS_BY_TYPE[filters.selectedEventType].filter((opt) =>
+          availableTypeIds.includes(opt.typeId)
+        );
+
+  const allOutcomesSelected =
+    availableOutcomeOptions.length > 0 &&
+    availableOutcomeOptions.every((opt) => filters.selectedOutcomes.includes(opt.id));
 
   const handleModeChange = (value: string) => {
     if (value === "last" || value === "all") {
@@ -138,25 +74,31 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
     }
   };
 
-  const handleCategoryChange = (value: string) => {
+  const handleEventTypeChange = (value: string) => {
+    const type = value as PitchEventType | "all";
+    const options = OUTCOME_OPTIONS_BY_TYPE[type].filter((opt) =>
+      availableTypeIds.includes(opt.typeId)
+    );
     onChange({
       ...filters,
-      eventCategory: value as EventCategory,
-      selectedEventTypes: [],
+      selectedEventType: type,
+      selectedOutcomes: options.map((opt) => opt.id),
     });
   };
 
-  const handleTypeToggle = (typeId: string) => {
-    const next = filters.selectedEventTypes.includes(typeId)
-      ? filters.selectedEventTypes.filter((t) => t !== typeId)
-      : [...filters.selectedEventTypes, typeId];
-    onChange({ ...filters, selectedEventTypes: next });
+  const handleOutcomeToggle = (optId: string) => {
+    const next = filters.selectedOutcomes.includes(optId)
+      ? filters.selectedOutcomes.filter((id) => id !== optId)
+      : [...filters.selectedOutcomes, optId];
+    onChange({ ...filters, selectedOutcomes: next });
   };
 
-  const handleToggleAll = () => {
+  const handleToggleAllOutcomes = () => {
     onChange({
       ...filters,
-      selectedEventTypes: allSelected ? [] : availableTypes.map((t) => t.id),
+      selectedOutcomes: allOutcomesSelected
+        ? []
+        : availableOutcomeOptions.map((opt) => opt.id),
     });
   };
 
@@ -267,60 +209,65 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           Tipos de eventos
         </p>
 
-        {/* Category select + toggle-all */}
+        {/* Event type selector + select-all checkbox */}
         <div className="flex items-center gap-2">
           <Select
-            value={filters.eventCategory}
-            onValueChange={handleCategoryChange}
+            value={filters.selectedEventType}
+            onValueChange={handleEventTypeChange}
           >
             <SelectTrigger size="sm" className="flex-1 bg-background">
-              <SelectValue placeholder="Categoría" />
+              <SelectValue placeholder="Tipo de evento" />
             </SelectTrigger>
             <SelectContent>
-              {EVENT_CATEGORIES.map((cat) => (
-                <SelectItem key={cat.value} value={cat.value}>
-                  {cat.label}
+              {availablePitchTypes.map((type) => (
+                <SelectItem key={type.value} value={type.value}>
+                  {type.label}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
-          <button
-            type="button"
-            onClick={handleToggleAll}
-            className="text-xs text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-          >
-            {allSelected ? "Ninguno" : "Todos"}
-          </button>
+          {availableOutcomeOptions.length > 0 && (
+            <label className="flex items-center gap-1.5 cursor-pointer select-none whitespace-nowrap">
+              <input
+                type="checkbox"
+                checked={allOutcomesSelected}
+                onChange={handleToggleAllOutcomes}
+                className="accent-primary size-3.5 shrink-0"
+              />
+              <span className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                Seleccionar Todos
+              </span>
+            </label>
+          )}
         </div>
 
-        {/* Multi-select checklist */}
-        <div className="flex flex-col gap-0.5 overflow-y-auto rounded-md border border-input bg-background p-1.5">
-          {availableTypes.map((type) => {
-            const checked = filters.selectedEventTypes.includes(type.id);
-            return (
-              <label
-                key={type.id}
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer select-none transition-colors",
-                  checked
-                    ? "bg-primary/10 text-foreground"
-                    : "hover:bg-muted/60 text-muted-foreground"
-                )}
-              >
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={() => handleTypeToggle(type.id)}
-                  className="accent-primary size-3.5 shrink-0"
-                />
-                <span>{type.name}</span>
-                <span className="ml-auto font-mono text-[10px] text-muted-foreground/50">
-                  {type.id}
-                </span>
-              </label>
-            );
-          })}
-        </div>
+        {/* Outcome checklist — always visible when options are available */}
+        {availableOutcomeOptions.length > 0 && (
+          <div className="flex flex-col gap-0.5 overflow-y-auto rounded-md border border-input bg-background p-1.5">
+            {availableOutcomeOptions.map((opt) => {
+              const checked = filters.selectedOutcomes.includes(opt.id);
+              return (
+                <label
+                  key={opt.id}
+                  className={cn(
+                    "flex items-center gap-2 px-2 py-1.5 rounded text-xs cursor-pointer select-none transition-colors",
+                    checked
+                      ? "bg-primary/10 text-foreground"
+                      : "hover:bg-muted/60 text-muted-foreground"
+                  )}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => handleOutcomeToggle(opt.id)}
+                    className="accent-primary size-3.5 shrink-0"
+                  />
+                  <span>{opt.label}</span>
+                </label>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

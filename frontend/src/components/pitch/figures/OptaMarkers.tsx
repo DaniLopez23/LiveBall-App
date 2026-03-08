@@ -9,7 +9,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { type Event, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
+import { type PitchEvent, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
 
 /**
  * Determines which SVG viewport edge the ball crossed, derived from
@@ -38,8 +38,8 @@ function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation)
   }
 }
 
-/** Alias so other components can import OptaEvent from this file as before. */
-export type OptaEvent = Event;
+/** Pitch-renderable events only. */
+export type OptaEvent = PitchEvent;
 
 export interface OptaMarkersProps {
   events: OptaEvent[];

@@ -5,14 +5,16 @@ import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import EventsPitchFilters, {
   type EventsFilters,
 } from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import { OUTCOME_OPTIONS_FLAT } from "@/types/outcomeOptions";
+import { isPitchEvent } from "@/types/event";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_FILTERS: EventsFilters = {
   mode: "all",
   lastCount: 20,
   team: "both",
-  eventCategory: "all",
-  selectedEventTypes: [],
+  selectedEventType: "all",
+  selectedOutcomes: [],
 };
 
 const EventsPage: React.FC = () => {
@@ -29,8 +31,24 @@ const EventsPage: React.FC = () => {
     };
   }, [game]);
 
+  const availableTypeIds = React.useMemo(
+    () => Array.from(new Set(events.filter(isPitchEvent).map((e) => e.type_id))),
+    [events]
+  );
+
+  // Seed outcomes on first data load so all checkboxes start checked
+  React.useEffect(() => {
+    if (availableTypeIds.length > 0 && filters.selectedOutcomes.length === 0) {
+      const options = OUTCOME_OPTIONS_FLAT.filter((opt) =>
+        (availableTypeIds as string[]).includes(opt.typeId)
+      );
+      setFilters((prev) => ({ ...prev, selectedOutcomes: options.map((o) => o.id) }));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableTypeIds]);
+
   const filteredEvents = React.useMemo(() => {
-    let result = events;
+    let result = events.filter(isPitchEvent);
 
     if (filters.team !== "both" && game) {
       const teamId =
@@ -40,11 +58,14 @@ const EventsPage: React.FC = () => {
       result = result.filter((e) => e.team_id === teamId);
     }
 
-    if (filters.selectedEventTypes.length > 0) {
-      result = result.filter((e) =>
-        filters.selectedEventTypes.includes(e.type_id)
-      );
-    }
+    result = result.filter((e) =>
+      OUTCOME_OPTIONS_FLAT.some(
+        (opt) =>
+          filters.selectedOutcomes.includes(opt.id) &&
+          opt.typeId === e.type_id &&
+          (opt.outcome === undefined || Number(e.outcome) === opt.outcome)
+      )
+    );
 
     if (filters.mode === "last") {
       result = result.slice(-filters.lastCount);
@@ -91,13 +112,6 @@ const EventsPage: React.FC = () => {
                 Los eventos se mostrarán aquí en tiempo real
               </p>
             </div>
-          ) : filteredEvents.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              <p className="text-lg font-medium">Sin resultados</p>
-              <p className="text-sm mt-2">
-                Ningún evento coincide con los filtros aplicados
-              </p>
-            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center">
               <EventsPitch
@@ -123,6 +137,7 @@ const EventsPage: React.FC = () => {
             awayTeamName={game?.away_team.team_name}
             isOpen={showFilters}
             onToggle={() => setShowFilters((v) => !v)}
+            availableTypeIds={availableTypeIds}
           />
         </div>
       </div>
