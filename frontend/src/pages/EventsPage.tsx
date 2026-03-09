@@ -97,11 +97,11 @@ const EventsPage: React.FC = () => {
       </div>
 
       {/* Main area: pitch + filters */}
-      <div className="flex-1 flex gap-4 min-h-0">
+      <div className="flex-1 flex gap-2 min-h-0">
         {/* Pitch: ~2/3 */}
         <div
           className={cn(
-            "flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-4 transition-all duration-300",
+            "flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-2 transition-all duration-300",
             showFilters ? "flex-2" : "flex-1"
           )}
         >
@@ -113,13 +113,11 @@ const EventsPage: React.FC = () => {
               </p>
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center">
-              <EventsPitch
-                events={filteredEvents}
-                teamColors={teamColors}
-                orientation="horizontal"
-              />
-            </div>
+            <EventsPitch
+              events={filteredEvents}
+              teamColors={teamColors}
+              orientation="horizontal"
+            />
           )}
         </div>
 
