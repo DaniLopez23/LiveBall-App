@@ -10,8 +10,8 @@ import { isPitchEvent } from "@/types/event";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_FILTERS: EventsFilters = {
-  mode: "all",
-  lastCount: 20,
+  mode: "last",
+  lastCount: 10,
   team: "both",
   selectedEventType: "all",
   selectedOutcomes: [],
