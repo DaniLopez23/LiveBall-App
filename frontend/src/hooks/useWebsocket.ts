@@ -3,6 +3,7 @@ import { GameWebSocketClient } from "@/services/websocket";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
+import useWebsocketStore from "@/store/websocketStore";
 import { applyWebsocketMessageToStores } from "@/store/websocketStateUpdater";
 import type { IncomingWsMessage } from "@/types/websocket";
 
@@ -27,6 +28,13 @@ export const useWebsocket = ({
 	const [error, setError] = useState<string | null>(null);
 	const [lastMessage, setLastMessage] = useState<IncomingWsMessage | null>(null);
 
+	const setStoreStatus = useWebsocketStore.getState().setStatus;
+
+	const syncStatus = (next: UseWebsocketResult["status"]) => {
+		setStatus(next);
+		setStoreStatus(next);
+	};
+
 	useEffect(() => {
 		const resetDomainState = () => {
 			useGameStore.getState().reset();
@@ -39,7 +47,7 @@ export const useWebsocket = ({
 			setIsConnected(false);
 			setLastMessage(null);
 			setError(null);
-			setStatus("idle");
+			syncStatus("idle");
 			return;
 		}
 
@@ -51,18 +59,18 @@ export const useWebsocket = ({
 			onOpen: () => {
 				console.log(`✅ WebSocket conectado al room ${gameId}`);
 				setIsConnected(true);
-				setStatus("connected");
+				syncStatus("connected");
 				setError(null);
 			},
 			onClose: (event) => {
 				console.log(`🔌 WebSocket desconectado (código: ${event.code})`);
 				setIsConnected(false);
-				setStatus("disconnected");
+				syncStatus("disconnected");
 			},
 			onError: (event) => {
 				console.error("❌ Error en WebSocket:", event);
 				setIsConnected(false);
-				setStatus("error");
+				syncStatus("error");
 				setError("No se pudo establecer conexión WebSocket.");
 			},
 			onMessage: (message: IncomingWsMessage) => {

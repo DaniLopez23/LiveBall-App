@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "./Sidebar";
+import { Header } from "./Header";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
 
@@ -29,6 +30,7 @@ export function DashboardLayout() {
       <div className="flex flex-col w-full h-screen">
         {/* Mobile trigger - only visible on small screens */}
         <MobileTrigger />
+        <Header />
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>
