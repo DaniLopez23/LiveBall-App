@@ -139,7 +139,8 @@ const EventsPage: React.FC = () => {
       </div>
 
       {/* Table */}
-      <div>
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+        <h2 className="text-sm font-semibold mb-3">Tabla de eventos</h2>
         <EventsPitchTable events={filteredEvents} game={game} />
       </div>
     </div>

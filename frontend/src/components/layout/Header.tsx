@@ -71,7 +71,7 @@ export function Header() {
           alt="LaLiga"
           className="h-5 w-auto sm:h-7 object-contain"
         />
-        <div className="hidden xs:flex flex-col leading-tight">
+        <div className="flex flex-col leading-tight">
           {seasonYear && (
             <span className="text-[10px] sm:text-[11px] font-medium text-muted-foreground">{seasonYear}</span>
           )}

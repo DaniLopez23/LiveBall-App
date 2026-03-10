@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Info, ChevronLeft, ChevronRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import {
   Table,
   TableBody,
@@ -86,7 +87,12 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
               pageEvents.map((event, idx) => (
                 <TableRow
                   key={event.id}
-                  className={idx % 2 !== 0 ? "bg-muted/40" : ""}
+                  className={cn(
+                    "transition-colors hover:bg-slate-200 dark:hover:bg-slate-600",
+                    idx % 2 === 0
+                      ? "bg-white dark:bg-slate-700"
+                      : "bg-slate-50 dark:bg-slate-750",
+                  )}
                 >
                   <TableCell className="font-mono text-xs">
                     {event.player_id ?? "—"}
