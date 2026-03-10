@@ -33,7 +33,7 @@ export function AppSidebar() {
   const isCollapsed = state === "collapsed";
 
   return (
-    <Sidebar collapsible="icon" variant="floating">
+    <Sidebar collapsible="icon">
       {/* Header */}
       <SidebarHeader>
         <SidebarMenu>
