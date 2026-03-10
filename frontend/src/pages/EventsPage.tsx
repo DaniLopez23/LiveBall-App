@@ -5,6 +5,7 @@ import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import EventsPitchFilters, {
   type EventsFilters,
 } from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
 import { OUTCOME_OPTIONS_FLAT } from "@/types/outcomeOptions";
 import { isPitchEvent } from "@/types/event";
 import { cn } from "@/lib/utils";
@@ -82,7 +83,7 @@ const EventsPage: React.FC = () => {
   }, [events, filters, game]);
 
   return (
-    <div className="flex flex-col h-full p-4 gap-4">
+    <div className="flex flex-col p-4 gap-4 min-h-full">
       {/* Header */}
       <div>
         <div>
@@ -103,8 +104,8 @@ const EventsPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Main area: pitch + filters */}
-      <div className="flex-1 flex gap-2 min-h-0">
+      {/* Main area: pitch + filters — fixed height so it doesn't shrink */}
+      <div className="flex gap-2 h-[620px]">
         {/* Pitch: ~2/3 */}
         <div
           className={cn(
@@ -132,7 +133,7 @@ const EventsPage: React.FC = () => {
         {/* Filters: ~1/3 */}
         <div
           className={cn(
-            "bg-slate-100 dark:bg-slate-800 rounded-lg min-h-0 overflow-hidden transition-all duration-300",
+            "bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-300",
             showFilters ? "flex-1 p-4" : "w-10 p-2"
           )}
         >
@@ -146,6 +147,11 @@ const EventsPage: React.FC = () => {
             availableTypeIds={availableTypeIds}
           />
         </div>
+      </div>
+
+      {/* Table */}
+      <div>
+        <EventsPitchTable events={filteredEvents} game={game} />
       </div>
     </div>
   );
