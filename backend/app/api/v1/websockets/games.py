@@ -45,7 +45,7 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                 "game_id": game_id,
                 "game": game.model_dump(exclude={"events"}),
                 "total_events": game.total_events,
-                "last_event_id": game.events[-1].event_id if game.events else None,
+                "last_event_id": game.events[-1].id if game.events else None,
                 "events": [flatten_event(e) for e in game.events],
                 "pass_networks": pass_networks_data,
             })
