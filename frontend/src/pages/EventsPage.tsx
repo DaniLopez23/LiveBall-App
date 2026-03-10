@@ -1,4 +1,4 @@
-import React from "react";
+import { useEffect, useState, useMemo } from "react";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
@@ -15,15 +15,16 @@ const DEFAULT_FILTERS: EventsFilters = {
   team: "both",
   selectedEventType: "all",
   selectedOutcomes: [],
+  minuteRange: [0, 90],
 };
 
 const EventsPage: React.FC = () => {
   const game = useGameStore((state) => state.game);
   const events = useEventsStore((state) => state.events);
-  const [filters, setFilters] = React.useState<EventsFilters>(DEFAULT_FILTERS);
-  const [showFilters, setShowFilters] = React.useState(true);
+  const [filters, setFilters] = useState<EventsFilters>(DEFAULT_FILTERS);
+  const [showFilters, setShowFilters] = useState(true);
 
-  const teamColors = React.useMemo(() => {
+  const teamColors = useMemo(() => {
     if (!game) return {};
     return {
       [game.home_team.team_id]: "#3b82f6",
@@ -31,13 +32,13 @@ const EventsPage: React.FC = () => {
     };
   }, [game]);
 
-  const availableTypeIds = React.useMemo(
+  const availableTypeIds =  useMemo(
     () => Array.from(new Set(events.filter(isPitchEvent).map((e) => e.type_id))),
     [events]
   );
 
   // Seed outcomes on first data load so all checkboxes start checked
-  React.useEffect(() => {
+  useEffect(() => {
     if (availableTypeIds.length > 0 && filters.selectedOutcomes.length === 0) {
       const options = OUTCOME_OPTIONS_FLAT.filter((opt) =>
         (availableTypeIds as string[]).includes(opt.typeId)
@@ -47,7 +48,7 @@ const EventsPage: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableTypeIds]);
 
-  const filteredEvents = React.useMemo(() => {
+  const filteredEvents = useMemo(() => {
     let result = events.filter(isPitchEvent);
 
     if (filters.team !== "both" && game) {
@@ -66,6 +67,12 @@ const EventsPage: React.FC = () => {
           (opt.outcome === undefined || Number(e.outcome) === opt.outcome)
       )
     );
+
+    const [minMin, maxMin] = filters.minuteRange;
+    result = result.filter((e) => {
+      const m = e.min ?? 0;
+      return m >= minMin && m <= maxMin;
+    });
 
     if (filters.mode === "last") {
       result = result.slice(-filters.lastCount);
@@ -115,6 +122,7 @@ const EventsPage: React.FC = () => {
           ) : (
             <EventsPitch
               events={filteredEvents}
+              mode={filters.mode}
               teamColors={teamColors}
               orientation="horizontal"
             />

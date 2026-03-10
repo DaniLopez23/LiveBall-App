@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "motion/react";
 
 export interface PassArrowProps {
   x1: number;
@@ -8,6 +9,8 @@ export interface PassArrowProps {
   sequence: number;
   outcome: number; // 1 = success, 0 = fail
   color?: string;
+  /** When true, plays enter animation (line draws + elements scale in) */
+  animated?: boolean;
 }
 
 const CIRCLE_R = 2.3;
@@ -23,6 +26,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
   sequence,
   outcome,
   color = "#ffffff",
+  animated = false,
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const success = outcome === 1;
@@ -42,55 +46,60 @@ const PassArrow: React.FC<PassArrowProps> = ({
   const lineX2 = x2 - lineEndOffset * Math.cos(angle);
   const lineY2 = y2 - lineEndOffset * Math.sin(angle);
 
-  // Adaptive font size so the number fits the circle
   const digits = String(sequence).length;
   const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
 
+  // SVG path string for the pass line
+  const linePath = `M ${lineX1} ${lineY1} L ${lineX2} ${lineY2}`;
+
   return (
     <g>
-      {/* Connecting line */}
-      <line
-        x1={lineX1}
-        y1={lineY1}
-        x2={lineX2}
-        y2={lineY2}
-        stroke={color}
-        strokeWidth={0.6}
-        strokeOpacity={0.8}
+      {/* Shadow line — draws itself for contrast */}
+      <motion.path
+        d={linePath}
+        stroke="rgba(0,0,0,0.45)"
+        strokeWidth={1.0}
+        strokeLinecap="round"
+        fill="none"
+        initial={animated ? { opacity: 0, pathLength: 0 } : false}
+        animate={{ opacity: 0.4, pathLength: 1 }}
+        transition={animated ? { duration: 0.7, ease: "easeOut" } : { duration: 0 }}
       />
 
-      {/* Start: filled circle */}
-      <circle cx={x1} cy={y1} r={CIRCLE_R} fill={color} fillOpacity={0.9} />
+      {/* Main line — draws itself */}
+      <motion.path
+        d={linePath}
+        stroke={color}
+        strokeWidth={0.6}
+        strokeLinecap="round"
+        fill="none"
+        initial={animated ? { opacity: 0, pathLength: 0 } : false}
+        animate={{ opacity: 1, pathLength: 1 }}
+        transition={animated ? { duration: 0.6, ease: "easeOut", delay: 0.05 } : { duration: 0 }}
+      />
 
-      {/* Sequence number inside circle */}
-      <text
-        x={x1}
-        y={y1}
-        textAnchor="middle"
-        dominantBaseline="central"
-        fontSize={fontSize}
-        fontWeight="bold"
-        fill="#1a1a1a"
-        style={{ userSelect: "none" }}
-      >
-        {sequence}
-      </text>
-
-      {/* End: arrowhead on success, cross on fail */}
+      {/* End: arrowhead (success) or cross (fail) — pops in after line */}
       {success ? (
-        <polygon
+        <motion.polygon
           points={`${x2},${y2} ${ax1},${ay1} ${ax2},${ay2}`}
           fill={color}
           fillOpacity={0.9}
+          initial={animated ? { opacity: 0, scale: 0 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={animated ? { duration: 0.35, ease: "backOut", delay: 0.55 } : { duration: 0 }}
+          style={{ transformOrigin: `${x2}px ${y2}px` }}
         />
       ) : (
-        <g
+        <motion.g
           stroke={color}
           strokeWidth={0.7}
           strokeLinecap="round"
           strokeOpacity={0.9}
+          initial={animated ? { opacity: 0, scale: 0 } : false}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={animated ? { duration: 0.35, ease: "backOut", delay: 0.55 } : { duration: 0 }}
+          style={{ transformOrigin: `${x2}px ${y2}px` }}
         >
-          {/* Cross rotated to align with line direction */}
           <line
             x1={x2 - CROSS_SIZE * Math.cos(angle + Math.PI / 4)}
             y1={y2 - CROSS_SIZE * Math.sin(angle + Math.PI / 4)}
@@ -103,8 +112,42 @@ const PassArrow: React.FC<PassArrowProps> = ({
             x2={x2 + CROSS_SIZE * Math.cos(angle - Math.PI / 4)}
             y2={y2 + CROSS_SIZE * Math.sin(angle - Math.PI / 4)}
           />
-        </g>
+        </motion.g>
       )}
+
+      {/* Origin dot */}
+      <motion.circle
+        cx={x1}
+        cy={y1}
+        r={0.5}
+        fill={color}
+        initial={animated ? { opacity: 0, scale: 0 } : false}
+        animate={{ opacity: 0.8, scale: 1 }}
+        transition={animated ? { duration: 0.3, ease: "backOut", delay: 0.05 } : { duration: 0 }}
+        style={{ transformOrigin: `${x1}px ${y1}px` }}
+      />
+
+      {/* Sequence badge — circle + number */}
+      <motion.g
+        initial={animated ? { opacity: 0, scale: 0 } : false}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={animated ? { duration: 0.3, ease: "backOut", delay: 0.2 } : { duration: 0 }}
+        style={{ transformOrigin: `${x1}px ${y1}px` }}
+      >
+        <circle cx={x1} cy={y1} r={CIRCLE_R} fill={color} fillOpacity={0.9} />
+        <text
+          x={x1}
+          y={y1}
+          textAnchor="middle"
+          dominantBaseline="central"
+          fontSize={fontSize}
+          fontWeight="bold"
+          fill="#1a1a1a"
+          style={{ userSelect: "none" }}
+        >
+          {sequence}
+        </text>
+      </motion.g>
     </g>
   );
 };

@@ -11,6 +11,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider-14";
 import { cn } from "@/lib/utils";
 import {
   type PitchEventType,
@@ -25,6 +26,7 @@ export interface EventsFilters {
   team: "home" | "away" | "both";
   selectedEventType: PitchEventType | "all";
   selectedOutcomes: string[];
+  minuteRange: [number, number];
 }
 
 interface EventsPitchFiltersProps {
@@ -167,6 +169,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         </RadioGroup>
       </div>
 
+      <Separator />
+
       {/* Section 2: Team */}
       <div>
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
@@ -268,6 +272,55 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
             })}
           </div>
         )}
+      </div>
+
+            <Separator />
+
+      {/* Section 1: Momento */}
+      <div>
+        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+          Momento
+        </p>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="text-xs text-muted-foreground w-6 text-right">{filters.minuteRange[0]}&apos;</span>
+          <Slider
+            min={0}
+            max={90}
+            step={1}
+            value={filters.minuteRange}
+            onValueChange={(v) =>
+              onChange({ ...filters, minuteRange: [v[0], v[1]] as [number, number] })
+            }
+            className="flex-1"
+          />
+          <span className="text-xs text-muted-foreground w-6">{filters.minuteRange[1]}&apos;</span>
+        </div>
+        <div className="flex gap-1">
+          {([
+            { label: "1ª Parte", range: [0, 45] as [number, number] },
+            { label: "2ª Parte", range: [45, 90] as [number, number] },
+            { label: "Completo", range: [0, 90] as [number, number] },
+          ] as const).map(({ label, range }) => {
+            const active =
+              filters.minuteRange[0] === range[0] &&
+              filters.minuteRange[1] === range[1];
+            return (
+              <button
+                key={label}
+                type="button"
+                onClick={() => onChange({ ...filters, minuteRange: range })}
+                className={cn(
+                  "flex-1 rounded-md border px-1 py-1 text-xs transition-colors",
+                  active
+                    ? "bg-primary text-primary-foreground border-primary"
+                    : "bg-background text-muted-foreground border-input hover:bg-muted/60 hover:text-foreground"
+                )}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React from "react";
+import { AnimatePresence, motion } from "motion/react";
 import PassArrow from "./PassArrow";
 import BallOutFigure, { type FieldEdge } from "./BallOutFigure";
 import ShotFigure from "./ShotFigure";
@@ -45,9 +46,29 @@ export interface OptaMarkersProps {
   events: OptaEvent[];
   /** Map of teamId → hex/css color string */
   teamColors?: Record<string, string>;
+  /** When true, events animate in/out sequentially (used in "last" mode) */
+  animated?: boolean;
 }
 
-const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) => {
+const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {}, animated = false }) => {
+  /**
+   * Wraps each marker. When `skipEnterFade=true` the wrapper starts already
+   * visible — used for PassArrow which manages its own entry animation.
+   */
+  const wrap = (key: string, content: React.ReactNode, skipEnterFade = false) =>
+    animated ? (
+      <motion.g
+        key={key}
+        initial={{ opacity: skipEnterFade ? 1 : 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.3 }}
+      >
+        {content}
+      </motion.g>
+    ) : (
+      <React.Fragment key={key}>{content}</React.Fragment>
+    );
   // Subscribe to orientation so the component re-renders on layout changes;
   // transformOptaToSvg reads state via get() at call time.
   const orientation = useOptaPitchConfigStore((s) => s.orientation);
@@ -74,9 +95,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
       return false;
     });
 
-  return (
-    <TooltipProvider delayDuration={80}>
-      {renderableEvents.map(({ event }, renderIndex) => {
+  const markers = renderableEvents.map(({ event }, renderIndex) => {
         const { x, y, outcome, team_id } = event;
 
         const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
@@ -90,8 +109,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
             event.end_y!,
           );
 
-          return (
-            <Tooltip key={event.id}>
+          return wrap(event.id, (
+            <Tooltip>
               <TooltipTrigger asChild>
                 <g>
                   <PassArrow
@@ -102,6 +121,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                     sequence={renderIndex + 1}
                     outcome={typeof outcome === "number" ? outcome : 0}
                     color={color}
+                    animated={animated}
                   />
                 </g>
               </TooltipTrigger>
@@ -112,14 +132,14 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                 </div>
               </TooltipContent>
             </Tooltip>
-          );
+          ), animated); // PassArrow handles its own enter animation
         }
 
         // ── Ball Out ──────────────────────────────────────────────────
         if (isOutEvent(event)) {
           const edge = deriveFieldEdge(x!, y!, orientation);
-          return (
-            <Tooltip key={event.id}>
+          return wrap(event.id, (
+            <Tooltip>
               <TooltipTrigger asChild>
                 <g>
                   <BallOutFigure
@@ -138,7 +158,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                 </div>
               </TooltipContent>
             </Tooltip>
-          );
+          ));
         }
 
         // ── Shot ──────────────────────────────────────────────────
@@ -149,8 +169,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
           const goalOptaY = event.goal_mouth_y ?? event.y ?? 50;
           const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
 
-          return (
-            <Tooltip key={event.id}>
+          return wrap(event.id, (
+            <Tooltip>
               <TooltipTrigger asChild>
                 <g>
                   <ShotFigure
@@ -171,12 +191,16 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {} }) =>
                 </div>
               </TooltipContent>
             </Tooltip>
-          );
+          ));
         }
 
         // Additional event types can be added here as new cases
         return null;
-      })}
+      });
+
+  return (
+    <TooltipProvider delayDuration={80}>
+      {animated ? <AnimatePresence>{markers}</AnimatePresence> : markers}
     </TooltipProvider>
   );
 };

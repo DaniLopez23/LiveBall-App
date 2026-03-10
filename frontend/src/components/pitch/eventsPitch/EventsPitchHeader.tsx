@@ -1,4 +1,4 @@
-import { HelpCircle, ArrowRight, ArrowLeft, Maximize } from "lucide-react";
+import { HelpCircle, ArrowRight, ArrowLeft, Maximize, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import useGameStore from "@/store/gameStore";
@@ -21,9 +21,13 @@ export function EventsPitchHeader() {
       </div>
 
       {/* Right: fullscreen */}
-      <div className="ml-auto">
+      <div className="ml-auto flex items-center gap-4">
         <Button variant="ghost" size="icon" className="size-6 text-muted-foreground" disabled>
-          <Maximize className="size-4" />
+          <Camera className="size-5" />
+          <span className="sr-only">Pantalla completa</span>
+        </Button>
+        <Button variant="ghost" size="icon" className="size-6 text-muted-foreground" disabled>
+          <Maximize className="size-5" />
           <span className="sr-only">Pantalla completa</span>
         </Button>
       </div>
