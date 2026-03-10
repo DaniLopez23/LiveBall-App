@@ -1,6 +1,7 @@
 import { createBrowserRouter } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import EventsPage from "@/pages/EventsPage";
+import PassNetworkPage from "@/pages/PassNetworkPage";
 
 // Pages (uncomment as they are created)
 // import { HomePage }         from "@/components/pages/HomePage";
@@ -25,8 +26,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "pass-networks",
-        element: <div className="p-6 text-muted-foreground">Redes de Pases – próximamente</div>,
-        // element: <RedesPasesPage />,
+        element: <PassNetworkPage />,
       },
       {
         path: "events",
