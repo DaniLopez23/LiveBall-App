@@ -18,19 +18,6 @@ const PassNetworkPage: React.FC = () => {
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold">Redes de Pases</h1>
-        {game && (
-          <div className="text-sm text-muted-foreground space-y-1 mt-1">
-            <p>
-              <span className="font-semibold">{game.home_team.team_name}</span>
-              {" vs "}
-              <span className="font-semibold">{game.away_team.team_name}</span>
-            </p>
-            <p>
-              {game.competition_name} • {game.season_name}
-              {game.matchday && ` • Jornada ${game.matchday}`}
-            </p>
-          </div>
-        )}
       </div>
 
       {/* 3-column layout */}

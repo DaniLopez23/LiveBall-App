@@ -33,20 +33,24 @@ const EventsPage: React.FC = () => {
     };
   }, [game]);
 
-  const availableTypeIds =  useMemo(
-    () => Array.from(new Set(events.filter(isPitchEvent).map((e) => e.type_id))),
-    [events]
+  const availableTypeIds = useMemo(
+    () =>
+      Array.from(new Set(events.filter(isPitchEvent).map((e) => e.type_id))),
+    [events],
   );
 
   // Seed outcomes on first data load so all checkboxes start checked
   useEffect(() => {
     if (availableTypeIds.length > 0 && filters.selectedOutcomes.length === 0) {
       const options = OUTCOME_OPTIONS_FLAT.filter((opt) =>
-        (availableTypeIds as string[]).includes(opt.typeId)
+        (availableTypeIds as string[]).includes(opt.typeId),
       );
-      setFilters((prev) => ({ ...prev, selectedOutcomes: options.map((o) => o.id) }));
+      setFilters((prev) => ({
+        ...prev,
+        selectedOutcomes: options.map((o) => o.id),
+      }));
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableTypeIds]);
 
   const filteredEvents = useMemo(() => {
@@ -65,8 +69,8 @@ const EventsPage: React.FC = () => {
         (opt) =>
           filters.selectedOutcomes.includes(opt.id) &&
           opt.typeId === e.type_id &&
-          (opt.outcome === undefined || Number(e.outcome) === opt.outcome)
-      )
+          (opt.outcome === undefined || Number(e.outcome) === opt.outcome),
+      ),
     );
 
     const [minMin, maxMin] = filters.minuteRange;
@@ -86,22 +90,7 @@ const EventsPage: React.FC = () => {
     <div className="flex flex-col p-4 gap-4 min-h-full">
       {/* Header */}
       <div>
-        <div>
-          <h1 className="text-2xl font-bold">Eventos en Tiempo Real</h1>
-          {game && (
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>
-                <span className="font-semibold">{game.home_team.team_name}</span>
-                {" vs "}
-                <span className="font-semibold">{game.away_team.team_name}</span>
-              </p>
-              <p>
-                {game.competition_name} • {game.season_name}
-                {game.matchday && ` • Jornada ${game.matchday}`}
-              </p>
-            </div>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold">Eventos en Tiempo Real</h1>
       </div>
 
       {/* Main area: pitch + filters — fixed height so it doesn't shrink */}
@@ -110,7 +99,7 @@ const EventsPage: React.FC = () => {
         <div
           className={cn(
             "flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-2 transition-all duration-300",
-            showFilters ? "flex-2" : "flex-1"
+            showFilters ? "flex-2" : "flex-1",
           )}
         >
           {events.length === 0 ? (
@@ -134,7 +123,7 @@ const EventsPage: React.FC = () => {
         <div
           className={cn(
             "bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-300",
-            showFilters ? "flex-1 p-4" : "w-10 p-2"
+            showFilters ? "flex-1 p-4" : "w-10 p-2",
           )}
         >
           <EventsPitchFilters
