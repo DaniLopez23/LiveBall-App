@@ -50,7 +50,8 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
   React.useEffect(() => { setPage(0); }, [events]);
 
   const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
-  const pageEvents = events.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const reversed = [...events].reverse();
+  const pageEvents = reversed.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   const teamNameById = React.useMemo(() => {
     const map: Record<string, string> = {};
