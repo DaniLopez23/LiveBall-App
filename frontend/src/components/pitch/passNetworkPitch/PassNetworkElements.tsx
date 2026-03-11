@@ -1,6 +1,6 @@
 import React, { useId } from "react";
 import { motion } from "motion/react";
-import useOptaPitchConfigStore from "@/store/optaPitchConfigStore";
+import { transformOptaToSvgPure, type Orientation } from "@/store/optaPitchConfigStore";
 import type { PassNetworkNode, PassNetworkEdge } from "@/types/passNetwork";
 
 export interface PassNetworkElementsProps {
@@ -10,6 +10,8 @@ export interface PassNetworkElementsProps {
   color?: string;
   /** When true, elements animate in */
   animated?: boolean;
+  /** Pitch orientation — must match the parent OptaPitch to position nodes correctly */
+  orientation?: Orientation;
 }
 
 // ── Normalise a value from [0, max] to [min, max] linear range ────────
@@ -52,24 +54,24 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
   edges,
   color = "#ffffff",
   animated = false,
+  orientation = 'vertical',
 }) => {
   const uid = useId().replace(/:/g, "");
   const arrowId = `${ARROW_ID}-${uid}`;
-
-  const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
 
   // ── Pre-compute node SVG positions ─────────────────────────────────
   const nodeMap = React.useMemo(() => {
     const m = new Map<string, { svgX: number; svgY: number; node: PassNetworkNode }>();
     for (const node of nodes) {
-      const { x: svgX, y: svgY } = transformOptaToSvg(
+      const { x: svgX, y: svgY } = transformOptaToSvgPure(
         node.avg_position_total.x,
         node.avg_position_total.y,
+        orientation,
       );
       m.set(node.player_id, { svgX, svgY, node });
     }
     return m;
-  }, [nodes, transformOptaToSvg]);
+  }, [nodes, orientation]);
 
   // ── Normalisation bounds ────────────────────────────────────────────
   const maxNodePasses = Math.max(1, ...nodes.map((n) => n.pass_count));

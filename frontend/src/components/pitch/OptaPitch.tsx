@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
+import useOptaPitchConfigStore, { type Orientation, VB_SHORT, VB_LONG } from "@/store/optaPitchConfigStore";
 
 interface OptaPitchProps {
   children: React.ReactNode;
@@ -16,15 +16,18 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
 }) => {
   const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
   const setOrientation = useOptaPitchConfigStore((s) => s.setOrientation);
-  const getViewBoxDimensions = useOptaPitchConfigStore((s) => s.getViewBoxDimensions);
-
-  // Sync prop → store so children (OptaMarkers) use the correct transform.
+  // Sync prop → store so children that read transformOptaToSvg from the store
+  // get the correct orientation. useLayoutEffect ensures the store is updated
+  // before the browser paints, preventing a single wrong-position frame.
   useEffect(() => {
     if (orientationProp) setOrientation(orientationProp);
   }, [orientationProp, setOrientation]);
 
   const orientation = orientationProp ?? storeOrientation;
-  const { width: vW, height: vH } = getViewBoxDimensions();
+  // Compute viewBox directly from the resolved orientation (not the store)
+  // so the SVG dimensions are always correct even on the very first render.
+  const vW = orientation === 'vertical' ? VB_SHORT : VB_LONG;
+  const vH = orientation === 'vertical' ? VB_LONG  : VB_SHORT;
 
   const isVertical = orientation === "vertical";
   const m = 5;

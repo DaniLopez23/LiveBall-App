@@ -1,11 +1,38 @@
 import { create } from 'zustand';
 
 // ViewBox dimensions: the pitch is a 190×290 field inside a 200×300 canvas
-const VB_SHORT = 200;  // short side (width in vertical, height in horizontal)
-const VB_LONG = 300;   // long side  (height in vertical, width in horizontal)
-const MARGIN = 5;
+export const VB_SHORT = 200;  // short side (width in vertical, height in horizontal)
+export const VB_LONG = 300;   // long side  (height in vertical, width in horizontal)
+export const MARGIN = 5;
 
 export type Orientation = 'vertical' | 'horizontal';
+
+/**
+ * Pure transform: converts Opta coordinates [0-100] to SVG coordinates.
+ * Use this when the orientation is known up-front (avoids stale store reads).
+ */
+export function transformOptaToSvgPure(
+  optaX: number,
+  optaY: number,
+  orientation: Orientation,
+): { x: number; y: number } {
+  const cx = Math.max(0, Math.min(100, optaX));
+  const cy = Math.max(0, Math.min(100, optaY));
+  const fieldShort = VB_SHORT - 2 * MARGIN;  // 190
+  const fieldLong  = VB_LONG  - 2 * MARGIN;  // 290
+
+  if (orientation === 'vertical') {
+    return {
+      x: MARGIN + ((100 - cy) / 100) * fieldShort,
+      y: MARGIN + ((100 - cx) / 100) * fieldLong,
+    };
+  } else {
+    return {
+      x: MARGIN + (cx / 100) * fieldLong,
+      y: MARGIN + ((100 - cy) / 100) * fieldShort,
+    };
+  }
+}
 
 interface OptaPitchConfigState {
   orientation: Orientation;

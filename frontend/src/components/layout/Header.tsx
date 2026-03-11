@@ -49,7 +49,7 @@ export function Header() {
   }, []);
 
   const lastEvent = lastEventId ? eventsById[lastEventId] : null;
-  console.log("Último evento:", lastEventId);
+  console.log("Último evento:", lastEvent);
   const periodLabel = getPeriodLabel(lastEvent?.period_id);
   const minute = lastEvent?.min != null ? `${lastEvent.min}'` : null;
 

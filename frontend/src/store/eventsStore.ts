@@ -34,11 +34,17 @@ const withBaseState = {
 const useEventsStore = create<EventsStoreState>((set, get) => ({
 	...withBaseState,
 	setFromSnapshot: ({ gameId, events, lastEventId }) => {
+		// lastEventId from the server refers to the Opta event_id field.
+		// eventsById is keyed by event.id, so compute the lastEventId
+		// from the events array to keep them consistent.
+		const computedLastEventId = events.length
+			? events[events.length - 1].id
+			: lastEventId;
 		set({
 			gameId,
 			events,
 			eventsById: toByIdMap(events),
-			lastEventId,
+			lastEventId: computedLastEventId,
 		});
 	},
 	appendNewEvents: ({ gameId, events }) => {
@@ -60,7 +66,7 @@ const useEventsStore = create<EventsStoreState>((set, get) => ({
 
 		const nextEvents = [...baseEvents, ...dedupedToAppend];
 		const nextLastEventId = nextEvents.length
-			? nextEvents[nextEvents.length - 1].event_id
+			? nextEvents[nextEvents.length - 1].id
 			: null;
 
 		set({
@@ -89,7 +95,7 @@ const useEventsStore = create<EventsStoreState>((set, get) => ({
 			events: nextEvents,
 			eventsById: nextById,
 			lastEventId: nextEvents.length
-				? nextEvents[nextEvents.length - 1].event_id
+				? nextEvents[nextEvents.length - 1].id
 				: null,
 		});
 	},

@@ -33,6 +33,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
           edges={edges}
           color={color}
           animated={animated}
+          orientation={orientation}
         />
       </OptaPitch>
     </div>

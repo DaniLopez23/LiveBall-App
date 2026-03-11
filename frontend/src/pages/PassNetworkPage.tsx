@@ -37,7 +37,7 @@ const PassNetworkPage: React.FC = () => {
                 nodes={homeNetwork.nodes}
                 edges={homeNetwork.edges}
                 color={HOME_COLOR}
-                orientation="horizontal"
+                orientation="vertical"
                 animated
               />
             ) : (
@@ -68,7 +68,7 @@ const PassNetworkPage: React.FC = () => {
                 nodes={awayNetwork.nodes}
                 edges={awayNetwork.edges}
                 color={AWAY_COLOR}
-                orientation="horizontal"
+                orientation="vertical"
                 animated
               />
             ) : (
