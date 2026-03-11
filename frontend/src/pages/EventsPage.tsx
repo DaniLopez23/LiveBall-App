@@ -2,10 +2,9 @@ import { useEffect, useState, useMemo } from "react";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
-import EventsPitchFilters, {
-  type EventsFilters,
-} from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
+import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
 import { OUTCOME_OPTIONS_FLAT } from "@/types/outcomeOptions";
 import { isPitchEvent } from "@/types/event";
 import { cn } from "@/lib/utils";
@@ -119,16 +118,16 @@ const EventsPage: React.FC = () => {
           )}
         </div>
 
-        {/* Filters: ~1/3 */}
+        {/* Filters panel: ~1/3 */}
         <div
           className={cn(
-            "bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-300",
-            showFilters ? "flex-1 p-4" : "w-10 p-2",
+            "bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 flex flex-col",
+            showFilters ? "flex-1" : "w-10",
           )}
         >
-          <EventsPitchFilters
+          <EventsPitchTabs
             filters={filters}
-            onChange={setFilters}
+            onFiltersChange={setFilters}
             homeTeamName={game?.home_team.team_name}
             awayTeamName={game?.away_team.team_name}
             isOpen={showFilters}

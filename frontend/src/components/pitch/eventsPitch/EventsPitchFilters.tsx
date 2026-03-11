@@ -1,5 +1,4 @@
 import React from "react";
-import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
 import { NumberInput } from "@/components/ui/number-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -34,8 +33,6 @@ interface EventsPitchFiltersProps {
   onChange: (filters: EventsFilters) => void;
   homeTeamName?: string;
   awayTeamName?: string;
-  isOpen: boolean;
-  onToggle: () => void;
   availableTypeIds: string[];
 }
 
@@ -45,8 +42,6 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   onChange,
   homeTeamName = "Local",
   awayTeamName = "Visitante",
-  isOpen,
-  onToggle,
   availableTypeIds,
 }) => {
   const availablePitchTypes = PITCH_EVENT_TYPES_CONFIG.filter(
@@ -104,38 +99,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
     });
   };
 
-  if (!isOpen) {
-    return (
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex items-center justify-center w-full h-full text-muted-foreground hover:text-foreground transition-colors"
-        aria-label="Mostrar filtros"
-      >
-        <ChevronLeft className="size-4" />
-      </button>
-    );
-  }
-
   return (
     <div className="flex flex-col gap-5 h-full overflow-y-auto">
-      {/* Header */}
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <SlidersHorizontal className="size-4 text-muted-foreground" />
-          <span className="text-sm font-semibold">Filtros</span>
-        </div>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          aria-label="Ocultar filtros"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-      </div>
-
-      <Separator />
 
       {/* Section 1: Mode */}
       <div>
