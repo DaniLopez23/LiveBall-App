@@ -93,6 +93,42 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const outcomeLabelById = new Map(availableOutcomeOptions.map((opt) => [opt.id, opt.label]));
   const subtypeLabelById = new Map(availableSubtypeOptions.map((opt) => [opt.id, opt.label]));
 
+  const validSelectedOutcomes = filters.selectedOutcomes.filter((id) => outcomeLabelById.has(id));
+  const validSelectedSubtypes = filters.selectedSubtypes.filter((id) => subtypeLabelById.has(id));
+
+  const COMPACT_COUNTER_THRESHOLD = 4;
+  const MAX_VISIBLE_CHIPS = 2;
+
+  const formatSelectionCounter = (selectedCount: number, totalCount: number) =>
+    totalCount === 0
+      ? "0/0"
+      : selectedCount === totalCount
+        ? "Todos"
+        : selectedCount > COMPACT_COUNTER_THRESHOLD
+          ? `+${selectedCount}`
+          : `${selectedCount}/${totalCount}`;
+
+  const renderCompactChips = (values: unknown[], getLabel: (value: string) => string) => {
+    const visibleValues = values.slice(0, MAX_VISIBLE_CHIPS);
+    const hiddenCount = Math.max(0, values.length - MAX_VISIBLE_CHIPS);
+
+    return (
+      <>
+        {visibleValues.map((value) => (
+          <ComboboxChip
+            key={String(value)}
+            className="bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+          >
+            {getLabel(String(value))}
+          </ComboboxChip>
+        ))}
+        {hiddenCount > 0 && (
+          <ComboboxChip className="bg-zinc-800 text-zinc-100">+{hiddenCount}</ComboboxChip>
+        )}
+      </>
+    );
+  };
+
   const handleModeChange = (value: string) => {
     if (value === "last" || value === "all") {
       onChange({ ...filters, mode: value });
@@ -224,7 +260,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] text-muted-foreground">Outcomes</p>
               <span className="text-[11px] text-muted-foreground">
-                {filters.selectedOutcomes.length}/{availableOutcomeOptions.length}
+                {formatSelectionCounter(validSelectedOutcomes.length, availableOutcomeOptions.length)}
               </span>
             </div>
             <Combobox
@@ -234,16 +270,26 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                 onChange({ ...filters, selectedOutcomes: value as string[] })
               }
             >
-              <ComboboxChips ref={outcomesAnchor} className="w-full">
+              <ComboboxChips
+                ref={outcomesAnchor}
+                className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+              >
                 <ComboboxValue>
-                  {(selectedValue) => (
-                    <ComboboxChip>
-                      {outcomeLabelById.get(selectedValue as string) ?? String(selectedValue)}
-                    </ComboboxChip>
-                  )}
+                  {(selectedValue) => {
+                    const selectedValues = Array.isArray(selectedValue)
+                      ? selectedValue
+                      : selectedValue
+                        ? [selectedValue]
+                        : [];
+
+                    return renderCompactChips(
+                      selectedValues,
+                      (value) => outcomeLabelById.get(value) ?? value
+                    );
+                  }}
                 </ComboboxValue>
                 <ComboboxChipsInput
-                  placeholder="Seleccionar outcomes"
+                  placeholder={validSelectedOutcomes.length === 0 ? "Seleccionar outcomes..." : undefined}
                   disabled={availableOutcomeOptions.length === 0}
                 />
               </ComboboxChips>
@@ -279,7 +325,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
             <div className="flex items-center justify-between gap-2">
               <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
               <span className="text-[11px] text-muted-foreground">
-                {filters.selectedSubtypes.length}/{availableSubtypeOptions.length}
+                {formatSelectionCounter(validSelectedSubtypes.length, availableSubtypeOptions.length)}
               </span>
             </div>
             <Combobox
@@ -289,16 +335,26 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                 onChange({ ...filters, selectedSubtypes: value as string[] })
               }
             >
-              <ComboboxChips ref={subtypesAnchor} className="w-full">
+              <ComboboxChips
+                ref={subtypesAnchor}
+                className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+              >
                 <ComboboxValue>
-                  {(selectedValue) => (
-                    <ComboboxChip>
-                      {subtypeLabelById.get(selectedValue as string) ?? String(selectedValue)}
-                    </ComboboxChip>
-                  )}
+                  {(selectedValue) => {
+                    const selectedValues = Array.isArray(selectedValue)
+                      ? selectedValue
+                      : selectedValue
+                        ? [selectedValue]
+                        : [];
+
+                    return renderCompactChips(
+                      selectedValues,
+                      (value) => subtypeLabelById.get(value) ?? value
+                    );
+                  }}
                 </ComboboxValue>
                 <ComboboxChipsInput
-                  placeholder="Seleccionar subtipos"
+                  placeholder={validSelectedSubtypes.length === 0 ? "Seleccionar subtipos..." : undefined}
                   disabled={availableSubtypeOptions.length === 0}
                 />
               </ComboboxChips>
