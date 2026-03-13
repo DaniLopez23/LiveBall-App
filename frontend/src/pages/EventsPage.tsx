@@ -5,7 +5,13 @@ import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
 import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
-import { OUTCOME_OPTIONS_FLAT } from "@/types/outcomeOptions";
+import {
+  OUTCOME_OPTIONS_BY_TYPE,
+  EVENT_SUBTYPE_OPTIONS_FLAT,
+  EVENT_SUBTYPE_OPTIONS_BY_TYPE,
+  eventMatchesOutcome,
+  eventMatchesSubtype,
+} from "@/types/outcomeOptions";
 import { isPitchEvent } from "@/types/event";
 import { cn } from "@/lib/utils";
 
@@ -15,6 +21,7 @@ const DEFAULT_FILTERS: EventsFilters = {
   team: "both",
   selectedEventType: "all",
   selectedOutcomes: [],
+  selectedSubtypes: [],
   minuteRange: [0, 90],
 };
 
@@ -38,17 +45,27 @@ const EventsPage: React.FC = () => {
     [events],
   );
 
-  // Seed outcomes on first data load so all checkboxes start checked
+  // Seed outcomes and subtypes on first data load so all checkboxes start checked
   useEffect(() => {
-    if (availableTypeIds.length > 0 && filters.selectedOutcomes.length === 0) {
-      const options = OUTCOME_OPTIONS_FLAT.filter((opt) =>
-        (availableTypeIds as string[]).includes(opt.typeId),
-      );
-      setFilters((prev) => ({
+    if (availableTypeIds.length === 0) return;
+
+    const availableOutcomes = OUTCOME_OPTIONS_BY_TYPE.all.filter((opt) =>
+      (availableTypeIds as string[]).includes(opt.typeId),
+    );
+    const availableSubtypes = EVENT_SUBTYPE_OPTIONS_FLAT.filter((opt) =>
+      opt.typeIds.some((id) => (availableTypeIds as string[]).includes(id)),
+    );
+
+    setFilters((prev) => {
+      if (prev.selectedOutcomes.length > 0 || prev.selectedSubtypes.length > 0) {
+        return prev;
+      }
+      return {
         ...prev,
-        selectedOutcomes: options.map((o) => o.id),
-      }));
-    }
+        selectedOutcomes: availableOutcomes.map((o) => o.id),
+        selectedSubtypes: availableSubtypes.map((o) => o.id),
+      };
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [availableTypeIds]);
 
@@ -63,14 +80,21 @@ const EventsPage: React.FC = () => {
       result = result.filter((e) => e.team_id === teamId);
     }
 
-    result = result.filter((e) =>
-      OUTCOME_OPTIONS_FLAT.some(
-        (opt) =>
-          filters.selectedOutcomes.includes(opt.id) &&
-          opt.typeId === e.type_id &&
-          (opt.outcome === undefined || Number(e.outcome) === opt.outcome),
-      ),
+    const selectedOutcomeOptions = OUTCOME_OPTIONS_BY_TYPE[filters.selectedEventType].filter((opt) =>
+      filters.selectedOutcomes.includes(opt.id),
     );
+    result = result.filter((event) =>
+      selectedOutcomeOptions.some((opt) => eventMatchesOutcome(event, opt)),
+    );
+
+    const selectedSubtypeOptions = EVENT_SUBTYPE_OPTIONS_BY_TYPE[filters.selectedEventType].filter((opt) =>
+      filters.selectedSubtypes.includes(opt.id),
+    );
+    if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[filters.selectedEventType].length > 0) {
+      result = result.filter((event) =>
+        selectedSubtypeOptions.some((opt) => eventMatchesSubtype(event, opt)),
+      );
+    }
 
     const [minMin, maxMin] = filters.minuteRange;
     result = result.filter((e) => {
