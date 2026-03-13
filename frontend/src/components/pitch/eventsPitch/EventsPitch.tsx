@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import OptaPitch from "@/components/pitch/OptaPitch";
 import OptaMarkers, {
   type OptaEvent,
@@ -8,9 +8,9 @@ import { EventsPitchHeader } from "./EventsPitchHeader";
 import { Separator } from "@/components/ui/separator";
 
 /** ms between each event appearing */
-const STEP_MS = 700;
+const STEP_MS = 1000;
 /** ms to pause when all events are shown before resetting */
-const PAUSE_MS = 1500;
+const PAUSE_MS = 5000;
 /** ms to wait for exit animations to finish before restarting */
 const EXIT_MS = 400;
 
@@ -33,29 +33,47 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   orientation,
   fieldColor,
 }) => {
+  const [cycleEvents, setCycleEvents] = useState<OptaEvent[]>(events);
   const [visibleCount, setVisibleCount] = useState(0);
   const [isExiting, setIsExiting] = useState(false);
+  const pendingEventsRef = useRef<OptaEvent[] | null>(null);
 
-  // Reset cycle whenever the events list changes
+  // In "last" mode, keep rendering the current cycle and apply updates at cycle boundaries.
   useEffect(() => {
-    setVisibleCount(0);
-    setIsExiting(false);
-  }, [events]);
+    if (mode !== "last") {
+      setCycleEvents(events);
+      pendingEventsRef.current = null;
+      return;
+    }
+
+    if (cycleEvents.length === 0 && visibleCount === 0 && !isExiting) {
+      setCycleEvents(events);
+      return;
+    }
+
+    if (events !== cycleEvents) {
+      pendingEventsRef.current = events;
+    }
+  }, [events, mode, cycleEvents, visibleCount, isExiting]);
 
   // Sequential animation cycle — only active in "last" mode
   useEffect(() => {
-    if (mode !== "last" || events.length === 0) return;
+    if (mode !== "last" || cycleEvents.length === 0) return;
 
     if (isExiting) {
       // Wait for exit animations to finish, then restart
       const t = setTimeout(() => {
+        if (pendingEventsRef.current) {
+          setCycleEvents(pendingEventsRef.current);
+          pendingEventsRef.current = null;
+        }
         setIsExiting(false);
         setVisibleCount(0);
       }, EXIT_MS);
       return () => clearTimeout(t);
     }
 
-    if (visibleCount >= events.length) {
+    if (visibleCount >= cycleEvents.length) {
       // All events shown — pause then trigger exit
       const t = setTimeout(() => setIsExiting(true), PAUSE_MS);
       return () => clearTimeout(t);
@@ -64,13 +82,13 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
     // Reveal next event
     const t = setTimeout(() => setVisibleCount((v) => v + 1), STEP_MS);
     return () => clearTimeout(t);
-  }, [mode, events.length, visibleCount, isExiting]);
+  }, [mode, cycleEvents.length, visibleCount, isExiting]);
 
   const displayedEvents =
     mode === "last"
       ? isExiting
         ? []
-        : events.slice(0, visibleCount)
+        : cycleEvents.slice(0, visibleCount)
       : events;
 
   return (
