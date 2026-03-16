@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useState } from "react";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
 import PassNetworkPitch from "@/components/pitch/passNetworkPitch/PassNetworkPitch";
+import PassNetworkTabs from "@/components/pitch/passNetworkPitch/PassNetworkTabs";
 
 const HOME_COLOR = "#3b82f6";
 const AWAY_COLOR = "#ef4444";
@@ -9,6 +10,7 @@ const AWAY_COLOR = "#ef4444";
 const PassNetworkPage: React.FC = () => {
   const game = useGameStore((s) => s.game);
   const byTeamId = usePassNetworksStore((s) => s.byTeamId);
+  const [isPanelOpen, setIsPanelOpen] = useState(true);
 
   const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
   const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
@@ -49,9 +51,11 @@ const PassNetworkPage: React.FC = () => {
         </div>
 
         {/* Column 2: Stats / filters (placeholder) */}
-        <div className="flex flex-col items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-4 gap-2 text-muted-foreground">
-          <p className="text-sm font-medium">Estadísticas y filtros</p>
-          <p className="text-xs">Próximamente</p>
+        <div className="flex flex-col bg-slate-100 dark:bg-slate-800 rounded-lg min-h-0 overflow-hidden">
+          <PassNetworkTabs
+            isOpen={isPanelOpen}
+            onToggle={() => setIsPanelOpen((current) => !current)}
+          />
         </div>
 
         {/* Column 3: Away team pass network */}

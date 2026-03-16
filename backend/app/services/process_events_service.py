@@ -132,8 +132,23 @@ class ProcessEventsService:
         updated_events: List[Event] = []
 
         game_id = game.game_id
+        away_team_id = game.away_team.team_id
 
         for event in game.events:
+            # Invert away-team coordinates so both teams attack left → right.
+            # Done here to avoid a separate pass over all events.
+            if event.team_id == away_team_id:
+                if event.x is not None:
+                    event.x = abs(event.x - 100)
+                if event.y is not None:
+                    event.y = abs(event.y - 100)
+                for qualifier in event.qualifiers:
+                    if qualifier.qualifier_id in ("140", "141"):
+                        try:
+                            qualifier.value = str(abs(float(qualifier.value) - 100))
+                        except (ValueError, TypeError):
+                            pass
+
             if not event.team_id or not event.event_id:
                 continue
 
