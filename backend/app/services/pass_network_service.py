@@ -45,6 +45,7 @@ class PassNetworkService:
         y: float = 0.0,
         end_x: float = 0.0,
         end_y: float = 0.0,
+        minute: int | None = None,
     ) -> None:
         """
         Añade una arista dirigida entre dos jugadores y rastrea el cambio.
@@ -54,16 +55,26 @@ class PassNetworkService:
             to_player_id: Jugador que recibe el pase
             x / y: Posición de origen del pase
             end_x / end_y: Posición de destino del pase
+            minute: Minuto del evento (se normaliza al rango 0..90)
         """
         self.add_player(from_player_id)
         self.add_player(to_player_id)
 
         fp = self.network.players[from_player_id]
         tp = self.network.players[to_player_id]
+        minute_idx = self._normalize_minute(minute)
 
         fp.passes_given += 1
         tp.passes_received += 1
         fp.pass_count += 1
+        fp.minute_buckets[minute_idx] += 1
+        tp.minute_buckets[minute_idx] += 1
+        fp.minute_given_stats[minute_idx]["count"] += 1.0
+        fp.minute_given_stats[minute_idx]["x_sum"] += x
+        fp.minute_given_stats[minute_idx]["y_sum"] += y
+        tp.minute_received_stats[minute_idx]["count"] += 1.0
+        tp.minute_received_stats[minute_idx]["x_sum"] += end_x
+        tp.minute_received_stats[minute_idx]["y_sum"] += end_y
 
         # Posición media del que da el pase (usa x, y)
         fp.avg_x_given = (fp.avg_x_given * (fp.passes_given - 1) + x) / fp.passes_given
@@ -93,6 +104,10 @@ class PassNetworkService:
             edge.avg_x = (edge.avg_x * edge.pass_count + x) / (edge.pass_count + 1)
             edge.avg_y = (edge.avg_y * edge.pass_count + y) / (edge.pass_count + 1)
             edge.pass_count += 1
+            edge.minute_buckets[minute_idx] += 1
+            edge.minute_position_stats[minute_idx]["count"] += 1.0
+            edge.minute_position_stats[minute_idx]["x_sum"] += x
+            edge.minute_position_stats[minute_idx]["y_sum"] += y
         else:
             self.network.edges[edge_key] = PassEdge(
                 from_player_id=from_player_id,
@@ -100,6 +115,10 @@ class PassNetworkService:
                 pass_count=1,
                 avg_x=x,
                 avg_y=y,
+                minute_buckets=self._new_minute_buckets_with_hit(minute_idx),
+                minute_position_stats=self._new_minute_position_stats_with_hit(
+                    minute_idx, x, y
+                ),
             )
 
         self.network.changed_edges.add(edge_key)
@@ -228,7 +247,15 @@ class PassNetworkService:
                 elif q.qualifier_id == "141":
                     end_y = float(q.value)
 
-            self.add_pass(from_player_id, event.player_receiver_id, x, y, end_x, end_y)
+            self.add_pass(
+                from_player_id,
+                event.player_receiver_id,
+                x,
+                y,
+                end_x,
+                end_y,
+                event.min,
+            )
             self.network.processed_event_ids.add(event.event_id)
 
         return self.get_changed_nodes(), self.get_changed_edges()
@@ -258,6 +285,9 @@ class PassNetworkService:
                 "x": round(player.avg_x_total, 2),
                 "y": round(player.avg_y_total, 2),
             },
+            "minute_buckets": player.minute_buckets,
+            "minute_given_stats": player.minute_given_stats,
+            "minute_received_stats": player.minute_received_stats,
         }
 
     @staticmethod
@@ -270,4 +300,28 @@ class PassNetworkService:
                 "x": round(edge.avg_x, 2),
                 "y": round(edge.avg_y, 2),
             },
+            "minute_buckets": edge.minute_buckets,
+            "minute_position_stats": edge.minute_position_stats,
         }
+
+    @staticmethod
+    def _normalize_minute(minute: int | None) -> int:
+        if minute is None:
+            return 0
+        return max(0, min(90, int(minute)))
+
+    @staticmethod
+    def _new_minute_buckets_with_hit(minute_idx: int) -> list[int]:
+        buckets = [0] * 91
+        buckets[minute_idx] = 1
+        return buckets
+
+    @staticmethod
+    def _new_minute_position_stats_with_hit(
+        minute_idx: int, x: float, y: float
+    ) -> list[dict[str, float]]:
+        stats = [{"count": 0.0, "x_sum": 0.0, "y_sum": 0.0} for _ in range(91)]
+        stats[minute_idx]["count"] = 1.0
+        stats[minute_idx]["x_sum"] = x
+        stats[minute_idx]["y_sum"] = y
+        return stats

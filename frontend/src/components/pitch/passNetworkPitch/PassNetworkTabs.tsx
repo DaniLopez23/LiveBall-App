@@ -3,12 +3,14 @@ import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import PassNetworkFilters from "./PassNetworkFilters";
+import PassNetworkFilters, { type PassNetworkFiltersState } from "./PassNetworkFilters";
 import PassNetworkStats from "./PassNetworkStats";
 
 interface PassNetworkTabsProps {
 	isOpen: boolean;
 	onToggle: () => void;
+	filters: PassNetworkFiltersState;
+	onFiltersChange: (filters: PassNetworkFiltersState) => void;
 }
 
 const triggerClassName =
@@ -17,7 +19,12 @@ const triggerClassName =
 const toggleButtonClassName =
 	"text-muted-foreground hover:text-foreground hover:bg-muted/60";
 
-const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({ isOpen, onToggle }) => {
+const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
+	isOpen,
+	onToggle,
+	filters,
+	onFiltersChange,
+}) => {
 	if (!isOpen) {
 		return (
 			<div className="flex h-full items-center justify-center">
@@ -66,7 +73,7 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({ isOpen, onToggle }) =
 			</TabsContent>
 
 			<TabsContent value="filters" className="flex-1 overflow-auto p-4">
-				<PassNetworkFilters />
+				<PassNetworkFilters filters={filters} onChange={onFiltersChange} />
 			</TabsContent>
 		</Tabs>
 	);
