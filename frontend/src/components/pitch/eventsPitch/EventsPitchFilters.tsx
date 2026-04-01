@@ -323,7 +323,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           
           <div className="flex flex-col gap-2 min-h-0">
             <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">Outcomes</p>
+              <p className="text-[11px] text-muted-foreground">Resultado</p>
               <span className="text-[11px] text-muted-foreground">
                 {formatSelectionCounter(validSelectedOutcomes.length, availableOutcomeOptions.length)}
               </span>
