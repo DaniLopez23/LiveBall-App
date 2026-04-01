@@ -9,6 +9,7 @@ re-sending unchanged data.
 from typing import Any, Dict, Optional, Tuple
 
 from app.schemas.games import ParsedGame
+from app.schemas.stats import ParsedMatchStats
 from app.services.pass_network_service import PassNetworkService
 
 
@@ -22,6 +23,7 @@ class GameStateCache:
       change detection.
     - **Events**: per-game mapping of ``(team_id, event_id) → type_id``
       so that new/updated events can be distinguished.
+        - **Stats**: parsed F9 stats payload + comparable snapshot per game.
     - **Pass networks**: one ``PassNetworkService`` instance per
       ``(game_id, team_id)`` pair.
     """
@@ -33,6 +35,10 @@ class GameStateCache:
         self._game_snapshots: Dict[str, Dict[str, Any]] = {}
         # game_id → { (team_id, event_id) → type_id }
         self._event_states: Dict[str, Dict[Tuple[str, str], str]] = {}
+        # game_id → full ParsedMatchStats (latest ingested version)
+        self.stats: Dict[str, ParsedMatchStats] = {}
+        # game_id → comparable snapshot dict used for stats change detection
+        self._stats_snapshots: Dict[str, Dict[str, Any]] = {}
         # (game_id, team_id) → PassNetworkService
         self.pass_networks: Dict[Tuple[str, str], PassNetworkService] = {}
         # (game_id, team_id) → latest bucket statistics dict
@@ -76,6 +82,27 @@ class GameStateCache:
         if game_id not in self._event_states:
             self._event_states[game_id] = {}
         self._event_states[game_id][(team_id, event_id)] = type_id
+
+    # ------------------------------------------------------------------ #
+    # Stats helpers                                                       #
+    # ------------------------------------------------------------------ #
+
+    def has_stats(self, game_id: str) -> bool:
+        """Returns True if stats have been seen before for the game."""
+        return game_id in self._stats_snapshots
+
+    def get_stats(self, game_id: str) -> Optional[ParsedMatchStats]:
+        """Returns the stored parsed stats payload for *game_id*, or None."""
+        return self.stats.get(game_id)
+
+    def get_stats_snapshot(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Returns the stored stats snapshot for *game_id*, or None."""
+        return self._stats_snapshots.get(game_id)
+
+    def store_stats(self, parsed_stats: ParsedMatchStats, snapshot: Dict[str, Any]) -> None:
+        """Persists the full stats payload and its comparable snapshot."""
+        self.stats[parsed_stats.game_id] = parsed_stats
+        self._stats_snapshots[parsed_stats.game_id] = snapshot
 
     # ------------------------------------------------------------------ #
     # Pass network helpers                                                 #

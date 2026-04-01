@@ -13,17 +13,20 @@ from app.core.logging import setup_logging
 from app.websockets.event_broadcaster import broadcast_message
 from app.state.game_state import GameStateCache
 from app.services.process_events_service import ProcessEventsService
+from app.services.process_stats_service import ProcessStatsService
 from app.websockets.websocket_manager import ConnectionManager
-from app.workers.xml_file_watcher import watch_xml_file
+from app.workers.xml_file_watcher import f24_events_xml_watcher, f9_stats_xml_watcher
 
 load_dotenv()
 setup_logging()
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR_SIMULATED_DATA = Path(__file__).parent.parent.parent / "simulated-real-time-data" # → root/ (para acceder a simulated-data)
+BASE_DIR = Path(__file__).parent.parent.parent
+BASE_DIR_SIMULATED_DATA = BASE_DIR / "simulated-real-time-data"  # F24 feed
 
-SIMULATED_FILE_NAME = "simulated-data.xml"  # Nombre del archivo XML simulado dentro de simulated-data/
+SIMULATED_F24_EVENTS_FILE_NAME = "f24-simulated-data.xml"  # Nombre del archivo XML simulado dentro de simulated-data/
+SIMULATED_F9_STATS_FILE_NAME = "f9-simulated-data.xml"  # Nombre del archivo XML simulado dentro de simulated-data/
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,12 +34,14 @@ async def lifespan(app: FastAPI):
     logger.info("⚙️ Iniciando servidor...")
 
     cache = GameStateCache()
-    process_service = ProcessEventsService(cache=cache)
+    process_events_service = ProcessEventsService(cache=cache)
+    process_stats_service = ProcessStatsService(cache=cache)
     ws_manager = ConnectionManager()
 
     # Expose via app.state for use in HTTP/WebSocket endpoints
     app.state.cache = cache
-    app.state.process_service = process_service
+    app.state.process_service = process_events_service
+    app.state.process_stats_service = process_stats_service
     app.state.ws_manager = ws_manager
 
     async def on_new_data(messages):
@@ -44,25 +49,37 @@ async def lifespan(app: FastAPI):
             logger.info("📦 %s – game %s", msg.get("type"), msg.get("game_id"))
             await broadcast_message(msg, ws_manager)
 
-    task = asyncio.create_task(
-        watch_xml_file(
+    events_task = asyncio.create_task(
+        f24_events_xml_watcher(
             poll_interval=3,
             on_new_data=on_new_data,
-            file_path=str(BASE_DIR_SIMULATED_DATA / SIMULATED_FILE_NAME),
-            process_service=process_service,
+            file_path=str(BASE_DIR_SIMULATED_DATA / SIMULATED_F24_EVENTS_FILE_NAME),
+            process_service=process_events_service,
         )
     )
-    logger.info("✅ Monitoreo de archivos XML iniciado")
+    stats_task = asyncio.create_task(
+        f9_stats_xml_watcher(
+            poll_interval=60,
+            on_new_data=on_new_data,
+            file_path=str(BASE_DIR_SIMULATED_DATA / SIMULATED_F9_STATS_FILE_NAME),
+            process_service=process_stats_service,
+        )
+    )
+    logger.info("✅ Monitoreo de archivos XML iniciado (f24 y f9)")
 
     yield
 
     # Shutdown
     logger.info("🛑 Servidor apagándose...")
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    tasks = [events_task, stats_task]
+    for task in tasks:
+        task.cancel()
+
+    for task in tasks:
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 app = FastAPI(
     title="Real-Time Football Dashboard API",

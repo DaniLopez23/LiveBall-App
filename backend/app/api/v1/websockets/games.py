@@ -31,6 +31,14 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
         # Enviar snapshot del estado actual si ya existe el partido en caché
         game = cache.games.get(game_id)
         if game:
+            stats_data = {}
+            match_stats = cache.get_stats(game_id)
+            if match_stats:
+                stats_data = {
+                    team.team_id: team.model_dump()
+                    for team in match_stats.teams
+                }
+
             pass_networks_data = {}
             for (g_id, team_id), network_svc in cache.pass_networks.items():
                 if g_id == game_id:
@@ -47,11 +55,12 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                 "total_events": game.total_events,
                 "last_event_id": game.events[-1].id if game.events else None,
                 "events": [flatten_event(e) for e in game.events],
+                "stats": stats_data,
                 "pass_networks": pass_networks_data,
             })
             logger.info(
                 f"📊 Estado del partido enviado a {client_id}: {game.total_events} eventos, "
-                f"{len(pass_networks_data)} redes de pases"
+                f"{len(stats_data)} equipos con stats, {len(pass_networks_data)} redes de pases"
             )
 
         while True:

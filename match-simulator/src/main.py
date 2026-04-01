@@ -139,7 +139,7 @@ def main():
         print(f"📁 Usando archivo fuente: {source_xml.name}\n")
         
         # Crear nuevo XML con eventos en streaming
-        create_new_xml_streaming(source_xml, "simulated-data.xml")
+        create_new_xml_streaming(source_xml, "f24-simulated-data.xml")
         
         print("\n" + "=" * 60)
         print("✨ Proceso completado exitosamente")

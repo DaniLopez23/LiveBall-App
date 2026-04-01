@@ -11,41 +11,35 @@ from typing import Any, Callable, Dict, List, Optional
 
 from app.services.ingest_service import XmlReaderService
 from app.services.parse_service import XmlParseService
+from app.services.parse_stats_service import XmlParseStatsService
 from app.services.process_events_service import ProcessEventsService
+from app.services.process_stats_service import ProcessStatsService
 
 logger = logging.getLogger(__name__)
 
 
-async def watch_xml_file(
+async def _run_xml_watcher(
     poll_interval: int = 3,
     on_new_data: Callable[[List[Dict[str, Any]]], Any] | None = None,
     file_path: str = "data",
-    process_service: Optional[ProcessEventsService] = None,
+    parser: Optional[XmlParseService | XmlParseStatsService] = None,
+    process_service: Optional[ProcessEventsService | ProcessStatsService] = None,
+    watcher_name: str = "xml_watcher",
 ) -> None:
     """
-    Watches a directory for XML files and processes them when their content
-    changes.
-
-    Args:
-        poll_interval:   Seconds between directory scans.
-        on_new_data:     Callback invoked with a non-empty list of change
-                         messages for each file that produced updates.
-                         May be a regular function or a coroutine.
-        file_path:       Root directory to watch (searched recursively).
-        process_service: Shared ``ProcessEventsService`` instance that owns the
-                         ``GameStateCache``.  When *None* a standalone cache is
-                         created – useful only for isolated tests.
+    Generic XML watcher runner used by specialized watchers.
     """
-    if process_service is None:
-        from app.state.game_state import GameStateCache
-        process_service = ProcessEventsService(cache=GameStateCache())
+    if parser is None or process_service is None:
+        raise ValueError("parser and process_service are required")
 
     reader = XmlReaderService()
-    parser = XmlParseService()
     xml_file = Path(file_path)
 
     logger.info(
-        "XML watcher started – monitoring '%s' every %ds", xml_file, poll_interval
+        "%s started – monitoring '%s' every %ds",
+        watcher_name,
+        xml_file,
+        poll_interval,
     )
 
     while True:
@@ -71,4 +65,45 @@ async def watch_xml_file(
             logger.exception("Unexpected error in XML file watcher")
 
         await asyncio.sleep(poll_interval)
+
+async def f24_events_xml_watcher(
+    poll_interval: int = 3,
+    on_new_data: Callable[[List[Dict[str, Any]]], Any] | None = None,
+    file_path: str = "data",
+    process_service: Optional[ProcessEventsService] = None,
+) -> None:
+    """Watches an F24 events XML file and emits parsed event updates."""
+    if process_service is None:
+        from app.state.game_state import GameStateCache
+
+        process_service = ProcessEventsService(cache=GameStateCache())
+
+    await _run_xml_watcher(
+        poll_interval=poll_interval,
+        on_new_data=on_new_data,
+        file_path=file_path,
+        parser=XmlParseService(),
+        process_service=process_service,
+        watcher_name="f24_events_xml_watcher",
+    )
+
+
+async def f9_stats_xml_watcher(
+    poll_interval: int = 3,
+    on_new_data: Callable[[List[Dict[str, Any]]], Any] | None = None,
+    file_path: str = "data",
+    process_service: Optional[ProcessStatsService] = None,
+) -> None:
+    """Watches an F9 stats XML file and emits booking/goal updates by team."""
+    if process_service is None:
+        process_service = ProcessStatsService()
+
+    await _run_xml_watcher(
+        poll_interval=poll_interval,
+        on_new_data=on_new_data,
+        file_path=file_path,
+        parser=XmlParseStatsService(),
+        process_service=process_service,
+        watcher_name="f9_stats_xml_watcher",
+    )
 
