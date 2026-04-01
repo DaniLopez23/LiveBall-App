@@ -189,6 +189,12 @@ const PassNetworkPage: React.FC = () => {
             onToggle={() => setIsPanelOpen((current) => !current)}
             filters={filters}
             onFiltersChange={setFilters}
+            homeNetwork={homeNetwork}
+            awayNetwork={awayNetwork}
+            homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
+            awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
+            homeColor={HOME_COLOR}
+            awayColor={AWAY_COLOR}
           />
         </div>
 

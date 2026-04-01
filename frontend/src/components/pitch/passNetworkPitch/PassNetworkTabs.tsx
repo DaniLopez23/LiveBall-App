@@ -2,6 +2,7 @@ import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type { TeamPassNetwork } from "@/types/passNetwork";
 
 import PassNetworkFilters, { type PassNetworkFiltersState } from "./PassNetworkFilters";
 import PassNetworkStats from "./PassNetworkStats";
@@ -11,6 +12,12 @@ interface PassNetworkTabsProps {
 	onToggle: () => void;
 	filters: PassNetworkFiltersState;
 	onFiltersChange: (filters: PassNetworkFiltersState) => void;
+	homeNetwork: TeamPassNetwork | null;
+	awayNetwork: TeamPassNetwork | null;
+	homeTeamName: string;
+	awayTeamName: string;
+	homeColor: string;
+	awayColor: string;
 }
 
 const triggerClassName =
@@ -24,6 +31,12 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	onToggle,
 	filters,
 	onFiltersChange,
+	homeNetwork,
+	awayNetwork,
+	homeTeamName,
+	awayTeamName,
+	homeColor,
+	awayColor,
 }) => {
 	if (!isOpen) {
 		return (
@@ -69,7 +82,15 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 			</div>
 
 			<TabsContent value="stats" className="flex-1 overflow-auto p-3">
-				<PassNetworkStats />
+				<PassNetworkStats
+					filters={filters}
+					homeNetwork={homeNetwork}
+					awayNetwork={awayNetwork}
+					homeTeamName={homeTeamName}
+					awayTeamName={awayTeamName}
+					homeColor={homeColor}
+					awayColor={awayColor}
+				/>
 			</TabsContent>
 
 			<TabsContent value="filters" className="flex-1 overflow-auto p-4">

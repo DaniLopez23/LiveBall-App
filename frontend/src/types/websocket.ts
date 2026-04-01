@@ -40,7 +40,7 @@ export type EventsUpdateWsMessage = {
 export type PassNetworkUpdatedWsMessage = {
 	type: "pass_network_updated";
 	game_id: string;
-	team_id: string;
+	team_id: string | number;
 	nodes: PassNetworkNode[];
 	edges: PassNetworkEdge[];
 	statistics: PassNetworkStatistics;

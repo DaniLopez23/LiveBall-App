@@ -17,7 +17,7 @@ interface PassNetworksStoreState {
 	}) => void;
 	applyIncrementalUpdate: (payload: {
 		gameId: string;
-		teamId: string;
+		teamId: string | number;
 		nodes: PassNetworkNode[];
 		edges: PassNetworkEdge[];
 		statistics: PassNetworkStatistics;
@@ -82,11 +82,12 @@ const usePassNetworksStore = create<PassNetworksStoreState>((set, get) => ({
 		const { gameId: currentGameId, byTeamId } = get();
 		const shouldReset = currentGameId !== gameId;
 		const baseByTeamId = shouldReset ? {} : { ...byTeamId };
+		const teamKey = String(teamId);
 
 		const currentTeamNetwork =
-			baseByTeamId[teamId] ?? defaultTeamNetwork(statistics);
+			baseByTeamId[teamKey] ?? defaultTeamNetwork(statistics);
 
-		baseByTeamId[teamId] = {
+		baseByTeamId[teamKey] = {
 			nodes: mergeNodes(currentTeamNetwork.nodes, nodes),
 			edges: mergeEdges(currentTeamNetwork.edges, edges),
 			statistics,

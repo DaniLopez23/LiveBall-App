@@ -33,10 +33,42 @@ export interface PassNetworkEdge {
 	avg_position: PitchPosition;
 }
 
-export interface PassNetworkStatistics {
-	total_players: number;
-	total_connections: number;
+export interface PassNetworkTopPasser {
+	player_id: string;
+	passes_given: number;
+}
+
+export interface PassNetworkTopReceiver {
+	player_id: string;
+	passes_received: number;
+}
+
+export interface PassNetworkTopPlayerTotal {
+	player_id: string;
 	total_passes: number;
+}
+
+export interface PassNetworkTopConnection {
+	from_player_id: string;
+	to_player_id: string;
+	pass_count: number;
+}
+
+export interface PassNetworkStatisticsBucket {
+	bucket_index: number;
+	minute: number;
+	total_passes: number;
+	top_passer?: PassNetworkTopPasser;
+	top_receiver?: PassNetworkTopReceiver;
+	top_player_total?: PassNetworkTopPlayerTotal;
+	top_connection?: PassNetworkTopConnection;
+	betweenness_centrality?: Record<string, number>;
+	eigenvector_centrality?: Record<string, number>;
+	flow_centrality?: Record<string, number>;
+}
+
+export interface PassNetworkStatistics {
+	buckets: PassNetworkStatisticsBucket[];
 	team_id: string | number;
 }
 
