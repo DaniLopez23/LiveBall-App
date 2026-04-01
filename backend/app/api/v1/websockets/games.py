@@ -37,7 +37,7 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                     pass_networks_data[str(team_id)] = {
                         "nodes": network_svc.get_nodes(),
                         "edges": network_svc.get_edges(),
-                        "statistics": network_svc.get_statistics(),
+                        "statistics": cache.get_pass_network_statistics(g_id, team_id),
                     }
 
             await websocket.send_json({

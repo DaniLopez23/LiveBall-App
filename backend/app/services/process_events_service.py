@@ -241,6 +241,9 @@ class ProcessEventsService:
                     len(changed_nodes),
                     len(changed_edges),
                 )
+                statistics = service.get_bucket_statistics()
+                self._cache.store_pass_network_statistics(game.game_id, team_id, statistics)
+
                 messages.append(
                     {
                         "type": "pass_network_updated",
@@ -248,7 +251,7 @@ class ProcessEventsService:
                         "team_id": team_id,
                         "nodes": changed_nodes,
                         "edges": changed_edges,
-                        "statistics": service.get_statistics(),
+                        "statistics": statistics,
                     }
                 )
 

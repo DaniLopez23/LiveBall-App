@@ -1,6 +1,36 @@
 from pydantic import BaseModel, Field
 from typing import Dict, Set, Tuple
 
+# ------------------------------------------------------------------ #
+# 5-minute bucket helpers                                              #
+# ------------------------------------------------------------------ #
+
+#: Total number of 5-minute buckets covering minutes 0–90.
+#: Buckets: [0–4], [5–9], …, [85–89], [90].  Index = minute // 5, clamped to 18.
+N_5MIN_BUCKETS: int = 19
+
+
+def bucket_minute_range(bucket: int) -> range:
+    """
+    Returns the minute indices (0..90) that belong to *bucket* (0-indexed).
+
+    Examples:
+        bucket_minute_range(0)  → range(0, 5)   # minutes 0–4
+        bucket_minute_range(1)  → range(5, 10)  # minutes 5–9
+        bucket_minute_range(18) → range(90, 91) # minute 90
+    """
+    bucket = max(0, min(N_5MIN_BUCKETS - 1, bucket))
+    start = bucket * 5
+    end = start + 5 if bucket < N_5MIN_BUCKETS - 1 else 91
+    return range(start, end)
+
+
+def minute_to_bucket(minute: int | None) -> int:
+    """Maps a minute value to its 5-minute bucket index (0–18)."""
+    if minute is None:
+        return 0
+    return min(N_5MIN_BUCKETS - 1, max(0, int(minute)) // 5)
+
 
 def _minute_buckets() -> list[int]:
     """Creates a fixed 0..90 minute bucket array."""

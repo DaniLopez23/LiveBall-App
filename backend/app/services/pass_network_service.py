@@ -1,8 +1,17 @@
 import logging
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Optional, Tuple
+
+import numpy as np
 
 from app.schemas.events import Event
-from app.schemas.pass_networks import PassEdge, PassNetwork, PlayerNode
+from app.schemas.pass_networks import (
+    N_5MIN_BUCKETS,
+    PassEdge,
+    PassNetwork,
+    PlayerNode,
+    bucket_minute_range,
+)
+from app.services.network_metrics import compute_network_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -191,6 +200,62 @@ class PassNetworkService:
             "team_id": self.network.team_id,
         }
 
+    def get_bucket_statistics(
+        self, bucket: Optional[int] = None
+    ) -> Dict[str, Any]:
+        """
+        Calcula métricas de teoría de redes acumuladas por buckets de 5 minutos.
+
+        Cada bucket es un snapshot acumulado desde el inicio del partido:
+          - bucket 0  → datos de los primeros 5 min  (minute=5)
+          - bucket 1  → datos de los primeros 10 min (minute=10)
+          - …
+          - bucket 18 → partido completo             (minute=90)
+
+        Parameters
+        ----------
+        bucket : int | None
+            Si es None, devuelve los 19 buckets (0-18).
+            Si es un entero (0-18), devuelve solo ese bucket.
+        """
+        player_ids = list(self.network.players.keys())
+
+        if bucket is not None:
+            buckets_to_compute = [max(0, min(N_5MIN_BUCKETS - 1, bucket))]
+        else:
+            buckets_to_compute = list(range(N_5MIN_BUCKETS))
+
+        results = []
+        for b in buckets_to_compute:
+            W, present_ids = self._build_weight_matrix(b, player_ids)
+            total_passes_bucket = int(W.sum())
+
+            # minute = upper edge of the bucket (5, 10, 15 … 90)
+            minute = bucket_minute_range(b).stop - 1
+            minute = max(5, minute)  # bucket 0 ends at min 4, label as 5
+
+            if total_passes_bucket == 0:
+                from app.services.network_metrics import _empty_metrics
+                metrics = _empty_metrics()
+            else:
+                metrics = compute_network_metrics(W, present_ids)
+
+            bucket_entry: Dict[str, Any] = {
+                "bucket_index": b,
+                "minute": minute,
+                "total_passes": total_passes_bucket,
+                "top_passer": metrics["top_passer"],
+                "top_receiver": metrics["top_receiver"],
+                "top_player_total": metrics["top_player_total"],
+                "top_connection": metrics["top_connection"],
+                "betweenness_centrality": metrics["betweenness"],
+                "eigenvector_centrality": metrics["eigenvector"],
+                "flow_centrality": metrics["flow_centrality"],
+            }
+            results.append(bucket_entry)
+
+        return {"team_id": self.network.team_id, "buckets": results}
+
     def to_dict(self) -> Dict[str, Any]:
         """Serializa la red completa."""
         return {
@@ -325,3 +390,46 @@ class PassNetworkService:
         stats[minute_idx]["x_sum"] = x
         stats[minute_idx]["y_sum"] = y
         return stats
+
+    def _build_weight_matrix(
+        self, bucket: int, player_ids: List[str]
+    ) -> tuple[np.ndarray, List[str]]:
+        """
+        Builds a directed weight matrix W[i,j] = cumulative passes from player i
+        to player j **from the start of the match up to the end of *bucket***.
+
+        This means each bucket is an aggregate snapshot:
+          - bucket 0  → minutes 0–4
+          - bucket 1  → minutes 0–9
+          - …
+          - bucket 18 → minutes 0–90  (full match)
+
+        Returns (W, present_ids) where *present_ids* is the ordered list of
+        players that had at least one pass up to this bucket.
+        """
+        # Cumulative: include all minutes from 0 up to the last minute of this bucket
+        cumulative_end = bucket_minute_range(bucket).stop  # exclusive upper bound
+        id_to_idx = {pid: idx for idx, pid in enumerate(player_ids)}
+        n = len(player_ids)
+        W_full = np.zeros((n, n), dtype=float)
+
+        for (from_id, to_id), edge in self.network.edges.items():
+            fi = id_to_idx.get(from_id)
+            ti = id_to_idx.get(to_id)
+            if fi is None or ti is None:
+                continue
+            passes_cumulative = sum(edge.minute_buckets[m] for m in range(cumulative_end))
+            if passes_cumulative > 0:
+                W_full[fi, ti] = passes_cumulative
+
+        # Trim to players with activity up to this bucket
+        activity = W_full.sum(axis=1) + W_full.sum(axis=0)
+        active_mask = activity > 0
+        active_indices = [i for i in range(n) if active_mask[i]]
+
+        if not active_indices:
+            return np.zeros((0, 0), dtype=float), []
+
+        W = W_full[np.ix_(active_indices, active_indices)]
+        present_ids = [player_ids[i] for i in active_indices]
+        return W, present_ids

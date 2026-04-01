@@ -35,6 +35,8 @@ class GameStateCache:
         self._event_states: Dict[str, Dict[Tuple[str, str], str]] = {}
         # (game_id, team_id) → PassNetworkService
         self.pass_networks: Dict[Tuple[str, str], PassNetworkService] = {}
+        # (game_id, team_id) → latest bucket statistics dict
+        self._pass_network_statistics: Dict[Tuple[str, str], Dict[str, Any]] = {}
 
     # ------------------------------------------------------------------ #
     # Game helpers                                                         #
@@ -88,3 +90,15 @@ class GameStateCache:
         if key not in self.pass_networks:
             self.pass_networks[key] = PassNetworkService(team_id=int(team_id))
         return self.pass_networks[key]
+
+    def store_pass_network_statistics(
+        self, game_id: str, team_id: str, statistics: Dict[str, Any]
+    ) -> None:
+        """Persists the latest computed bucket statistics for ``(game_id, team_id)``."""
+        self._pass_network_statistics[(game_id, team_id)] = statistics
+
+    def get_pass_network_statistics(
+        self, game_id: str, team_id: str
+    ) -> Dict[str, Any]:
+        """Returns the last stored bucket statistics, or an empty dict if not yet computed."""
+        return self._pass_network_statistics.get((game_id, team_id), {})
