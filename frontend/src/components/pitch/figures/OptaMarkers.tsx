@@ -46,11 +46,18 @@ export interface OptaMarkersProps {
   events: OptaEvent[];
   /** Map of teamId → hex/css color string */
   teamColors?: Record<string, string>;
+  /** Optional per-event color override, keyed by event.id */
+  eventColors?: Record<string, string>;
   /** When true, events animate in/out sequentially (used in "last" mode) */
   animated?: boolean;
 }
 
-const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {}, animated = false }) => {
+const OptaMarkers: React.FC<OptaMarkersProps> = ({
+  events,
+  teamColors = {},
+  eventColors = {},
+  animated = false,
+}) => {
   /**
    * Wraps each marker. When `skipEnterFade=true` the wrapper starts already
    * visible — used for PassArrow which manages its own entry animation.
@@ -100,7 +107,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({ events, teamColors = {}, anim
 
         const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
         const color =
-          team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff";
+          eventColors[event.id] ??
+          (team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff");
 
         // ── Pass ──────────────────────────────────────────────────────
         if (isPassEvent(event)) {

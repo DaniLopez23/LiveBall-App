@@ -20,18 +20,24 @@ interface EventsPitchProps {
   mode?: "last" | "all";
   /** Optional map of teamId → color to distinguish teams visually */
   teamColors?: Record<string, string>;
+  /** Optional map of eventId → color to style specific events */
+  eventColors?: Record<string, string>;
   /** Pitch orientation: 'vertical' (default) or 'horizontal'. */
   orientation?: Orientation;
   /** Pitch surface color (default: #2d7a3a). */
   fieldColor?: string;
+  /** Show header section above the pitch (default: true). */
+  showHeader?: boolean;
 }
 
 const EventsPitch: React.FC<EventsPitchProps> = ({
   events,
   mode,
   teamColors,
+  eventColors,
   orientation,
   fieldColor,
+  showHeader = true,
 }) => {
   const [cycleEvents, setCycleEvents] = useState<OptaEvent[]>(events);
   const [visibleCount, setVisibleCount] = useState(0);
@@ -93,16 +99,21 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
 
   return (
     <div className="flex flex-col w-full h-full">
-      <EventsPitchHeader />
-      <div className="pb-4">
-        <Separator />
-      </div>
+      {showHeader ? (
+        <>
+          <EventsPitchHeader />
+          <div className="pb-4">
+            <Separator />
+          </div>
+        </>
+      ) : null}
       <div className="flex-1 min-h-0">
         <OptaPitch orientation={orientation} fieldColor={fieldColor}>
           <OptaMarkers
             events={displayedEvents}
             animated={mode === "last"}
             teamColors={teamColors}
+            eventColors={eventColors}
           />
         </OptaPitch>
       </div>

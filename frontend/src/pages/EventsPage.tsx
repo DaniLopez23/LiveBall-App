@@ -39,10 +39,11 @@ const EventsPage: React.FC = () => {
     };
   }, [game]);
 
+  const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
+
   const availableTypeIds = useMemo(
-    () =>
-      Array.from(new Set(events.filter(isPitchEvent).map((e) => e.type_id))),
-    [events],
+    () => Array.from(new Set(pitchEvents.map((e) => e.type_id))),
+    [pitchEvents],
   );
 
   // Seed outcomes and subtypes on first data load so all checkboxes start checked
@@ -70,7 +71,7 @@ const EventsPage: React.FC = () => {
   }, [availableTypeIds]);
 
   const filteredEvents = useMemo(() => {
-    let result = events.filter(isPitchEvent);
+    let result = pitchEvents;
 
     if (filters.team !== "both" && game) {
       const teamId =
@@ -107,7 +108,7 @@ const EventsPage: React.FC = () => {
     }
 
     return result;
-  }, [events, filters, game]);
+  }, [pitchEvents, filters, game]);
 
   return (
     <div className="flex flex-col p-4 gap-4 min-h-full">
@@ -164,7 +165,7 @@ const EventsPage: React.FC = () => {
       {/* Table */}
       <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
         <h2 className="text-sm font-semibold mb-3">Tabla de eventos</h2>
-        <EventsPitchTable events={filteredEvents} game={game} />
+        <EventsPitchTable events={filteredEvents} sequenceEvents={pitchEvents} game={game} />
       </div>
     </div>
   );

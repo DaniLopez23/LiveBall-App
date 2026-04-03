@@ -12,11 +12,13 @@ import {
 import { PITCH_EVENT_TYPES_CONFIG, OUTCOME_OPTIONS_FLAT } from "@/types/outcomeOptions";
 import type { OptaEvent } from "@/components/pitch/figures/OptaMarkers";
 import type { Game } from "@/types/game";
+import EventsPitchModalDetail from "@/components/pitch/eventsPitch/EventsPitchModalDetail";
 
 const PAGE_SIZE = 15;
 
 interface EventsPitchTableProps {
   events: OptaEvent[];
+  sequenceEvents?: OptaEvent[];
   game?: Game | null;
 }
 
@@ -43,8 +45,10 @@ function formatTime(min?: number | null, sec?: number | null): string {
   return `${mm}:${ss}`;
 }
 
-const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => {
+const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEvents, game }) => {
   const [page, setPage] = useState(0);
+  const [selectedEvent, setSelectedEvent] = useState<OptaEvent | null>(null);
+  const modalSequenceEvents = sequenceEvents ?? events;
 
   // Reset to first page when events change
   React.useEffect(() => { setPage(0); }, [events]);
@@ -61,6 +65,11 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
     }
     return map;
   }, [game]);
+
+  const selectedActionLabel = selectedEvent ? getActionLabel(selectedEvent.type_id) : "";
+  const selectedOutcomeLabel = selectedEvent
+    ? getOutcomeLabel(selectedEvent.type_id, selectedEvent.outcome)
+    : "";
 
   return (
     <div className="flex flex-col rounded-lg border overflow-hidden">
@@ -88,8 +97,17 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
               pageEvents.map((event, idx) => (
                 <TableRow
                   key={event.id}
+                  onClick={() => setSelectedEvent(event)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setSelectedEvent(event);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
                   className={cn(
-                    "transition-colors hover:bg-slate-200 dark:hover:bg-slate-600",
+                    "cursor-pointer transition-colors hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring dark:hover:bg-slate-600",
                     idx % 2 === 0
                       ? "bg-white dark:bg-slate-700"
                       : "bg-slate-50 dark:bg-slate-750",
@@ -113,6 +131,10 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
                   <TableCell className="text-center">
                     <button
                       type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedEvent(event);
+                      }}
                       className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
                       aria-label="Ver detalle"
                     >
@@ -155,6 +177,16 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, game }) => 
           </button>
         </div>
       </div>
+
+      <EventsPitchModalDetail
+        open={selectedEvent != null}
+        event={selectedEvent}
+        events={modalSequenceEvents}
+        game={game}
+        actionLabel={selectedActionLabel}
+        outcomeLabel={selectedOutcomeLabel}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   );
 };
