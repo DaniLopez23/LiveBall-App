@@ -1,19 +1,21 @@
-import { useEffect, useState, useMemo } from "react";
-import useEventsStore from "@/store/eventsStore";
-import useGameStore from "@/store/gameStore";
+import { useMemo, useState } from "react";
+
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
+import NewEventsAlert from "@/components/pitch/eventsPitch/NewEventsAlert";
 import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import { cn } from "@/lib/utils";
+import useEventsStore from "@/store/eventsStore";
+import useGameStore from "@/store/gameStore";
+import { isPitchEvent, type PitchEvent } from "@/types/event";
 import {
-  OUTCOME_OPTIONS_BY_TYPE,
-  EVENT_SUBTYPE_OPTIONS_FLAT,
-  EVENT_SUBTYPE_OPTIONS_BY_TYPE,
   eventMatchesOutcome,
   eventMatchesSubtype,
+  EVENT_SUBTYPE_OPTIONS_BY_TYPE,
+  EVENT_SUBTYPE_OPTIONS_FLAT,
+  OUTCOME_OPTIONS_BY_TYPE,
 } from "@/types/outcomeOptions";
-import { isPitchEvent } from "@/types/event";
-import { cn } from "@/lib/utils";
 
 const DEFAULT_FILTERS: EventsFilters = {
   mode: "last",
@@ -33,6 +35,7 @@ const EventsPage: React.FC = () => {
 
   const teamColors = useMemo(() => {
     if (!game) return {};
+
     return {
       [game.home_team.team_id]: "#3b82f6",
       [game.away_team.team_id]: "#ef4444",
@@ -42,129 +45,137 @@ const EventsPage: React.FC = () => {
   const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
 
   const availableTypeIds = useMemo(
-    () => Array.from(new Set(pitchEvents.map((e) => e.type_id))),
+    () => Array.from(new Set(pitchEvents.map((event) => event.type_id))) as string[],
     [pitchEvents],
   );
 
-  // Seed outcomes and subtypes on first data load so all checkboxes start checked
-  useEffect(() => {
-    if (availableTypeIds.length === 0) return;
+  const seededFilters = useMemo(() => {
+    if (availableTypeIds.length === 0) return null;
 
-    const availableOutcomes = OUTCOME_OPTIONS_BY_TYPE.all.filter((opt) =>
-      (availableTypeIds as string[]).includes(opt.typeId),
+    const availableOutcomes = OUTCOME_OPTIONS_BY_TYPE.all.filter((option) =>
+      availableTypeIds.includes(option.typeId),
     );
-    const availableSubtypes = EVENT_SUBTYPE_OPTIONS_FLAT.filter((opt) =>
-      opt.typeIds.some((id) => (availableTypeIds as string[]).includes(id)),
+    const availableSubtypes = EVENT_SUBTYPE_OPTIONS_FLAT.filter((option) =>
+      option.typeIds.some((typeId) => availableTypeIds.includes(typeId)),
     );
 
-    setFilters((prev) => {
-      if (prev.selectedOutcomes.length > 0 || prev.selectedSubtypes.length > 0) {
-        return prev;
-      }
-      return {
-        ...prev,
-        selectedOutcomes: availableOutcomes.map((o) => o.id),
-        selectedSubtypes: availableSubtypes.map((o) => o.id),
-      };
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return {
+      ...DEFAULT_FILTERS,
+      selectedOutcomes: availableOutcomes.map((option) => option.id),
+      selectedSubtypes: availableSubtypes.map((option) => option.id),
+    };
   }, [availableTypeIds]);
+
+  const effectiveFilters = useMemo(() => {
+    if (
+      filters.selectedOutcomes.length === 0 &&
+      filters.selectedSubtypes.length === 0 &&
+      seededFilters
+    ) {
+      return {
+        ...filters,
+        selectedOutcomes: seededFilters.selectedOutcomes,
+        selectedSubtypes: seededFilters.selectedSubtypes,
+      };
+    }
+
+    return filters;
+  }, [filters, seededFilters]);
 
   const filteredEvents = useMemo(() => {
     let result = pitchEvents;
 
-    if (filters.team !== "both" && game) {
+    if (effectiveFilters.team !== "both" && game) {
       const teamId =
-        filters.team === "home"
+        effectiveFilters.team === "home"
           ? game.home_team.team_id
           : game.away_team.team_id;
-      result = result.filter((e) => e.team_id === teamId);
+      result = result.filter((event: PitchEvent) => event.team_id === teamId);
     }
 
-    const selectedOutcomeOptions = OUTCOME_OPTIONS_BY_TYPE[filters.selectedEventType].filter((opt) =>
-      filters.selectedOutcomes.includes(opt.id),
-    );
+    const selectedOutcomeOptions = OUTCOME_OPTIONS_BY_TYPE[
+      effectiveFilters.selectedEventType
+    ].filter((option) => effectiveFilters.selectedOutcomes.includes(option.id));
     result = result.filter((event) =>
-      selectedOutcomeOptions.some((opt) => eventMatchesOutcome(event, opt)),
+      selectedOutcomeOptions.some((option) => eventMatchesOutcome(event, option)),
     );
 
-    const selectedSubtypeOptions = EVENT_SUBTYPE_OPTIONS_BY_TYPE[filters.selectedEventType].filter((opt) =>
-      filters.selectedSubtypes.includes(opt.id),
-    );
-    if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[filters.selectedEventType].length > 0) {
+    const selectedSubtypeOptions = EVENT_SUBTYPE_OPTIONS_BY_TYPE[
+      effectiveFilters.selectedEventType
+    ].filter((option) => effectiveFilters.selectedSubtypes.includes(option.id));
+    if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[effectiveFilters.selectedEventType].length > 0) {
       result = result.filter((event) =>
-        selectedSubtypeOptions.some((opt) => eventMatchesSubtype(event, opt)),
+        selectedSubtypeOptions.some((option) => eventMatchesSubtype(event, option)),
       );
     }
 
-    const [minMin, maxMin] = filters.minuteRange;
-    result = result.filter((e) => {
-      const m = e.min ?? 0;
-      return m >= minMin && m <= maxMin;
+    const [minMinute, maxMinute] = effectiveFilters.minuteRange;
+    result = result.filter((event) => {
+      const minute = event.min ?? 0;
+      return minute >= minMinute && minute <= maxMinute;
     });
 
-    if (filters.mode === "last") {
-      result = result.slice(-filters.lastCount);
+    if (effectiveFilters.mode === "last") {
+      result = result.slice(-effectiveFilters.lastCount);
     }
 
     return result;
-  }, [pitchEvents, filters, game]);
+  }, [pitchEvents, effectiveFilters, game]);
 
   return (
-    <div className="flex flex-col p-4 gap-4 min-h-full">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold">Eventos en Tiempo Real</h1>
+    <div className="flex min-h-full flex-col gap-4 p-4">
+      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+        <div className="min-w-0 shrink-0">
+          <h1 className="text-2xl font-bold">Real Time Events</h1>
+        </div>
+
+        <div className="shrink-0 ml-4">
+          <NewEventsAlert key={game?.game_id ?? "no-game"} />
+        </div>
       </div>
 
-      {/* Main area: pitch + filters — fixed height so it doesn't shrink */}
-      <div className="flex gap-2 h-[620px]">
-        {/* Pitch: ~2/3 */}
+      <div className="flex h-155 gap-2">
         <div
           className={cn(
-            "flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-lg p-2 transition-all duration-300",
+            "flex items-center justify-center rounded-lg bg-slate-100 p-2 transition-all duration-300 dark:bg-slate-800",
             showFilters ? "flex-2" : "flex-1",
           )}
         >
           {events.length === 0 ? (
             <div className="text-center text-muted-foreground">
               <p className="text-lg font-medium">Esperando eventos...</p>
-              <p className="text-sm mt-2">
-                Los eventos se mostrarán aquí en tiempo real
-              </p>
+              <p className="mt-2 text-sm">Los eventos se mostrarán aquí en tiempo real</p>
             </div>
           ) : (
             <EventsPitch
               events={filteredEvents}
-              mode={filters.mode}
+              mode={effectiveFilters.mode}
               teamColors={teamColors}
               orientation="horizontal"
             />
           )}
         </div>
 
-        {/* Filters panel: ~1/3 */}
         <div
           className={cn(
-            "bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden transition-all duration-300 flex flex-col",
+            "flex flex-col overflow-hidden rounded-lg bg-slate-100 transition-all duration-300 dark:bg-slate-800",
             showFilters ? "flex-1" : "w-10",
           )}
         >
           <EventsPitchTabs
-            filters={filters}
+            filters={effectiveFilters}
             onFiltersChange={setFilters}
             homeTeamName={game?.home_team.team_name}
             awayTeamName={game?.away_team.team_name}
             isOpen={showFilters}
-            onToggle={() => setShowFilters((v) => !v)}
+            onToggle={() => setShowFilters((value) => !value)}
             availableTypeIds={availableTypeIds}
           />
         </div>
       </div>
 
-      {/* Table */}
-      <div className="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
-        <h2 className="text-sm font-semibold mb-3">Tabla de eventos</h2>
+      <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-800">
+        <h2 className="mb-3 text-sm font-semibold">Tabla de eventos</h2>
         <EventsPitchTable events={filteredEvents} sequenceEvents={pitchEvents} game={game} />
       </div>
     </div>
