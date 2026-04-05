@@ -13,6 +13,8 @@ _EXPORTED_EVENT_TYPES = {"1", "2", "5", "13", "14", "15", "16", "30", "32", "34"
 
 
 def _is_exported_event(event) -> bool:
+    if event.type_id == "5":
+        return event.outcome == 1
     return event.type_id in _EXPORTED_EVENT_TYPES
 
 
@@ -55,13 +57,15 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                         "statistics": cache.get_pass_network_statistics(g_id, team_id),
                     }
 
+            current_match_state = cache.get_match_state(game_id) or "pre_match"
+            
             await websocket.send_json({
                 "type": "match_state_snapshot",
                 "game_id": game_id,
                 "game": game.model_dump(exclude={"events"}),
                 "total_events": len(exported_events),
                 "last_event_id": exported_events[-1].id if exported_events else None,
-                "events": [flatten_event(e, match_state="") for e in exported_events],
+                "events": [flatten_event(e, match_state=current_match_state) for e in exported_events],
                 "stats": stats_data,
                 "pass_networks": pass_networks_data,
             })

@@ -239,5 +239,8 @@ def flatten_event(event: Event, match_state: Optional[str] = None) -> Dict[str, 
     if event.type_id in _MATCH_STATE_TYPES:
         base["type_name"] = match_state or event.type_id
         base["match_state"] = match_state if match_state is not None else ""
+    elif match_state is not None:
+        # For non-control events, only set match_state if explicitly provided (e.g., from snapshot)
+        base["match_state"] = match_state
 
     return base

@@ -25,6 +25,31 @@ import { type PitchEvent, isPassEvent, isOutEvent, isShotEvent } from "@/types/e
 function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation): FieldEdge {
   const xOut = optaX < 0 ? -optaX : optaX > 100 ? optaX - 100 : 0;
   const yOut = optaY < 0 ? -optaY : optaY > 100 ? optaY - 100 : 0;
+
+  // If feed coordinates are still inside [0,100], infer side by nearest boundary.
+  // This avoids misclassifying Out events as left/right when they are actually
+  // near the top/bottom touchline.
+  if (xOut === 0 && yOut === 0) {
+    const dXMin = optaX;
+    const dXMax = 100 - optaX;
+    const dYMin = optaY;
+    const dYMax = 100 - optaY;
+    const minD = Math.min(dXMin, dXMax, dYMin, dYMax);
+
+    if (orientation === "vertical") {
+      if (minD === dXMin) return "bottom";
+      if (minD === dXMax) return "top";
+      if (minD === dYMin) return "right";
+      return "left";
+    }
+
+    // Horizontal: Opta-X -> SVG-X, Opta-Y -> SVG-Y (inverted)
+    if (minD === dXMin) return "left";
+    if (minD === dXMax) return "right";
+    if (minD === dYMin) return "bottom";
+    return "top";
+  }
+
   const useX = xOut >= yOut;
 
   if (orientation === "vertical") {

@@ -130,6 +130,8 @@ class ProcessEventsService:
 
     @staticmethod
     def _is_exported_event(event: Event) -> bool:
+        if event.type_id == "5":
+            return event.outcome == 1
         return event.type_id in _EXPORTED_EVENT_TYPES
 
     @staticmethod

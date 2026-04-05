@@ -157,6 +157,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
     });
   };
 
+  const isOutEventSelected = filters.selectedEventType === "out";
+
   return (
     <div className="flex flex-col gap-5 h-full overflow-y-auto">
 
@@ -255,139 +257,141 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           </Select>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 min-h-0">
-          <div className="flex flex-col gap-2 min-h-0">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
-              <span className="text-[11px] text-muted-foreground">
-                {formatSelectionCounter(validSelectedSubtypes.length, availableSubtypeOptions.length)}
-              </span>
-            </div>
-            <Combobox
-              multiple
-              value={filters.selectedSubtypes}
-              onValueChange={(value) =>
-                onChange({ ...filters, selectedSubtypes: value as string[] })
-              }
-            >
-              <ComboboxChips
-                ref={subtypesAnchor}
-                className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+        {!isOutEventSelected && (
+          <div className="grid grid-cols-2 gap-3 min-h-0">
+            <div className="flex flex-col gap-2 min-h-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
+                <span className="text-[11px] text-muted-foreground">
+                  {formatSelectionCounter(validSelectedSubtypes.length, availableSubtypeOptions.length)}
+                </span>
+              </div>
+              <Combobox
+                multiple
+                value={filters.selectedSubtypes}
+                onValueChange={(value) =>
+                  onChange({ ...filters, selectedSubtypes: value as string[] })
+                }
               >
-                <ComboboxValue>
-                  {(selectedValue) => {
-                    const selectedValues = Array.isArray(selectedValue)
-                      ? selectedValue
-                      : selectedValue
-                        ? [selectedValue]
-                        : [];
+                <ComboboxChips
+                  ref={subtypesAnchor}
+                  className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+                >
+                  <ComboboxValue>
+                    {(selectedValue) => {
+                      const selectedValues = Array.isArray(selectedValue)
+                        ? selectedValue
+                        : selectedValue
+                          ? [selectedValue]
+                          : [];
 
-                    return renderCompactChips(
-                      selectedValues,
-                      (value) => subtypeLabelById.get(value) ?? value
-                    );
-                  }}
-                </ComboboxValue>
-                <ComboboxChipsInput
-                  placeholder={validSelectedSubtypes.length === 0 ? "Seleccionar subtipos..." : undefined}
-                  disabled={availableSubtypeOptions.length === 0}
-                />
-              </ComboboxChips>
-              <ComboboxContent anchor={subtypesAnchor}>
-                <div className="flex items-center justify-end border-b px-2 py-1.5">
-                  <button
-                    type="button"
-                    className="text-xs text-primary disabled:text-muted-foreground"
+                      return renderCompactChips(
+                        selectedValues,
+                        (value) => subtypeLabelById.get(value) ?? value
+                      );
+                    }}
+                  </ComboboxValue>
+                  <ComboboxChipsInput
+                    placeholder={validSelectedSubtypes.length === 0 ? "Seleccionar subtipos..." : undefined}
                     disabled={availableSubtypeOptions.length === 0}
-                    onClick={() =>
-                      onChange({
-                        ...filters,
-                        selectedSubtypes: allSubtypesSelected ? [] : allSubtypeIds,
-                      })
-                    }
-                  >
-                    {allSubtypesSelected ? "Limpiar selección" : "Seleccionar todo"}
-                  </button>
-                </div>
-                <ComboboxList>
-                  <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
-                  {availableSubtypeOptions.map((opt) => (
-                    <ComboboxItem key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </ComboboxItem>
-                  ))}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
-          
-          <div className="flex flex-col gap-2 min-h-0">
-            <div className="flex items-center justify-between gap-2">
-              <p className="text-[11px] text-muted-foreground">Resultado</p>
-              <span className="text-[11px] text-muted-foreground">
-                {formatSelectionCounter(validSelectedOutcomes.length, availableOutcomeOptions.length)}
-              </span>
+                  />
+                </ComboboxChips>
+                <ComboboxContent anchor={subtypesAnchor}>
+                  <div className="flex items-center justify-end border-b px-2 py-1.5">
+                    <button
+                      type="button"
+                      className="text-xs text-primary disabled:text-muted-foreground"
+                      disabled={availableSubtypeOptions.length === 0}
+                      onClick={() =>
+                        onChange({
+                          ...filters,
+                          selectedSubtypes: allSubtypesSelected ? [] : allSubtypeIds,
+                        })
+                      }
+                    >
+                      {allSubtypesSelected ? "Limpiar selección" : "Seleccionar todo"}
+                    </button>
+                  </div>
+                  <ComboboxList>
+                    <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
+                    {availableSubtypeOptions.map((opt) => (
+                      <ComboboxItem key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
             </div>
-            <Combobox
-              multiple
-              value={filters.selectedOutcomes}
-              onValueChange={(value) =>
-                onChange({ ...filters, selectedOutcomes: value as string[] })
-              }
-            >
-              <ComboboxChips
-                ref={outcomesAnchor}
-                className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+            
+            <div className="flex flex-col gap-2 min-h-0">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[11px] text-muted-foreground">Resultado</p>
+                <span className="text-[11px] text-muted-foreground">
+                  {formatSelectionCounter(validSelectedOutcomes.length, availableOutcomeOptions.length)}
+                </span>
+              </div>
+              <Combobox
+                multiple
+                value={filters.selectedOutcomes}
+                onValueChange={(value) =>
+                  onChange({ ...filters, selectedOutcomes: value as string[] })
+                }
               >
-                <ComboboxValue>
-                  {(selectedValue) => {
-                    const selectedValues = Array.isArray(selectedValue)
-                      ? selectedValue
-                      : selectedValue
-                        ? [selectedValue]
-                        : [];
+                <ComboboxChips
+                  ref={outcomesAnchor}
+                  className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
+                >
+                  <ComboboxValue>
+                    {(selectedValue) => {
+                      const selectedValues = Array.isArray(selectedValue)
+                        ? selectedValue
+                        : selectedValue
+                          ? [selectedValue]
+                          : [];
 
-                    return renderCompactChips(
-                      selectedValues,
-                      (value) => outcomeLabelById.get(value) ?? value
-                    );
-                  }}
-                </ComboboxValue>
-                <ComboboxChipsInput
-                  placeholder={validSelectedOutcomes.length === 0 ? "Seleccionar outcomes..." : undefined}
-                  disabled={availableOutcomeOptions.length === 0}
-                />
-              </ComboboxChips>
-              <ComboboxContent anchor={outcomesAnchor}>
-                <div className="flex items-center justify-end border-b px-2 py-1.5">
-                  <button
-                    type="button"
-                    className="text-xs text-primary disabled:text-muted-foreground"
+                      return renderCompactChips(
+                        selectedValues,
+                        (value) => outcomeLabelById.get(value) ?? value
+                      );
+                    }}
+                  </ComboboxValue>
+                  <ComboboxChipsInput
+                    placeholder={validSelectedOutcomes.length === 0 ? "Seleccionar outcomes..." : undefined}
                     disabled={availableOutcomeOptions.length === 0}
-                    onClick={() =>
-                      onChange({
-                        ...filters,
-                        selectedOutcomes: allOutcomesSelected ? [] : allOutcomeIds,
-                      })
-                    }
-                  >
-                    {allOutcomesSelected ? "Limpiar selección" : "Seleccionar todo"}
-                  </button>
-                </div>
-                <ComboboxList>
-                  <ComboboxEmpty>No hay outcomes disponibles.</ComboboxEmpty>
-                  {availableOutcomeOptions.map((opt) => (
-                    <ComboboxItem key={opt.id} value={opt.id}>
-                      {opt.label}
-                    </ComboboxItem>
-                  ))}
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-          </div>
+                  />
+                </ComboboxChips>
+                <ComboboxContent anchor={outcomesAnchor}>
+                  <div className="flex items-center justify-end border-b px-2 py-1.5">
+                    <button
+                      type="button"
+                      className="text-xs text-primary disabled:text-muted-foreground"
+                      disabled={availableOutcomeOptions.length === 0}
+                      onClick={() =>
+                        onChange({
+                          ...filters,
+                          selectedOutcomes: allOutcomesSelected ? [] : allOutcomeIds,
+                        })
+                      }
+                    >
+                      {allOutcomesSelected ? "Limpiar selección" : "Seleccionar todo"}
+                    </button>
+                  </div>
+                  <ComboboxList>
+                    <ComboboxEmpty>No hay outcomes disponibles.</ComboboxEmpty>
+                    {availableOutcomeOptions.map((opt) => (
+                      <ComboboxItem key={opt.id} value={opt.id}>
+                        {opt.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </div>
 
-          
-        </div>
+            
+          </div>
+        )}
       </div>
 
             <Separator />

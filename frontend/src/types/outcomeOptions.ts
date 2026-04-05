@@ -58,6 +58,7 @@ export const EVENT_SUBTYPE_OPTIONS_BY_TYPE: Record<PitchEventType | "all", Event
     { id: "pass-kick-off", typeIds: ["1", "2"], passFlag: "is_kick_off", label: "Saque de centro" },
     { id: "abp-free-kick", typeIds: ["1", "2"], passFlag: "free_kick_taken", label: "ABP: Falta" },
     { id: "abp-corner", typeIds: ["1", "2"], passFlag: "corner_taken", label: "ABP: Córner" },
+    { id: "out", typeIds: ["5"], label: "Fuera del campo" },
   ],
   pass: [
     { id: "pass-cross", typeIds: ["1", "2"], passFlag: "cross", label: "Cross" },
@@ -78,7 +79,9 @@ export const EVENT_SUBTYPE_OPTIONS_BY_TYPE: Record<PitchEventType | "all", Event
     { id: "abp-corner", typeIds: ["1", "2"], passFlag: "corner_taken", label: "ABP: Córner" },
   ],
   shot: [],
-  out: [],
+  out: [
+    { id: "out", typeIds: ["5"], label: "Fuera del campo" },
+  ],
 };
 
 export const EVENT_SUBTYPE_OPTIONS_FLAT: EventSubtypeOption[] = EVENT_SUBTYPE_OPTIONS_BY_TYPE.all;

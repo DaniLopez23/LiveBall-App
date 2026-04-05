@@ -104,9 +104,19 @@ const EventsPage: React.FC = () => {
       effectiveFilters.selectedEventType
     ].filter((option) => effectiveFilters.selectedSubtypes.includes(option.id));
     if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[effectiveFilters.selectedEventType].length > 0) {
-      result = result.filter((event) =>
-        selectedSubtypeOptions.some((option) => eventMatchesSubtype(event, option)),
-      );
+      result = result.filter((event) => {
+        const eventHasSubtypeOptions = EVENT_SUBTYPE_OPTIONS_FLAT.some((option) =>
+          option.typeIds.includes(event.type_id),
+        );
+
+        // Events without subtype taxonomy (e.g. Out, Shot) should not be excluded
+        // just because "all" includes pass-specific subtype options.
+        if (!eventHasSubtypeOptions) {
+          return true;
+        }
+
+        return selectedSubtypeOptions.some((option) => eventMatchesSubtype(event, option));
+      });
     }
 
     const [minMinute, maxMinute] = effectiveFilters.minuteRange;
