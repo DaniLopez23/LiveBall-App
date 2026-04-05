@@ -6,6 +6,8 @@ export interface EventBase {
 	event_id: string;
 	event_name: string;
 	event_description: string;
+	type_name?: string;
+	match_state?: string | null;
 	period_id?: number | null;
 	min?: number | null;
 	sec?: number | null;

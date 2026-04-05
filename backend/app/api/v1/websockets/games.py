@@ -9,6 +9,12 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+_EXPORTED_EVENT_TYPES = {"1", "2", "5", "13", "14", "15", "16", "30", "32", "34", "4", "7", "8", "12", "44", "49", "67"}
+
+
+def _is_exported_event(event) -> bool:
+    return event.type_id in _EXPORTED_EVENT_TYPES
+
 
 @router.websocket("/ws/games/{game_id}")
 async def game_websocket(websocket: WebSocket, game_id: str) -> None:
@@ -31,6 +37,7 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
         # Enviar snapshot del estado actual si ya existe el partido en caché
         game = cache.games.get(game_id)
         if game:
+            exported_events = [event for event in game.events if _is_exported_event(event)]
             stats_data = {}
             match_stats = cache.get_stats(game_id)
             if match_stats:
@@ -52,14 +59,14 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                 "type": "match_state_snapshot",
                 "game_id": game_id,
                 "game": game.model_dump(exclude={"events"}),
-                "total_events": game.total_events,
-                "last_event_id": game.events[-1].id if game.events else None,
-                "events": [flatten_event(e) for e in game.events],
+                "total_events": len(exported_events),
+                "last_event_id": exported_events[-1].id if exported_events else None,
+                "events": [flatten_event(e, match_state="") for e in exported_events],
                 "stats": stats_data,
                 "pass_networks": pass_networks_data,
             })
             logger.info(
-                f"📊 Estado del partido enviado a {client_id}: {game.total_events} eventos, "
+                f"📊 Estado del partido enviado a {client_id}: {len(exported_events)} eventos, "
                 f"{len(stats_data)} equipos con stats, {len(pass_networks_data)} redes de pases"
             )
 

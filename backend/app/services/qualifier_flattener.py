@@ -109,11 +109,32 @@ _SHOT_ZONE_QUALIFIER_NAMES: Dict[str, str] = {
 }
 
 # ---------------------------------------------------------------------------
+# Defensive qualifier mappings
+# ---------------------------------------------------------------------------
+
+_FOUL_BOOL_QUALIFIERS: Dict[str, str] = {
+    "13": "is_foul",          # General foul marker
+    "10": "is_handball",      # Handball
+    "17": "is_card_related",  # Card-related foul
+}
+
+_DUEL_ROLE_BOOL_QUALIFIERS: Dict[str, str] = {
+    "285": "is_defensive_duel",  # Duel role is defensive
+}
+
+# ---------------------------------------------------------------------------
 # Event type groups
 # ---------------------------------------------------------------------------
 
 _PASS_TYPES: Set[str] = {"1", "2"}
 _SHOT_TYPES: Set[str] = {"13", "14", "15", "16"}
+_OUT_TYPES: Set[str] = {"5"}
+_FOUL_TYPES: Set[str] = {"4"}
+_TACKLE_TYPES: Set[str] = {"7"}
+_INTERCEPTION_TYPES: Set[str] = {"8"}
+_DUEL_TYPES: Set[str] = {"44", "67"}
+_CLEARANCE_TYPES: Set[str] = {"12"}
+_BALL_RECOVERY_TYPES: Set[str] = {"49"}
 
 # ---------------------------------------------------------------------------
 # Internal helpers
@@ -147,7 +168,10 @@ def _extract_bool_qualifiers(
 # Public API
 # ---------------------------------------------------------------------------
 
-def flatten_event(event: Event) -> Dict[str, Any]:
+_MATCH_STATE_TYPES: Set[str] = {"30", "32", "34"}
+
+
+def flatten_event(event: Event, match_state: Optional[str] = None) -> Dict[str, Any]:
     """Return a serialisable dict for *event* with qualifiers flattened.
 
     The ``qualifiers`` list is dropped entirely and replaced by named fields
@@ -157,6 +181,7 @@ def flatten_event(event: Event) -> Dict[str, Any]:
     qual_lookup: Dict[str, str] = {q.qualifier_id: q.value for q in event.qualifiers}
 
     if event.type_id in _PASS_TYPES:
+        base["type_name"] = "pass"
         base.update(_extract_value_qualifiers(qual_lookup, _PASS_VALUE_QUALIFIERS))
         base.update(_extract_bool_qualifiers(qual_lookup, _PASS_BOOL_QUALIFIERS))
 
@@ -174,5 +199,45 @@ def flatten_event(event: Event) -> Dict[str, Any]:
             None,
         )
         base["shot_zone"] = shot_zone
+
+    elif event.type_id in _OUT_TYPES:
+        base["type_name"] = "out"
+
+    elif event.type_id in _FOUL_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "foul"
+        base.update(_extract_bool_qualifiers(qual_lookup, _FOUL_BOOL_QUALIFIERS))
+
+    elif event.type_id in _TACKLE_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "tackle"
+        if event.outcome is not None:
+            base["tackle_success"] = event.outcome == 1
+            base["recovers_possession"] = event.outcome == 1
+        else:
+            base["tackle_success"] = None
+            base["recovers_possession"] = None
+
+    elif event.type_id in _INTERCEPTION_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "interception"
+
+    elif event.type_id in _DUEL_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "duel"
+        base["duel_kind"] = "aerial" if event.type_id == "44" else "fifty_fifty"
+        base.update(_extract_bool_qualifiers(qual_lookup, _DUEL_ROLE_BOOL_QUALIFIERS))
+
+    elif event.type_id in _CLEARANCE_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "clearance"
+
+    elif event.type_id in _BALL_RECOVERY_TYPES:
+        base["type_name"] = "defensive"
+        base["defensive_action"] = "ball_recovery"
+
+    if event.type_id in _MATCH_STATE_TYPES:
+        base["type_name"] = match_state or event.type_id
+        base["match_state"] = match_state if match_state is not None else ""
 
     return base

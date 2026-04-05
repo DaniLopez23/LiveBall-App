@@ -35,6 +35,10 @@ class GameStateCache:
         self._game_snapshots: Dict[str, Dict[str, Any]] = {}
         # game_id → { (team_id, event_id) → type_id }
         self._event_states: Dict[str, Dict[Tuple[str, str], str]] = {}
+        # game_id → latest inferred match state (pre_match, first_period_active, ...)
+        self._match_states: Dict[str, str] = {}
+        # game_id → last event index scanned for pass receiver assignment
+        self._receiver_scan_indices: Dict[str, int] = {}
         # game_id → full ParsedMatchStats (latest ingested version)
         self.stats: Dict[str, ParsedMatchStats] = {}
         # game_id → comparable snapshot dict used for stats change detection
@@ -82,6 +86,22 @@ class GameStateCache:
         if game_id not in self._event_states:
             self._event_states[game_id] = {}
         self._event_states[game_id][(team_id, event_id)] = type_id
+
+    def get_match_state(self, game_id: str) -> Optional[str]:
+        """Returns the latest inferred match state for *game_id*, or None."""
+        return self._match_states.get(game_id)
+
+    def store_match_state(self, game_id: str, state: str) -> None:
+        """Stores the inferred match state for *game_id*."""
+        self._match_states[game_id] = state
+
+    def get_receiver_scan_index(self, game_id: str) -> int:
+        """Returns the latest scanned index used for receiver assignment."""
+        return self._receiver_scan_indices.get(game_id, 0)
+
+    def store_receiver_scan_index(self, game_id: str, index: int) -> None:
+        """Stores the latest scanned index used for receiver assignment."""
+        self._receiver_scan_indices[game_id] = index
 
     # ------------------------------------------------------------------ #
     # Stats helpers                                                       #

@@ -1,5 +1,6 @@
 import logging
-from typing import Any, Dict, List, Optional
+from collections import defaultdict
+from typing import Any, DefaultDict, Dict, List, Optional
 
 from app.schemas.events import Event
 from app.schemas.games import ParsedGame, ParsedGamesRoot
@@ -7,6 +8,15 @@ from app.services.qualifier_flattener import flatten_event
 from app.state.game_state import GameStateCache
 
 logger = logging.getLogger(__name__)
+
+
+MATCH_STATE_PRE_MATCH = "pre_match"
+MATCH_STATE_FIRST_PERIOD_ACTIVE = "first_period_active"
+MATCH_STATE_FIRST_PERIOD_FINISHED = "first_period_finished"
+MATCH_STATE_SECOND_PERIOD_ACTIVE = "second_period_active"
+MATCH_STATE_MATCH_FINISHED = "match_finished"
+
+_EXPORTED_EVENT_TYPES = {"1", "2", "5", "13", "14", "15", "16", "30", "32", "34", "4", "7", "8", "12", "44", "49", "67"}
 
 
 class ProcessEventsService:
@@ -45,15 +55,12 @@ class ProcessEventsService:
         if game_msg:
             messages.append(game_msg)
 
-        event_msgs = self._check_events(parsed_root.game)
+        event_msgs, changed_events = self._check_events(parsed_root.game)
         messages.extend(event_msgs)
 
         # Only reprocess pass networks when events changed
-        has_event_changes = any(
-            m["type"] in ("new_events", "updated_events") for m in event_msgs
-        )
-        if has_event_changes:
-            pn_msgs = self._update_pass_networks(parsed_root.game)
+        if changed_events:
+            pn_msgs = self._update_pass_networks(parsed_root.game, changed_events)
             messages.extend(pn_msgs)
 
         # CRITICAL: Always update the full ParsedGame in cache to ensure
@@ -121,20 +128,76 @@ class ProcessEventsService:
 
         return None
 
-    def _check_events(self, game: ParsedGame) -> List[Dict[str, Any]]:
+    @staticmethod
+    def _is_exported_event(event: Event) -> bool:
+        return event.type_id in _EXPORTED_EVENT_TYPES
+
+    @staticmethod
+    def _event_cache_key(event: Event) -> tuple[str, str]:
+        team_key = event.team_id or "__match__"
+        event_key = event.event_id or event.id
+        return team_key, event_key
+
+    def _next_match_state(self, event: Event, current_state: Optional[str]) -> Optional[str]:
+        """
+        Infers a match-state transition from control events.
+
+        Rules requested:
+        - type_id=34, period_id=16 -> pre_match (first occurrence),
+          first_period_finished (when first period was active)
+        - type_id=32, period_id=1  -> first_period_active
+        - type_id=32, period_id=2  -> second_period_active
+        - type_id=30, period_id=2  -> match_finished
+        """
+        type_id = event.type_id
+        period_id = event.period_id
+
+        if type_id == "34" and period_id == 16:
+            if current_state in (None, MATCH_STATE_PRE_MATCH):
+                return MATCH_STATE_PRE_MATCH
+            if current_state == MATCH_STATE_FIRST_PERIOD_ACTIVE:
+                return MATCH_STATE_FIRST_PERIOD_FINISHED
+            return None
+
+        if type_id == "32" and period_id == 1:
+            return MATCH_STATE_FIRST_PERIOD_ACTIVE
+
+        if type_id == "32" and period_id == 2:
+            return MATCH_STATE_SECOND_PERIOD_ACTIVE
+
+        if type_id == "30" and period_id == 2:
+            return MATCH_STATE_MATCH_FINISHED
+
+        return None
+
+    @staticmethod
+    def _flatten_for_export(event: Event, match_state: Optional[str]) -> Dict[str, Any]:
+        if event.type_id in {"30", "32", "34"}:
+            return flatten_event(event, match_state=match_state or "")
+        return flatten_event(event)
+
+    def _check_events(self, game: ParsedGame) -> tuple[List[Dict[str, Any]], List[Event]]:
         """
         Classifies each event as new or updated.
 
         An event is *new* when its (team_id, event_id) pair has not been seen.
         An event is *updated* when its type_id differs from the previously recorded one.
         """
-        new_events: List[Event] = []
-        updated_events: List[Event] = []
+        new_events_flat: List[Dict[str, Any]] = []
+        updated_events_flat: List[Dict[str, Any]] = []
+        changed_events: List[Event] = []
 
         game_id = game.game_id
         away_team_id = game.away_team.team_id
+        current_match_state = self._cache.get_match_state(game_id)
 
         for event in game.events:
+            next_state = self._next_match_state(event, current_match_state)
+            if next_state and next_state != current_match_state:
+                self._cache.store_match_state(game_id, next_state)
+                current_match_state = next_state
+                logger.debug("(MATCH_STATE) Game %s -> %s", game_id, next_state)
+
             # Invert away-team coordinates so both teams attack left → right.
             # Done here to avoid a separate pass over all events.
             if event.team_id == away_team_id:
@@ -149,88 +212,131 @@ class ProcessEventsService:
                         except (ValueError, TypeError):
                             pass
 
-            if not event.team_id or not event.event_id:
+            if not self._is_exported_event(event):
                 continue
 
-            if not self._cache.has_event(game_id, event.team_id, event.event_id):
-                self._cache.store_event_type(
-                    game_id, event.team_id, event.event_id, event.type_id
-                )
-                new_events.append(event)
-            elif (
-                self._cache.get_event_type(game_id, event.team_id, event.event_id)
-                != event.type_id
-            ):
-                self._cache.store_event_type(
-                    game_id, event.team_id, event.event_id, event.type_id
-                )
-                updated_events.append(event)
+            team_key, event_key = self._event_cache_key(event)
+            previous_type = self._cache.get_event_type(game_id, team_key, event_key)
+
+            if previous_type is None:
+                self._cache.store_event_type(game_id, team_key, event_key, event.type_id)
+                changed_events.append(event)
+                if self._is_exported_event(event):
+                    new_events_flat.append(self._flatten_for_export(event, current_match_state))
+            elif previous_type != event.type_id:
+                self._cache.store_event_type(game_id, team_key, event_key, event.type_id)
+                changed_events.append(event)
+                if self._is_exported_event(event):
+                    updated_events_flat.append(self._flatten_for_export(event, current_match_state))
 
         messages: List[Dict[str, Any]] = []
 
-        if new_events:
+        if new_events_flat:
             logger.debug(
-                "(EVENTS) Game %s – %d new event(s)", game.game_id, len(new_events)
+                "(EVENTS) Game %s – %d new event(s)", game.game_id, len(new_events_flat)
             )
             messages.append(
                 {
                     "type": "new_events",
                     "game_id": game.game_id,
-                    "events": [flatten_event(e) for e in new_events],
+                    "events": new_events_flat,
                 }
             )
 
-        if updated_events:
+        if updated_events_flat:
             logger.debug(
-                "(EVENTS) Game %s – %d updated event(s)", game.game_id, len(updated_events)
+                "(EVENTS) Game %s – %d updated event(s)", game.game_id, len(updated_events_flat)
             )
             messages.append(
                 {
                     "type": "updated_events",
                     "game_id": game.game_id,
-                    "events": [flatten_event(e) for e in updated_events],
+                    "events": updated_events_flat,
                 }
             )
 
-        return messages
+        return messages, changed_events
 
-    def _assign_receivers(self, events: List[Event]) -> None:
-        """
-        Sets ``player_receiver_id`` on every pass event that does not yet have
-        one, using the "next event from the same team" heuristic.
+    @staticmethod
+    def _find_next_teammate_player_id(events: List[Event], start_idx: int, team_id: str) -> Optional[str]:
+        for idx in range(start_idx, len(events)):
+            candidate = events[idx]
+            if candidate.team_id == team_id and candidate.player_id:
+                return candidate.player_id
+        return None
 
-        Iterates the full ordered event list once.  For each pass (type_id='1')
-        without a receiver it scans forward for the first subsequent event of
-        the same team and assigns that event's player_id.  Already-assigned
-        events are skipped immediately, keeping the loop efficient across
-        successive calls with a growing list.
+    def _collect_incremental_pass_candidates(
+        self,
+        game: ParsedGame,
+        changed_events: List[Event],
+    ) -> Dict[str, List[Event]]:
         """
-        for i, event in enumerate(events):
-            if event.type_id != "1" or not event.team_id:
+        Resolves pass receivers incrementally and returns pass candidates per team
+        that may update pass networks.
+
+        To avoid rescanning the full match each poll, processing starts near the
+        previously scanned index (with a one-event overlap so a pending pass can
+        be completed by a new following event).
+        """
+        game_id = game.game_id
+        events = game.events
+        start_idx = max(0, self._cache.get_receiver_scan_index(game_id) - 1)
+
+        by_team: DefaultDict[str, Dict[str, Event]] = defaultdict(dict)
+
+        for idx in range(start_idx, len(events)):
+            event = events[idx]
+            if event.type_id not in ("1", "2") or not event.team_id:
                 continue
-            if event.player_receiver_id:
-                continue
 
-            for j in range(i + 1, len(events)):
-                candidate = events[j]
-                if candidate.team_id == event.team_id and candidate.player_id:
-                    event.player_receiver_id = candidate.player_id
-                    break
+            if not event.player_receiver_id:
+                receiver = self._find_next_teammate_player_id(
+                    events, idx + 1, event.team_id
+                )
+                if receiver:
+                    event.player_receiver_id = receiver
 
-    def _update_pass_networks(self, game: ParsedGame) -> List[Dict[str, Any]]:
+            if (
+                event.type_id == "1"
+                and event.outcome == 1
+                and event.player_receiver_id
+                and event.event_id
+            ):
+                by_team[event.team_id][event.event_id] = event
+
+        for event in changed_events:
+            if (
+                event.type_id == "1"
+                and event.outcome == 1
+                and event.team_id
+                and event.player_receiver_id
+                and event.event_id
+            ):
+                by_team[event.team_id][event.event_id] = event
+
+        self._cache.store_receiver_scan_index(game_id, len(events))
+
+        return {team_id: list(events_by_id.values()) for team_id, events_by_id in by_team.items()}
+
+    def _update_pass_networks(
+        self,
+        game: ParsedGame,
+        changed_events: List[Event],
+    ) -> List[Dict[str, Any]]:
         """
-        Assigns receivers to all pass events, then updates the per-team pass
-        network and returns ``pass_network_updated`` messages for every team
-        whose network changed.
+        Updates per-team pass networks using only incremental pass candidates.
+
+        This avoids filtering and rescanning every event for every team on each
+        poll cycle.
         """
-        self._assign_receivers(game.events)
+        incremental_by_team = self._collect_incremental_pass_candidates(game, changed_events)
 
         messages: List[Dict[str, Any]] = []
 
-        team_ids = {e.team_id for e in game.events if e.team_id}
-        for team_id in team_ids:
+        for team_id, team_events in incremental_by_team.items():
+            if not team_events:
+                continue
             service = self._cache.get_or_create_pass_network(game.game_id, team_id)
-            team_events = [e for e in game.events if e.team_id == team_id]
             changed_nodes, changed_edges = service.add_passes_incremental(team_events)
 
             if changed_nodes or changed_edges:
