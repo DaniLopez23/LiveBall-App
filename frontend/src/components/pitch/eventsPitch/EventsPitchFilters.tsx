@@ -123,7 +123,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           </ComboboxChip>
         ))}
         {hiddenCount > 0 && (
-          <ComboboxChip className="bg-zinc-800 text-zinc-100">+{hiddenCount}</ComboboxChip>
+          <ComboboxChip showRemove={false} className="bg-zinc-800 text-zinc-100">
+            +{hiddenCount}
+          </ComboboxChip>
         )}
       </>
     );
@@ -259,7 +261,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
 
         {!isOutEventSelected && (
           <div className="grid grid-cols-2 gap-3 min-h-0">
-            <div className="flex flex-col gap-2 min-h-0">
+            <div className="flex min-w-0 flex-col gap-2 min-h-0">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
                 <span className="text-[11px] text-muted-foreground">
@@ -269,14 +271,13 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               <Combobox
                 multiple
                 value={filters.selectedSubtypes}
+                disabled={availableSubtypeOptions.length === 0}
                 onValueChange={(value) =>
                   onChange({ ...filters, selectedSubtypes: value as string[] })
                 }
               >
-                <ComboboxChips
-                  ref={subtypesAnchor}
-                  className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
-                >
+                <div ref={subtypesAnchor} className="w-full min-w-0">
+                  <ComboboxChips className="w-full flex-nowrap overflow-x-auto overflow-y-hidden">
                   <ComboboxValue>
                     {(selectedValue) => {
                       const selectedValues = Array.isArray(selectedValue)
@@ -294,8 +295,10 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                   <ComboboxChipsInput
                     placeholder={validSelectedSubtypes.length === 0 ? "Seleccionar subtipos..." : undefined}
                     disabled={availableSubtypeOptions.length === 0}
+                    readOnly
                   />
                 </ComboboxChips>
+                </div>
                 <ComboboxContent anchor={subtypesAnchor}>
                   <div className="flex items-center justify-end border-b px-2 py-1.5">
                     <button
@@ -313,7 +316,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                     </button>
                   </div>
                   <ComboboxList>
-                    <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
+                      {availableSubtypeOptions.length === 0 ? (
+                        <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
+                      ) : null}
                     {availableSubtypeOptions.map((opt) => (
                       <ComboboxItem key={opt.id} value={opt.id}>
                         {opt.label}
@@ -324,7 +329,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               </Combobox>
             </div>
             
-            <div className="flex flex-col gap-2 min-h-0">
+            <div className="flex min-w-0 flex-col gap-2 min-h-0">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">Resultado</p>
                 <span className="text-[11px] text-muted-foreground">
@@ -334,14 +339,13 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               <Combobox
                 multiple
                 value={filters.selectedOutcomes}
+                disabled={availableOutcomeOptions.length === 0}
                 onValueChange={(value) =>
                   onChange({ ...filters, selectedOutcomes: value as string[] })
                 }
               >
-                <ComboboxChips
-                  ref={outcomesAnchor}
-                  className="w-full flex-nowrap overflow-x-auto overflow-y-hidden"
-                >
+                <div ref={outcomesAnchor} className="w-full min-w-0">
+                  <ComboboxChips className="w-full flex-nowrap overflow-x-auto overflow-y-hidden">
                   <ComboboxValue>
                     {(selectedValue) => {
                       const selectedValues = Array.isArray(selectedValue)
@@ -359,8 +363,10 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                   <ComboboxChipsInput
                     placeholder={validSelectedOutcomes.length === 0 ? "Seleccionar outcomes..." : undefined}
                     disabled={availableOutcomeOptions.length === 0}
+                    readOnly
                   />
                 </ComboboxChips>
+                </div>
                 <ComboboxContent anchor={outcomesAnchor}>
                   <div className="flex items-center justify-end border-b px-2 py-1.5">
                     <button
@@ -378,7 +384,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                     </button>
                   </div>
                   <ComboboxList>
-                    <ComboboxEmpty>No hay outcomes disponibles.</ComboboxEmpty>
+                      {availableOutcomeOptions.length === 0 ? (
+                        <ComboboxEmpty>No hay outcomes disponibles.</ComboboxEmpty>
+                      ) : null}
                     {availableOutcomeOptions.map((opt) => (
                       <ComboboxItem key={opt.id} value={opt.id}>
                         {opt.label}
