@@ -1,12 +1,14 @@
 import time
 import random
+import copy
+import threading
 import xml.etree.ElementTree as ET
 from pathlib import Path
 from datetime import datetime
-from typing import Tuple
 
 # Configuración
 DATA_EVENTS_PATH = Path(__file__).parent.parent / "data" / "events"
+DATA_STATS_PATH = Path(__file__).parent.parent / "data" / "stats"
 OUTPUT_PATH = Path(__file__).parent.parent.parent / "simulated-real-time-data"
 
 
@@ -27,6 +29,17 @@ def find_first_xml_file() -> Path:
     if not xml_files:
         raise FileNotFoundError(f"No XML files found in {DATA_EVENTS_PATH}")
     
+    return xml_files[0]
+
+
+def find_first_stats_xml_file() -> Path:
+    """
+    Encuentra el primer archivo XML en data/stats.
+    """
+    xml_files = list(DATA_STATS_PATH.glob("*.xml"))
+    if not xml_files:
+        raise FileNotFoundError(f"No XML files found in {DATA_STATS_PATH}")
+
     return xml_files[0]
 
 
@@ -122,24 +135,143 @@ def create_new_xml_streaming(source_xml: Path, output_filename: str):
     print(f"📊 Total eventos procesados: {len(accumulated_events)}")
 
 
+def _safe_int(value: str | None, default: int = 0) -> int:
+    """Convierte string a int de forma segura."""
+    try:
+        return int(value) if value is not None else default
+    except (TypeError, ValueError):
+        return default
+
+
+def _simulate_player_stats(match_data_element: ET.Element):
+    """
+    Recorre TeamData -> PlayerLineUp -> MatchPlayer -> Stat y aplica variaciones
+    aleatorias de +/-20 sobre stats numéricas, manteniendo valores >= 0.
+    """
+    for team_data in match_data_element.findall("TeamData"):
+        for match_player in team_data.findall("./PlayerLineUp/MatchPlayer"):
+            for stat in match_player.findall("Stat"):
+                raw_value = (stat.text or "").strip()
+                if not raw_value:
+                    continue
+
+                try:
+                    original_value = int(raw_value)
+                except ValueError:
+                    continue
+
+                delta = random.randint(-20, 20)
+                new_value = max(0, original_value + delta)
+                stat.text = str(new_value)
+
+
+def _update_match_time_stat(match_data_element: ET.Element, current_time: int):
+    """
+    Actualiza (o crea) el Stat Type=\"match_time\" dentro de MatchData.
+    """
+    match_time_stat = None
+    for stat in match_data_element.findall("Stat"):
+        if stat.attrib.get("Type") == "match_time":
+            match_time_stat = stat
+            break
+
+    if match_time_stat is None:
+        match_time_stat = ET.SubElement(match_data_element, "Stat", {"Type": "match_time"})
+
+    match_time_stat.text = str(current_time)
+
+
+def create_new_stats_streaming(source_xml: Path, output_filename: str):
+    """
+    Simula evolución de stats F9 cada 20 (+/-3) segundos.
+    - Ajusta stats numéricas de cada MatchPlayer con variación de +/-20.
+    - Simula avance de MatchData/Stat[@Type='match_time'] hasta match_time original.
+    """
+    print(f"📖 Leyendo stats de: {source_xml}")
+    print("⏱️  Actualizando stats cada ~20 segundos (+/-3):\n")
+
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
+    output_file = OUTPUT_PATH / output_filename
+
+    source_tree = ET.parse(source_xml)
+    source_root = source_tree.getroot()
+
+    target_match_time = 90
+    source_match_data = source_root.find("./SoccerDocument/MatchData")
+    if source_match_data is not None:
+        for stat in source_match_data.findall("Stat"):
+            if stat.attrib.get("Type") == "match_time":
+                target_match_time = max(1, _safe_int((stat.text or "").strip(), 90))
+                break
+
+    print(f"✅ Match time objetivo detectado: {target_match_time}\n")
+
+    # Partimos de 0 y avanzamos minuto a minuto para simular progreso del partido.
+    simulated_minute = 0
+
+    while simulated_minute < target_match_time:
+        simulated_minute += 1
+
+        # Trabajamos sobre copia profunda para conservar el XML fuente intacto.
+        loop_root = copy.deepcopy(source_root)
+        loop_match_data = loop_root.find("./SoccerDocument/MatchData")
+
+        if loop_match_data is None:
+            raise ValueError("No se encontró <MatchData> en el XML de stats")
+
+        _simulate_player_stats(loop_match_data)
+        _update_match_time_stat(loop_match_data, simulated_minute)
+
+        tree_out = ET.ElementTree(loop_root)
+        ET.indent(tree_out, space="  ")
+        tree_out.write(output_file, encoding="utf-8", xml_declaration=True)
+
+        delay = random.uniform(17, 23)
+        print(
+            f"  [MIN {simulated_minute:3d}/{target_match_time}] "
+            f"Stats actualizadas | Delay: {delay:.2f}s"
+        )
+
+        if simulated_minute < target_match_time:
+            time.sleep(delay)
+
+    print(f"\n✅ Archivo de stats generado: {output_file}")
+    print(f"📊 Iteraciones de stats procesadas: {target_match_time}")
+
+
 def main():
     """
     Función principal que ejecuta el script.
     """
-    print("🏟️  Pitch Simulator - Real-time Event Generator\n")
+    print("🏟️  Pitch Simulator - Real-time Event & Stats Generator\n")
     print("=" * 60)
     
     try:
-        # Obtener fecha actual en formato DDMMAA
-        date_formatted = get_today_date_formatted()
-        output_filename = f"{date_formatted}-00.xml"
-        
-        # Encontrar primer archivo XML
-        source_xml = find_first_xml_file()
-        print(f"📁 Usando archivo fuente: {source_xml.name}\n")
-        
-        # Crear nuevo XML con eventos en streaming
-        create_new_xml_streaming(source_xml, "f24-simulated-data.xml")
+        # Se mantiene por compatibilidad aunque hoy no se use para nombrado.
+        _ = get_today_date_formatted()
+
+        source_events_xml = find_first_xml_file()
+        source_stats_xml = find_first_stats_xml_file()
+
+        print(f"📁 Fuente eventos: {source_events_xml.name}")
+        print(f"📁 Fuente stats:   {source_stats_xml.name}\n")
+
+        events_thread = threading.Thread(
+            target=create_new_xml_streaming,
+            args=(source_events_xml, "f24-simulated-data.xml"),
+            daemon=True,
+        )
+        stats_thread = threading.Thread(
+            target=create_new_stats_streaming,
+            args=(source_stats_xml, "f9-simulated-data.xml"),
+            daemon=True,
+        )
+
+        events_thread.start()
+        stats_thread.start()
+
+        events_thread.join()
+        stats_thread.join()
         
         print("\n" + "=" * 60)
         print("✨ Proceso completado exitosamente")
