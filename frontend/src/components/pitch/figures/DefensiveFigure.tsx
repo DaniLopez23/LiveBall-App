@@ -4,6 +4,7 @@ export interface DefensiveFigureProps {
 	x: number;
 	y: number;
 	sequence: number;
+	subtypeLabel?: string;
 	color?: string;
 }
 
@@ -13,6 +14,7 @@ const DefensiveFigure: React.FC<DefensiveFigureProps> = ({
 	x,
 	y,
 	sequence,
+	subtypeLabel,
 	color = "#ffffff",
 }) => {
 	const top = `${x},${y - TRIANGLE_R}`;
@@ -37,6 +39,20 @@ const DefensiveFigure: React.FC<DefensiveFigureProps> = ({
 			>
 				{sequence}
 			</text>
+			{subtypeLabel ? (
+				<text
+					x={x}
+					y={y + TRIANGLE_R + 2}
+					textAnchor="middle"
+					dominantBaseline="hanging"
+					fontSize={2.8}
+					fontWeight="700"
+					fill={color}
+					style={{ userSelect: "none", letterSpacing: "0.04em" }}
+				>
+					{subtypeLabel.toUpperCase()}
+				</text>
+			) : null}
 		</g>
 	);
 };

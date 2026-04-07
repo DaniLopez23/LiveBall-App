@@ -66,6 +66,24 @@ function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation)
   }
 }
 
+function getDefensiveSubtypeLabel(typeId: string): string {
+  switch (typeId) {
+    case "7":
+      return "Tackle";
+    case "8":
+      return "Interception";
+    case "12":
+      return "Clearance";
+    case "49":
+      return "Ball Recovery";
+    case "44":
+    case "67":
+      return "Duel";
+    default:
+      return "Defensive";
+  }
+}
+
 /** Pitch-renderable events only. */
 export type OptaEvent = PitchEvent;
 
@@ -226,6 +244,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
 
         // ── Defensive (Tackle/Interception/Duel/Clearance/Ball Recovery) ─
         if (isDefensiveEvent(event)) {
+          const subtypeLabel = getDefensiveSubtypeLabel(event.type_id);
           return wrap(event.id, (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -234,6 +253,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
                     x={svgX1}
                     y={svgY1}
                     sequence={renderIndex + 1}
+                    subtypeLabel={subtypeLabel}
                     color={color}
                   />
                 </g>
