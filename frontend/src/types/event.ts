@@ -23,6 +23,8 @@ export interface EventBase {
 	version?: string | null;
 }
 
+export type DefensiveTypeId = "7" | "8" | "12" | "44" | "49" | "67";
+
 // ---------------------------------------------------------------------------
 // Pass  (type_id "1" = Pass, "2" = Offside Pass)
 // ---------------------------------------------------------------------------
@@ -85,7 +87,12 @@ export interface ShotEvent extends EventBase {
 // Named event types with no additional flattened qualifier fields
 // ---------------------------------------------------------------------------
 export interface TakeOnEvent extends EventBase { type_id: "3"; }
-export interface FoulEvent extends EventBase { type_id: "4"; }
+export interface FoulEvent extends EventBase {
+	type_id: "4";
+	is_foul?: boolean;
+	is_handball?: boolean;
+	is_card_related?: boolean;
+}
 export interface OutEvent extends EventBase { type_id: "5"; }
 export interface CornerAwardedEvent extends EventBase { type_id: "6"; }
 export interface TackleEvent extends EventBase { type_id: "7"; }
@@ -94,7 +101,11 @@ export interface SaveEvent extends EventBase { type_id: "10"; }
 export interface ClearanceEvent extends EventBase { type_id: "12"; }
 export interface CardEvent extends EventBase { type_id: "17"; }
 export interface SubstitutionEvent extends EventBase { type_id: "18" | "19"; }
-export interface AerialEvent extends EventBase { type_id: "44"; }
+export interface AerialEvent extends EventBase {
+	type_id: "44" | "67";
+	is_defensive_duel?: boolean;
+}
+export interface BallRecoveryEvent extends EventBase { type_id: "49"; }
 
 // ---------------------------------------------------------------------------
 // Catch-all for any other event type not listed above
@@ -118,6 +129,7 @@ export type Event =
 	| CardEvent
 	| SubstitutionEvent
 	| AerialEvent
+	| BallRecoveryEvent
 	| GenericEvent;
 
 // ---------------------------------------------------------------------------
@@ -132,10 +144,21 @@ export const isShotEvent = (e: Event): e is ShotEvent =>
 export const isOutEvent = (e: Event): e is OutEvent =>
 	e.type_id === "5";
 
+export const isFoulEvent = (e: Event): e is FoulEvent =>
+	e.type_id === "4";
+
+export const isDefensiveEvent = (e: Event): e is EventBase & { type_id: DefensiveTypeId } =>
+	e.type_id === "7" ||
+	e.type_id === "8" ||
+	e.type_id === "12" ||
+	e.type_id === "44" ||
+	e.type_id === "49" ||
+	e.type_id === "67";
+
 // ---------------------------------------------------------------------------
 // Pitch-renderable events – the only event types drawn on the pitch
 // ---------------------------------------------------------------------------
-export type PitchEvent = PassEvent | ShotEvent | OutEvent;
+export type PitchEvent = PassEvent | ShotEvent | OutEvent | FoulEvent | (EventBase & { type_id: DefensiveTypeId });
 
 export const isPitchEvent = (e: Event): e is PitchEvent =>
-	isPassEvent(e) || isShotEvent(e) || isOutEvent(e);
+	isPassEvent(e) || isShotEvent(e) || isOutEvent(e) || isFoulEvent(e) || isDefensiveEvent(e);

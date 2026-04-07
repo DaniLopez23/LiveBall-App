@@ -3,6 +3,8 @@ import { AnimatePresence, motion } from "motion/react";
 import PassArrow from "./PassArrow";
 import BallOutFigure, { type FieldEdge } from "./BallOutFigure";
 import ShotFigure from "./ShotFigure";
+import FoulFigure from "./FoulFigure";
+import DefensiveFigure from "./DefensiveFigure";
 import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
 import {
   Tooltip,
@@ -10,7 +12,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { type PitchEvent, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
+import { type PitchEvent, isDefensiveEvent, isFoulEvent, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
 
 /**
  * Determines which SVG viewport edge the ball crossed, derived from
@@ -124,6 +126,10 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         return true;
       }
 
+      if (isFoulEvent(event) || isDefensiveEvent(event)) {
+        return true;
+      }
+
       return false;
     });
 
@@ -179,6 +185,54 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
                     svgX={svgX1}
                     svgY={svgY1}
                     edge={edge}
+                    sequence={renderIndex + 1}
+                    color={color}
+                  />
+                </g>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={2}>
+                <div className="space-y-0.5">
+                  <div>ID {event.id}</div>
+                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ));
+        }
+
+        // ── Foul ────────────────────────────────────────────────────────
+        if (isFoulEvent(event)) {
+          return wrap(event.id, (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <g>
+                  <FoulFigure
+                    x={svgX1}
+                    y={svgY1}
+                    sequence={renderIndex + 1}
+                    color={color}
+                  />
+                </g>
+              </TooltipTrigger>
+              <TooltipContent side="top" sideOffset={2}>
+                <div className="space-y-0.5">
+                  <div>ID {event.id}</div>
+                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          ));
+        }
+
+        // ── Defensive (Tackle/Interception/Duel/Clearance/Ball Recovery) ─
+        if (isDefensiveEvent(event)) {
+          return wrap(event.id, (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <g>
+                  <DefensiveFigure
+                    x={svgX1}
+                    y={svgY1}
                     sequence={renderIndex + 1}
                     color={color}
                   />
