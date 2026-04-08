@@ -42,10 +42,21 @@ const NewEventsAlert = () => {
   const passNetworksByTeamId = usePassNetworksStore((state) => state.byTeamId);
 
   const latestEvent = events.length > 0 ? events[events.length - 1] : null;
-  const [totalNewEvents, setTotalNewEvents] = useState(0);
+  const [latestBatchNewEvents, setLatestBatchNewEvents] = useState(0);
   const [isPulsing, setIsPulsing] = useState(false);
   const previousCountRef = useRef(0);
   const isInitializedRef = useRef(false);
+
+  const currentMatchState = useMemo(() => {
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const state = events[i]?.match_state;
+      if (state) return state;
+    }
+    return null;
+  }, [events]);
+
+  const isMatchFinished =
+    currentMatchState === "match_finished" || currentMatchState === "end";
 
   useEffect(() => {
     if (!isInitializedRef.current) {
@@ -58,7 +69,7 @@ const NewEventsAlert = () => {
     const currentCount = events.length;
 
     if (currentCount > previousCount && latestEvent) {
-      setTotalNewEvents((value) => value + (currentCount - previousCount));
+      setLatestBatchNewEvents(currentCount - previousCount);
       setIsPulsing(true);
 
       const timeoutId = window.setTimeout(() => {
@@ -68,6 +79,10 @@ const NewEventsAlert = () => {
       previousCountRef.current = currentCount;
 
       return () => window.clearTimeout(timeoutId);
+    }
+
+    if (currentCount < previousCount) {
+      setLatestBatchNewEvents(0);
     }
 
     previousCountRef.current = currentCount;
@@ -89,6 +104,10 @@ const NewEventsAlert = () => {
     };
   }, [latestEvent, passNetworksByTeamId]);
 
+  if (isMatchFinished) {
+    return null;
+  }
+
   return (
     <Alert
       className={cn(
@@ -102,7 +121,7 @@ const NewEventsAlert = () => {
           <AlertTitle className="mb-0 text-sm font-semibold">Live event feed</AlertTitle>
           <Badge variant="secondary" className="gap-1.5">
             <Zap className="size-3" />
-            {totalNewEvents} new
+            {latestBatchNewEvents} new
           </Badge>
         </div>
 
