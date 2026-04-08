@@ -12,6 +12,8 @@ export interface PassNetworkElementsProps {
   animated?: boolean;
   /** Pitch orientation — must match the parent OptaPitch to position nodes correctly */
   orientation?: Orientation;
+  /** Mirrors Opta X (length axis) to show the team on the opposite half */
+  mirrorX?: boolean;
 }
 
 // ── Normalise a value from [0, max] to [min, max] linear range ────────
@@ -55,6 +57,7 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
   color = "#ffffff",
   animated = false,
   orientation = 'vertical',
+  mirrorX = false,
 }) => {
   const uid = useId().replace(/:/g, "");
   const arrowId = `${ARROW_ID}-${uid}`;
@@ -63,15 +66,16 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
   const nodeMap = React.useMemo(() => {
     const m = new Map<string, { svgX: number; svgY: number; node: PassNetworkNode }>();
     for (const node of nodes) {
+      const optaX = mirrorX ? 100 - node.avg_position_total.x : node.avg_position_total.x;
       const { x: svgX, y: svgY } = transformOptaToSvgPure(
-        node.avg_position_total.x,
+        optaX,
         node.avg_position_total.y,
         orientation,
       );
       m.set(node.player_id, { svgX, svgY, node });
     }
     return m;
-  }, [nodes, orientation]);
+  }, [nodes, orientation, mirrorX]);
 
   // ── Normalisation bounds ────────────────────────────────────────────
   const maxNodePasses = Math.max(1, ...nodes.map((n) => n.pass_count));

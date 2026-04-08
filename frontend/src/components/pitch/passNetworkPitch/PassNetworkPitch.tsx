@@ -11,6 +11,8 @@ interface PassNetworkPitchProps {
   color?: string;
   /** Pitch orientation */
   orientation?: Orientation;
+  /** Mirrors Opta X (length axis) so a team can be shown on the opposite half */
+  mirrorX?: boolean;
   /** Pitch surface color */
   fieldColor?: string;
   /** When true, elements animate in on mount/update */
@@ -22,6 +24,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
   edges,
   color = "#ffffff",
   orientation,
+  mirrorX = false,
   fieldColor,
   animated = false,
 }) => {
@@ -34,6 +37,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
           color={color}
           animated={animated}
           orientation={orientation}
+          mirrorX={mirrorX}
         />
       </OptaPitch>
     </div>

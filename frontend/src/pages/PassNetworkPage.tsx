@@ -213,6 +213,7 @@ const PassNetworkPage: React.FC = () => {
                 edges={filteredAwayNetwork.edges}
                 color={AWAY_COLOR}
                 orientation="vertical"
+                mirrorX
                 animated
               />
             ) : (
