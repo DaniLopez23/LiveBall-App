@@ -45,16 +45,26 @@ class PlayersService:
     def get_team_players(self, team_id: str) -> List[Dict[str, Any]]:
         """Returns the list of players for one team."""
         self._ensure_loaded()
-        team_payload = self.cache.get_team(team_id)
+        normalized_team_id = self._normalize_team_id(team_id)
+        team_payload = (
+            self.cache.get_team(team_id)
+            or self.cache.get_team(normalized_team_id)
+        )
         if not team_payload:
             return []
         return team_payload.get("players", [])
 
     def get_player(self, team_id: str, player_id: str) -> Optional[Dict[str, Any]]:
         """Returns one player payload from a team, if present."""
+        normalized_player_id = self._normalize_player_id(player_id)
         players = self.get_team_players(team_id)
         for player in players:
-            if player.get("player_id") == player_id:
+            player_value = str(player.get("player_id", ""))
+            if (
+                player_value == player_id
+                or player_value == normalized_player_id
+                or self._normalize_player_id(player_value) == normalized_player_id
+            ):
                 return player
         return None
 
@@ -64,10 +74,10 @@ class PlayersService:
         The returned ``id`` preserves the incoming ``player_id`` value, while the
         lookup against F40 is performed with normalized IDs.
         """
-        raw_player_id = player_id or ""
+        normalized_player_id = self._normalize_player_id(player_id or "")
         if not team_id or not player_id:
             return {
-                "id": raw_player_id or None,
+                "id": normalized_player_id or None,
                 "name": None,
                 "dorsal": None,
             }
@@ -78,13 +88,13 @@ class PlayersService:
 
         if payload is None:
             return {
-                "id": raw_player_id,
+                "id": normalized_player_id,
                 "name": None,
                 "dorsal": None,
             }
 
         return {
-            "id": raw_player_id,
+            "id": normalized_player_id,
             "name": payload.get("name"),
             "dorsal": payload.get("stats", {}).get("jersey_num"),
         }
@@ -120,8 +130,10 @@ class PlayersService:
         root = tree.getroot()
 
         teams_payload: Dict[str, Dict[str, Any]] = {}
-        for team_el in root.findall(".//Team"):
-            team_id = team_el.attrib.get("uID", "")
+        # Expected hierarchy: SoccerFeed -> SoccerDocument -> Team
+        team_elements = root.findall("./SoccerDocument/Team")
+        for team_el in team_elements:
+            team_id = self._normalize_team_id(team_el.attrib.get("uID", ""))
             if not team_id:
                 continue
 
@@ -148,9 +160,11 @@ class PlayersService:
         team_official_name = team_el.attrib.get("official_club_name", "")
 
         players: List[Dict[str, Any]] = []
-        for player_el in team_el.findall("Player"):
+        # Players must be direct children of Team.
+        for player_el in team_el.findall("./Player"):
             players.append(self._parse_player(player_el))
 
+        
         return {
             "team_id": team_id,
             "team_name": team_name,
@@ -160,19 +174,18 @@ class PlayersService:
         }
 
     def _parse_player(self, player_el: ET.Element) -> Dict[str, Any]:
-        """Builds one player payload with name, position and stats."""
-        stats: Dict[str, str] = {}
-        for stat_el in player_el.findall("Stat"):
-            stat_type = stat_el.attrib.get("Type", "")
-            if not stat_type:
-                continue
-            stats[stat_type] = self._text(stat_el)
+        """Builds one player payload from Team/Player with jersey number."""
+        jersey_num = ""
+        for stat_el in player_el.findall("./Stat"):
+            if stat_el.attrib.get("Type") == "jersey_num":
+                jersey_num = self._text(stat_el)
+                break
 
         return {
-            "player_id": player_el.attrib.get("uID", ""),
-            "name": self._text(player_el.find("Name")),
+            "player_id": self._normalize_player_id(player_el.attrib.get("uID", "")),
+            "name": self._text(player_el.find("./Name")),
             "position": self._text(player_el.find("Position")),
-            "stats": stats,
+            "stats": {"jersey_num": jersey_num},
         }
 
     @staticmethod
