@@ -17,6 +17,12 @@ class TeamStat(BaseModel):
         return float(v)
 
 
+class PlayerBrief(BaseModel):
+    id: Optional[str] = None
+    name: Optional[str] = None
+    dorsal: Optional[str] = None
+
+
 class BookingStat(BaseModel):
     event_id: str
     event_number: Optional[int] = None
@@ -25,6 +31,7 @@ class BookingStat(BaseModel):
     time: Optional[int] = None
     period: Optional[str] = None
     player_ref: Optional[str] = None
+    player: Optional[PlayerBrief] = None
     reason: Optional[str] = None
     card: Optional[str] = None
     card_type: Optional[str] = None
@@ -48,6 +55,7 @@ class GoalStat(BaseModel):
     time: Optional[int] = None
     period: Optional[str] = None
     player_ref: Optional[str] = None
+    player: Optional[PlayerBrief] = None
     goal_type: Optional[str] = None
     timestamp: Optional[str] = None
     timestamp_utc: Optional[str] = None

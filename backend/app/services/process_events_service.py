@@ -4,6 +4,7 @@ from typing import Any, DefaultDict, Dict, List, Optional
 
 from app.schemas.events import Event
 from app.schemas.games import ParsedGame, ParsedGamesRoot
+from app.services.players_service import PlayersService
 from app.services.qualifier_flattener import flatten_event
 from app.state.game_state import GameStateCache
 
@@ -29,8 +30,9 @@ class ProcessEventsService:
     watcher and the HTTP/WebSocket layer).
     """
 
-    def __init__(self, cache: GameStateCache) -> None:
+    def __init__(self, cache: GameStateCache, players_service: Optional[PlayersService] = None) -> None:
         self._cache = cache
+        self._players_service = players_service or PlayersService()
 
     # ------------------------------------------------------------------ #
     # Public API                                                           #
@@ -172,11 +174,22 @@ class ProcessEventsService:
 
         return None
 
-    @staticmethod
-    def _flatten_for_export(event: Event, match_state: Optional[str]) -> Dict[str, Any]:
+    def _flatten_for_export(self, event: Event, match_state: Optional[str]) -> Dict[str, Any]:
+        player_payload = self._players_service.get_player_brief(event.team_id, event.player_id)
+        receiver_payload = self._players_service.get_player_brief(
+            event.team_id,
+            event.player_receiver_id,
+        ) if event.player_receiver_id else None
+
         if event.type_id in {"30", "32", "34"}:
-            return flatten_event(event, match_state=match_state or "")
-        return flatten_event(event)
+            payload = flatten_event(event, match_state=match_state or "")
+        else:
+            payload = flatten_event(event)
+
+        payload["player"] = player_payload
+        if receiver_payload is not None:
+            payload["player_receiver"] = receiver_payload
+        return payload
 
     def _check_events(self, game: ParsedGame) -> tuple[List[Dict[str, Any]], List[Event]]:
         """
