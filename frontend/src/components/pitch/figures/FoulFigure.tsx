@@ -7,7 +7,7 @@ export interface FoulFigureProps {
 	color?: string;
 }
 
-const DIAMOND_R = 2.8;
+const DIAMOND_R = 3.0;
 
 const FoulFigure: React.FC<FoulFigureProps> = ({
 	x,

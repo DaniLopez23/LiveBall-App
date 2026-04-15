@@ -15,10 +15,10 @@ export interface BallOutFigureProps {
 }
 
 // ─── Geometry constants (SVG units) ──────────────────────────────────────────
-const BADGE_H   = 5.5;   // pill height
-const PAD_X     = 0.8;   // horizontal padding inside pill
-const FONT_SIZE = 2.5;   // label font size
-const PUSH      = 3.5;   // how far to push the pill centre from the boundary
+const BADGE_H   = 6.0;   // pill height
+const PAD_X     = 0.9;   // horizontal padding inside pill
+const FONT_SIZE = 2.7;   // label font size
+const PUSH      = 3.8;   // how far to push the pill centre from the boundary
 
 // ─── Component ────────────────────────────────────────────────────────────────
 const BallOutFigure: React.FC<BallOutFigureProps> = ({

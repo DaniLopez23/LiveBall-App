@@ -13,10 +13,10 @@ export interface PassArrowProps {
   animated?: boolean;
 }
 
-const CIRCLE_R = 2.3;
-const ARROW_LEN = 4;
+const CIRCLE_R = 2.55;
+const ARROW_LEN = 4.4;
 const ARROW_ANGLE = Math.PI / 6; // 30°
-const CROSS_SIZE = 2;
+const CROSS_SIZE = 2.2;
 
 const PassArrow: React.FC<PassArrowProps> = ({
   x1,
@@ -58,7 +58,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
       <motion.path
         d={linePath}
         stroke="rgba(0,0,0,0.45)"
-        strokeWidth={1.0}
+        strokeWidth={1.1}
         strokeLinecap="round"
         fill="none"
         initial={animated ? { opacity: 0, pathLength: 0 } : false}
@@ -70,7 +70,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
       <motion.path
         d={linePath}
         stroke={color}
-        strokeWidth={0.6}
+        strokeWidth={0.7}
         strokeLinecap="round"
         fill="none"
         initial={animated ? { opacity: 0, pathLength: 0 } : false}
@@ -119,7 +119,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
       <motion.circle
         cx={x1}
         cy={y1}
-        r={0.5}
+        r={0.6}
         fill={color}
         initial={animated ? { opacity: 0, scale: 0 } : false}
         animate={{ opacity: 0.8, scale: 1 }}

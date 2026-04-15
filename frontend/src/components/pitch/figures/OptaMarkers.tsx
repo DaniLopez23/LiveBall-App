@@ -1,7 +1,9 @@
 import React from "react";
 import { AnimatePresence, motion } from "motion/react";
 import PassArrow from "./PassArrow";
+import CarryFigure from "./CarryFigure";
 import BallOutFigure, { type FieldEdge } from "./BallOutFigure";
+import LinkFigure from "./LinkFigure";
 import ShotFigure from "./ShotFigure";
 import FoulFigure from "./FoulFigure";
 import DefensiveFigure from "./DefensiveFigure";
@@ -126,6 +128,44 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   const orientation = useOptaPitchConfigStore((s) => s.orientation);
   const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
 
+  const getEventPoint = (event: OptaEvent) => {
+    if (isPassEvent(event) && event.end_x != null && event.end_y != null) {
+      return transformOptaToSvg(event.end_x, event.end_y);
+    }
+
+    return transformOptaToSvg(event.x!, event.y!);
+  };
+
+  const getConnector = (previousEvent: OptaEvent, currentEvent: OptaEvent) => {
+    const previousPoint = getEventPoint(previousEvent);
+    const currentPoint = transformOptaToSvg(currentEvent.x!, currentEvent.y!);
+
+    if (
+      isPassEvent(previousEvent) &&
+      isPassEvent(currentEvent) &&
+      previousEvent.team_id != null &&
+      previousEvent.team_id === currentEvent.team_id
+    ) {
+      return (
+        <CarryFigure
+          x1={previousPoint.x}
+          y1={previousPoint.y}
+          x2={currentPoint.x}
+          y2={currentPoint.y}
+        />
+      );
+    }
+
+    return (
+      <LinkFigure
+        x1={previousPoint.x}
+        y1={previousPoint.y}
+        x2={currentPoint.x}
+        y2={currentPoint.y}
+      />
+    );
+  };
+
   // Filter and prepare events that will actually be rendered
   const renderableEvents = events
     .map((event, originalIndex) => ({ event, originalIndex }))
@@ -158,6 +198,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         const color =
           eventColors[event.id] ??
           (team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff");
+        const connector =
+          renderIndex > 0 ? getConnector(renderableEvents[renderIndex - 1].event, event) : null;
 
         // ── Pass ──────────────────────────────────────────────────────
         if (isPassEvent(event)) {
@@ -167,28 +209,31 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
           );
 
           return wrap(event.id, (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <g>
-                  <PassArrow
-                    x1={svgX1}
-                    y1={svgY1}
-                    x2={svgX2}
-                    y2={svgY2}
-                    sequence={renderIndex + 1}
-                    outcome={typeof outcome === "number" ? outcome : 0}
-                    color={color}
-                    animated={animated}
-                  />
-                </g>
-              </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={2}>
-                <div className="space-y-0.5">
-                  <div>ID {event.id}</div>
-                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <>
+              {connector}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <g>
+                    <PassArrow
+                      x1={svgX1}
+                      y1={svgY1}
+                      x2={svgX2}
+                      y2={svgY2}
+                      sequence={renderIndex + 1}
+                      outcome={typeof outcome === "number" ? outcome : 0}
+                      color={color}
+                      animated={animated}
+                    />
+                  </g>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={2}>
+                  <div className="space-y-0.5">
+                    <div>ID {event.id}</div>
+                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </>
           ), animated); // PassArrow handles its own enter animation
         }
 
@@ -196,49 +241,55 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         if (isOutEvent(event)) {
           const edge = deriveFieldEdge(x!, y!, orientation);
           return wrap(event.id, (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <g>
-                  <BallOutFigure
-                    svgX={svgX1}
-                    svgY={svgY1}
-                    edge={edge}
-                    sequence={renderIndex + 1}
-                    color={color}
-                  />
-                </g>
-              </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={2}>
-                <div className="space-y-0.5">
-                  <div>ID {event.id}</div>
-                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <>
+              {connector}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <g>
+                    <BallOutFigure
+                      svgX={svgX1}
+                      svgY={svgY1}
+                      edge={edge}
+                      sequence={renderIndex + 1}
+                      color={color}
+                    />
+                  </g>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={2}>
+                  <div className="space-y-0.5">
+                    <div>ID {event.id}</div>
+                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </>
           ));
         }
 
         // ── Foul ────────────────────────────────────────────────────────
         if (isFoulEvent(event)) {
           return wrap(event.id, (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <g>
-                  <FoulFigure
-                    x={svgX1}
-                    y={svgY1}
-                    sequence={renderIndex + 1}
-                    color={color}
-                  />
-                </g>
-              </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={2}>
-                <div className="space-y-0.5">
-                  <div>ID {event.id}</div>
-                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <>
+              {connector}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <g>
+                    <FoulFigure
+                      x={svgX1}
+                      y={svgY1}
+                      sequence={renderIndex + 1}
+                      color={color}
+                    />
+                  </g>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={2}>
+                  <div className="space-y-0.5">
+                    <div>ID {event.id}</div>
+                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </>
           ));
         }
 
@@ -246,25 +297,28 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         if (isDefensiveEvent(event)) {
           const subtypeLabel = getDefensiveSubtypeLabel(event.type_id);
           return wrap(event.id, (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <g>
-                  <DefensiveFigure
-                    x={svgX1}
-                    y={svgY1}
-                    sequence={renderIndex + 1}
-                    subtypeLabel={subtypeLabel}
-                    color={color}
-                  />
-                </g>
-              </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={2}>
-                <div className="space-y-0.5">
-                  <div>ID {event.id}</div>
-                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <>
+              {connector}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <g>
+                    <DefensiveFigure
+                      x={svgX1}
+                      y={svgY1}
+                      sequence={renderIndex + 1}
+                      subtypeLabel={subtypeLabel}
+                      color={color}
+                    />
+                  </g>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={2}>
+                  <div className="space-y-0.5">
+                    <div>ID {event.id}</div>
+                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </>
           ));
         }
 
@@ -277,27 +331,30 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
           const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
 
           return wrap(event.id, (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <g>
-                  <ShotFigure
-                    x1={svgX1}
-                    y1={svgY1}
-                    x2={svgX2}
-                    y2={svgY2}
-                    sequence={renderIndex + 1}
-                    outcome={event.outcome ?? "Miss"}
-                    color={color}
-                  />
-                </g>
-              </TooltipTrigger>
-              <TooltipContent side="top" sideOffset={2}>
-                <div className="space-y-0.5">
-                  <div>ID {event.id}</div>
-                  {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                </div>
-              </TooltipContent>
-            </Tooltip>
+            <>
+              {connector}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <g>
+                    <ShotFigure
+                      x1={svgX1}
+                      y1={svgY1}
+                      x2={svgX2}
+                      y2={svgY2}
+                      sequence={renderIndex + 1}
+                      outcome={event.outcome ?? "Miss"}
+                      color={color}
+                    />
+                  </g>
+                </TooltipTrigger>
+                <TooltipContent side="top" sideOffset={2}>
+                  <div className="space-y-0.5">
+                    <div>ID {event.id}</div>
+                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
+                  </div>
+                </TooltipContent>
+              </Tooltip>
+            </>
           ));
         }
 

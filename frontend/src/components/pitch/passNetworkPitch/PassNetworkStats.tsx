@@ -188,7 +188,7 @@ const PassNetworkStats: React.FC<PassNetworkStatsProps> = ({
 					awayValue={awayTopConnection}
 				/>
 				<Separator />
-				<MetricRow
+				{/* <MetricRow
 					label="Top betweenness"
 					homeValue={homeBetweenness}
 					awayValue={awayBetweenness}
@@ -200,7 +200,7 @@ const PassNetworkStats: React.FC<PassNetworkStatsProps> = ({
 					awayValue={awayEigenvector}
 				/>
 				<Separator />
-				<MetricRow label="Top flow" homeValue={homeFlow} awayValue={awayFlow} />
+				<MetricRow label="Top flow" homeValue={homeFlow} awayValue={awayFlow} /> */}
 			</div>
 		</div>
 	);

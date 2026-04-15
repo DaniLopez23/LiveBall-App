@@ -10,12 +10,12 @@ export interface ShotFigureProps {
   color?: string;
 }
 
-const SQUARE_HALF  = 2.3;   // half-side of the start square
-const ARROW_LEN    = 4;     // length of arrowhead arms
+const SQUARE_HALF  = 2.6;   // half-side of the start square
+const ARROW_LEN    = 4.3;   // length of arrowhead arms
 const ARROW_ANGLE  = Math.PI / 6;  // 30°
-const CROSS_SIZE   = 2;     // half-size of the × arms
-const POST_BAR     = 2.5;   // half-length of the ⊣ bar for Post
-const BALL_R       = 2.8;   // radius of the soccer-ball icon
+const CROSS_SIZE   = 2.2;   // half-size of the × arms
+const POST_BAR     = 2.8;   // half-length of the ⊣ bar for Post
+const BALL_R       = 3.0;   // radius of the soccer-ball icon
 
 const ShotFigure: React.FC<ShotFigureProps> = ({
   x1, y1,
@@ -67,7 +67,7 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
         x1={lineX1} y1={lineY1}
         x2={lineX2} y2={lineY2}
         stroke={color}
-        strokeWidth={0.6}
+          strokeWidth={0.7}
         strokeOpacity={0.8}
       />
 

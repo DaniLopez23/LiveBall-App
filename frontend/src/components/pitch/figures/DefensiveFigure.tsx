@@ -8,7 +8,7 @@ export interface DefensiveFigureProps {
 	color?: string;
 }
 
-const TRIANGLE_R = 3.2;
+const TRIANGLE_R = 3.45;
 
 const DefensiveFigure: React.FC<DefensiveFigureProps> = ({
 	x,
