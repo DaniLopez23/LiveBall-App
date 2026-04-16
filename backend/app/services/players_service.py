@@ -106,10 +106,14 @@ class PlayersService:
     def _ensure_loaded(self) -> None:
         """Loads F40 data into cache once (thread-safe)."""
         if self.cache.loaded:
+            if not self._player_lookup:
+                self._build_player_lookup(self.cache.get_all_teams())
             return
 
         with self._load_lock:
             if self.cache.loaded:
+                if not self._player_lookup:
+                    self._build_player_lookup(self.cache.get_all_teams())
                 return
 
             teams = self._read_and_parse_f40()
@@ -198,9 +202,9 @@ class PlayersService:
     @staticmethod
     def _normalize_team_id(team_id: str) -> str:
         value = team_id.strip()
-        return value[1:] if value.startswith("t") else value
+        return value[1:] if value[:1].lower() == "t" else value
 
     @staticmethod
     def _normalize_player_id(player_id: str) -> str:
         value = player_id.strip()
-        return value[1:] if value.startswith("p") else value
+        return value[1:] if value[:1].lower() == "p" else value

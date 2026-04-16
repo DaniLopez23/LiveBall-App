@@ -69,11 +69,11 @@ class ProcessEventsService:
         # the latest events list is available for WebSocket snapshots
         if messages:
             self._cache.games[parsed_root.game.game_id] = parsed_root.game
-            logger.debug(
-                "(CACHE) Updated full game in cache: %s (%d events)",
-                parsed_root.game.game_id,
-                len(parsed_root.game.events),
-            )
+            # logger.debug(
+            #     "(CACHE) Updated full game in cache: %s (%d events)",
+            #     parsed_root.game.game_id,
+            #     len(parsed_root.game.events),
+            # )
 
         return messages
 
@@ -237,12 +237,16 @@ class ProcessEventsService:
                 self._cache.store_event_type(game_id, team_key, event_key, event.type_id)
                 changed_events.append(event)
                 if self._is_exported_event(event):
-                    new_events_flat.append(self._flatten_for_export(event, current_match_state))
+                    payload = self._flatten_for_export(event, current_match_state)
+                    self._cache.store_exported_event(game_id, team_key, event_key, payload)
+                    new_events_flat.append(payload)
             elif previous_type != event.type_id:
                 self._cache.store_event_type(game_id, team_key, event_key, event.type_id)
                 changed_events.append(event)
                 if self._is_exported_event(event):
-                    updated_events_flat.append(self._flatten_for_export(event, current_match_state))
+                    payload = self._flatten_for_export(event, current_match_state)
+                    self._cache.store_exported_event(game_id, team_key, event_key, payload)
+                    updated_events_flat.append(payload)
 
         messages: List[Dict[str, Any]] = []
 

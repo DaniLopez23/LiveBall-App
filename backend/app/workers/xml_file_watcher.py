@@ -36,7 +36,7 @@ async def _run_xml_watcher(
     xml_file = Path(file_path)
 
     logger.info(
-        "%s started – monitoring '%s' every %ds",
+        "(%s) started – monitoring '%s' every %ds",
         watcher_name,
         xml_file,
         poll_interval,

@@ -35,6 +35,8 @@ class GameStateCache:
         self._game_snapshots: Dict[str, Dict[str, Any]] = {}
         # game_id → { (team_id, event_id) → type_id }
         self._event_states: Dict[str, Dict[Tuple[str, str], str]] = {}
+        # game_id → { (team_id,event_id) → exported/enriched event payload }
+        self._exported_events: Dict[str, Dict[Tuple[str, str], Dict[str, Any]]] = {}
         # game_id → latest inferred match state (pre_match, first_period_active, ...)
         self._match_states: Dict[str, str] = {}
         # game_id → last event index scanned for pass receiver assignment
@@ -86,6 +88,22 @@ class GameStateCache:
         if game_id not in self._event_states:
             self._event_states[game_id] = {}
         self._event_states[game_id][(team_id, event_id)] = type_id
+
+    def store_exported_event(
+        self,
+        game_id: str,
+        team_id: str,
+        event_id: str,
+        payload: Dict[str, Any],
+    ) -> None:
+        """Stores or updates one exported/enriched event payload in insertion order."""
+        if game_id not in self._exported_events:
+            self._exported_events[game_id] = {}
+        self._exported_events[game_id][(team_id, event_id)] = payload
+
+    def get_exported_events(self, game_id: str) -> list[Dict[str, Any]]:
+        """Returns exported/enriched events for snapshot and replay purposes."""
+        return list(self._exported_events.get(game_id, {}).values())
 
     def get_match_state(self, game_id: str) -> Optional[str]:
         """Returns the latest inferred match state for *game_id*, or None."""

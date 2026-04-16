@@ -2,20 +2,11 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
-from app.services.qualifier_flattener import flatten_event
 from app.websockets.websocket_manager import ConnectionManager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-_EXPORTED_EVENT_TYPES = {"1", "2", "5", "13", "14", "15", "16", "30", "32", "34", "4", "7", "8", "12", "44", "49", "67"}
-
-
-def _is_exported_event(event) -> bool:
-    if event.type_id == "5":
-        return event.outcome == 1
-    return event.type_id in _EXPORTED_EVENT_TYPES
 
 
 @router.websocket("/ws/games/{game_id}")
@@ -34,12 +25,11 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
             "game_id": game_id,
             "message": f"Conectado al room {game_id}",
         })
-        logger.info(f"💬 Mensaje de bienvenida enviado a {client_id}")
 
         # Enviar snapshot del estado actual si ya existe el partido en caché
         game = cache.games.get(game_id)
         if game:
-            exported_events = [event for event in game.events if _is_exported_event(event)]
+            exported_events = cache.get_exported_events(game_id)
             stats_data = {}
             match_stats = cache.get_stats(game_id)
             if match_stats:
@@ -57,21 +47,18 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                         "statistics": cache.get_pass_network_statistics(g_id, team_id),
                     }
 
-            current_match_state = cache.get_match_state(game_id) or "pre_match"
-            
             await websocket.send_json({
                 "type": "match_state_snapshot",
                 "game_id": game_id,
                 "game": game.model_dump(exclude={"events"}),
                 "total_events": len(exported_events),
-                "last_event_id": exported_events[-1].id if exported_events else None,
-                "events": [flatten_event(e, match_state=current_match_state) for e in exported_events],
+                "last_event_id": exported_events[-1].get("id") if exported_events else None,
+                "events": exported_events,
                 "stats": stats_data,
                 "pass_networks": pass_networks_data,
             })
             logger.info(
-                f"📊 Estado del partido enviado a {client_id}: {len(exported_events)} eventos, "
-                f"{len(stats_data)} equipos con stats, {len(pass_networks_data)} redes de pases"
+                f" (WEBSOCKET) Snapshot de {game_id} enviado a {client_id}: {len(exported_events)} eventos, "
             )
 
         while True:
