@@ -1,6 +1,7 @@
 import React from "react";
 import OptaPitch from "@/components/pitch/OptaPitch";
 import PassNetworkElements from "./PassNetworkElements";
+import PassNetworkNoDataOverlay from "./PassNetworkNoDataOverlay";
 import type { Orientation } from "@/store/optaPitchConfigStore";
 import type { PassNetworkNode, PassNetworkEdge } from "@/types/passNetwork";
 
@@ -17,6 +18,8 @@ interface PassNetworkPitchProps {
   fieldColor?: string;
   /** When true, elements animate in on mount/update */
   animated?: boolean;
+  /** When provided, shows a dark overlay message over the pitch */
+  noDataMessage?: string;
 }
 
 const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
@@ -27,9 +30,10 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
   mirrorX = false,
   fieldColor,
   animated = false,
+  noDataMessage,
 }) => {
   return (
-    <div className="w-full h-full">
+    <div className="relative w-full h-full">
       <OptaPitch orientation={orientation} fieldColor={fieldColor}>
         <PassNetworkElements
           nodes={nodes}
@@ -40,6 +44,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
           mirrorX={mirrorX}
         />
       </OptaPitch>
+      {noDataMessage ? <PassNetworkNoDataOverlay message={noDataMessage} /> : null}
     </div>
   );
 };

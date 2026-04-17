@@ -3,8 +3,9 @@ import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { TeamPassNetwork } from "@/types/passNetwork";
+import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
 
-import PassNetworkFilters, { type PassNetworkFiltersState } from "./PassNetworkFilters";
+import PassNetworkFilters from "./PassNetworkFilters";
 import PassNetworkStats from "./PassNetworkStats";
 
 interface PassNetworkTabsProps {
@@ -12,6 +13,14 @@ interface PassNetworkTabsProps {
 	onToggle: () => void;
 	filters: PassNetworkFiltersState;
 	onFiltersChange: (filters: PassNetworkFiltersState) => void;
+	currentMinute: number;
+	isPlaying: boolean;
+	onPlay: () => void;
+	onPause: () => void;
+	onResetPlayback: () => void;
+	onCurrentMinuteChange: (minute: number) => void;
+	homeScoreAtMinute: number;
+	awayScoreAtMinute: number;
 	homeNetwork: TeamPassNetwork | null;
 	awayNetwork: TeamPassNetwork | null;
 	homeTeamName: string;
@@ -31,6 +40,14 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	onToggle,
 	filters,
 	onFiltersChange,
+	currentMinute,
+	isPlaying,
+	onPlay,
+	onPause,
+	onResetPlayback,
+	onCurrentMinuteChange,
+	homeScoreAtMinute,
+	awayScoreAtMinute,
 	homeNetwork,
 	awayNetwork,
 	homeTeamName,
@@ -94,7 +111,18 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 			</TabsContent>
 
 			<TabsContent value="filters" className="flex-1 overflow-auto p-4">
-				<PassNetworkFilters filters={filters} onChange={onFiltersChange} />
+				<PassNetworkFilters
+					filters={filters}
+					onChange={onFiltersChange}
+					currentMinute={currentMinute}
+					isPlaying={isPlaying}
+					onPlay={onPlay}
+					onPause={onPause}
+					onResetPlayback={onResetPlayback}
+					onCurrentMinuteChange={onCurrentMinuteChange}
+					homeScoreAtMinute={homeScoreAtMinute}
+					awayScoreAtMinute={awayScoreAtMinute}
+				/>
 			</TabsContent>
 		</Tabs>
 	);

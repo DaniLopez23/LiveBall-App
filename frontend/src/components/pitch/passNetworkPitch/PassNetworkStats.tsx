@@ -1,7 +1,7 @@
 import { BarChart2 } from "lucide-react";
 
 import { Separator } from "@/components/ui/separator";
-import type { PassNetworkFiltersState } from "./PassNetworkFilters";
+import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
 import type {
 	PassNetworkNode,
 	PassNetworkStatisticsBucket,

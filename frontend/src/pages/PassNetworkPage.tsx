@@ -1,22 +1,30 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
+import useEventsStore from "@/store/eventsStore";
 import PassNetworkPitch from "@/components/pitch/passNetworkPitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/pitch/passNetworkPitch/PassNetworkTabs";
-import { DEFAULT_PASS_NETWORK_FILTERS } from "@/components/pitch/passNetworkPitch/PassNetworkFilters";
 import type {
   NodePositionMode,
   PassNetworkFiltersState,
-} from "@/components/pitch/passNetworkPitch/PassNetworkFilters";
+} from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
+import { DEFAULT_PASS_NETWORK_FILTERS } from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
 import type {
   MinutePositionStat,
   PassNetworkEdge,
   PassNetworkNode,
   TeamPassNetwork,
 } from "@/types/passNetwork";
+import { isShotEvent } from "@/types/event";
 
 const HOME_COLOR = "#3b82f6";
 const AWAY_COLOR = "#ef4444";
+const PLAYBACK_TICK_MS = 650;
+
+const clampMinute = (
+  minute: number,
+  [minMinute, maxMinute]: [number, number],
+): number => Math.min(maxMinute, Math.max(minMinute, minute));
 
 const sumMinuteStats = (
   stats: MinutePositionStat[],
@@ -137,15 +145,125 @@ const applyNodePositionMode = (
 const PassNetworkPage: React.FC = () => {
   const game = useGameStore((s) => s.game);
   const byTeamId = usePassNetworksStore((s) => s.byTeamId);
+  const events = useEventsStore((s) => s.events);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
   const [filters, setFilters] = useState<PassNetworkFiltersState>(
     DEFAULT_PASS_NETWORK_FILTERS,
   );
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentMinute, setCurrentMinute] = useState(
+    DEFAULT_PASS_NETWORK_FILTERS.minuteRange[1],
+  );
+
+  const [rangeStart, rangeEnd] = filters.minuteRange;
+
+  useEffect(() => {
+    if (!isPlaying) return;
+
+    const intervalId = window.setInterval(() => {
+      setCurrentMinute((minute) => {
+        const normalizedMinute = clampMinute(minute, [rangeStart, rangeEnd]);
+
+        if (normalizedMinute >= rangeEnd) {
+          setIsPlaying(false);
+          return rangeEnd;
+        }
+
+        return Math.min(rangeEnd, normalizedMinute + 1);
+      });
+    }, PLAYBACK_TICK_MS);
+
+    return () => window.clearInterval(intervalId);
+  }, [isPlaying, rangeStart, rangeEnd]);
+
+  const handleFiltersChange = (nextFilters: PassNetworkFiltersState) => {
+    const minuteRangeChanged =
+      nextFilters.minuteRange[0] !== filters.minuteRange[0] ||
+      nextFilters.minuteRange[1] !== filters.minuteRange[1];
+
+    setFilters(nextFilters);
+    setIsPlaying(false);
+    setCurrentMinute(
+      minuteRangeChanged
+        ? nextFilters.minuteRange[1]
+        : clampMinute(currentMinute, nextFilters.minuteRange),
+    );
+  };
+
+  const handlePlay = () => {
+    if (rangeStart === rangeEnd) return;
+
+    setCurrentMinute((minute) =>
+      minute >= rangeEnd || minute < rangeStart ? rangeStart : minute,
+    );
+    setIsPlaying(true);
+  };
+
+  const handlePause = () => {
+    setIsPlaying(false);
+  };
+
+  const handleResetPlayback = () => {
+    setIsPlaying(false);
+    setCurrentMinute(rangeStart);
+  };
+
+  const handleCurrentMinuteChange = (minute: number) => {
+    setIsPlaying(false);
+    setCurrentMinute(clampMinute(minute, [rangeStart, rangeEnd]));
+  };
+
+  const playbackMinute = clampMinute(currentMinute, [rangeStart, rangeEnd]);
+
+  const effectiveFilters: PassNetworkFiltersState = {
+    ...filters,
+    // The selected range controls playback bounds, but the rendered network
+    // should represent the real match state at each instant (0' -> current').
+    minuteRange: [0, playbackMinute],
+  };
+
+  const scoreAtMinute = useMemo(() => {
+    if (!game) return { home: 0, away: 0 };
+
+    const homeTeamId = String(game.home_team.team_id);
+    const awayTeamId = String(game.away_team.team_id);
+    const limitMinute = effectiveFilters.minuteRange[1];
+
+    let homeScore = 0;
+    let awayScore = 0;
+
+    for (const event of events) {
+      if (!isShotEvent(event) || event.type_id !== "16") continue;
+
+      const minute = event.min ?? 0;
+      if (minute > limitMinute) continue;
+
+      const teamId = event.team_id ? String(event.team_id) : null;
+      if (!teamId) continue;
+
+      if (event.own_goal) {
+        if (teamId === homeTeamId) awayScore += 1;
+        if (teamId === awayTeamId) homeScore += 1;
+        continue;
+      }
+
+      if (teamId === homeTeamId) homeScore += 1;
+      if (teamId === awayTeamId) awayScore += 1;
+    }
+
+    return { home: homeScore, away: awayScore };
+  }, [events, game, effectiveFilters.minuteRange]);
 
   const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
   const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
-  const filteredHomeNetwork = filterNetworkByFilters(homeNetwork, filters);
-  const filteredAwayNetwork = filterNetworkByFilters(awayNetwork, filters);
+  const filteredHomeNetwork = filterNetworkByFilters(homeNetwork, effectiveFilters);
+  const filteredAwayNetwork = filterNetworkByFilters(awayNetwork, effectiveFilters);
+  const homeNodes = filteredHomeNetwork?.nodes ?? [];
+  const homeEdges = filteredHomeNetwork?.edges ?? [];
+  const awayNodes = filteredAwayNetwork?.nodes ?? [];
+  const awayEdges = filteredAwayNetwork?.edges ?? [];
+  const homeHasEnoughData = homeNodes.length > 0;
+  const awayHasEnoughData = awayNodes.length > 0;
 
   return (
     <div className="flex flex-col p-4 gap-4 min-h-full">
@@ -155,7 +273,7 @@ const PassNetworkPage: React.FC = () => {
       </div>
 
       {/* 3-column layout */}
-      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0 h-[600px]">
+      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0 h-150">
 
         {/* Column 1: Home team pass network */}
         <div className="flex flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0">
@@ -166,19 +284,14 @@ const PassNetworkPage: React.FC = () => {
             {game?.home_team.team_name ?? "Equipo Local"}
           </p>
           <div className="flex-1 min-h-0">
-            {filteredHomeNetwork && filteredHomeNetwork.nodes.length > 0 ? (
-              <PassNetworkPitch
-                nodes={filteredHomeNetwork.nodes}
-                edges={filteredHomeNetwork.edges}
-                color={HOME_COLOR}
-                orientation="vertical"
-                animated
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-center text-muted-foreground">
-                <p className="text-sm">Sin datos de red de pases</p>
-              </div>
-            )}
+            <PassNetworkPitch
+              nodes={homeNodes}
+              edges={homeEdges}
+              color={HOME_COLOR}
+              orientation="vertical"
+              animated
+              noDataMessage={homeHasEnoughData ? undefined : "No hay datos suficientes"}
+            />
           </div>
         </div>
 
@@ -188,7 +301,15 @@ const PassNetworkPage: React.FC = () => {
             isOpen={isPanelOpen}
             onToggle={() => setIsPanelOpen((current) => !current)}
             filters={filters}
-            onFiltersChange={setFilters}
+            onFiltersChange={handleFiltersChange}
+            currentMinute={effectiveFilters.minuteRange[1]}
+            isPlaying={isPlaying}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onResetPlayback={handleResetPlayback}
+            onCurrentMinuteChange={handleCurrentMinuteChange}
+            homeScoreAtMinute={scoreAtMinute.home}
+            awayScoreAtMinute={scoreAtMinute.away}
             homeNetwork={homeNetwork}
             awayNetwork={awayNetwork}
             homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
@@ -207,20 +328,15 @@ const PassNetworkPage: React.FC = () => {
             {game?.away_team.team_name ?? "Equipo Visitante"}
           </p>
           <div className="flex-1 min-h-0">
-            {filteredAwayNetwork && filteredAwayNetwork.nodes.length > 0 ? (
-              <PassNetworkPitch
-                nodes={filteredAwayNetwork.nodes}
-                edges={filteredAwayNetwork.edges}
-                color={AWAY_COLOR}
-                orientation="vertical"
-                mirrorX
-                animated
-              />
-            ) : (
-              <div className="flex h-full items-center justify-center text-center text-muted-foreground">
-                <p className="text-sm">Sin datos de red de pases</p>
-              </div>
-            )}
+            <PassNetworkPitch
+              nodes={awayNodes}
+              edges={awayEdges}
+              color={AWAY_COLOR}
+              orientation="vertical"
+              mirrorX
+              animated
+              noDataMessage={awayHasEnoughData ? undefined : "No hay datos suficientes"}
+            />
           </div>
         </div>
 
