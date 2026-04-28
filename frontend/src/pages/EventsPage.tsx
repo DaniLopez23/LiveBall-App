@@ -32,6 +32,7 @@ const EventsPage: React.FC = () => {
   const events = useEventsStore((state) => state.events);
   const [filters, setFilters] = useState<EventsFilters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(true);
+  const [isDefaultAllSelection, setIsDefaultAllSelection] = useState(true);
 
   const teamColors = useMemo(() => {
     if (!game) return {};
@@ -48,6 +49,44 @@ const EventsPage: React.FC = () => {
     () => Array.from(new Set(pitchEvents.map((event) => event.type_id))) as string[],
     [pitchEvents],
   );
+
+  const allOutcomeIds = useMemo(
+    () =>
+      OUTCOME_OPTIONS_BY_TYPE.all
+        .filter((option) => availableTypeIds.includes(option.typeId))
+        .map((option) => option.id),
+    [availableTypeIds],
+  );
+
+  const allSubtypeIds = useMemo(
+    () =>
+      EVENT_SUBTYPE_OPTIONS_FLAT
+        .filter((option) => option.typeIds.some((typeId) => availableTypeIds.includes(typeId)))
+        .map((option) => option.id),
+    [availableTypeIds],
+  );
+
+  const selectionsMatch = (selectedIds: string[], availableIds: string[]) =>
+    selectedIds.length === availableIds.length &&
+    selectedIds.every((id) => availableIds.includes(id));
+
+  const isAllEventSelection = (nextFilters: EventsFilters) =>
+    nextFilters.selectedEventType === "all" &&
+    selectionsMatch(nextFilters.selectedOutcomes, allOutcomeIds) &&
+    selectionsMatch(nextFilters.selectedSubtypes, allSubtypeIds);
+
+  const handleFiltersChange = (nextFilters: EventsFilters) => {
+    const eventSelectionChanged =
+      nextFilters.selectedEventType !== filters.selectedEventType ||
+      !selectionsMatch(nextFilters.selectedOutcomes, filters.selectedOutcomes) ||
+      !selectionsMatch(nextFilters.selectedSubtypes, filters.selectedSubtypes);
+
+    setFilters(nextFilters);
+
+    if (eventSelectionChanged) {
+      setIsDefaultAllSelection(isAllEventSelection(nextFilters));
+    }
+  };
 
   const seededFilters = useMemo(() => {
     if (availableTypeIds.length === 0) return null;
@@ -66,12 +105,8 @@ const EventsPage: React.FC = () => {
     };
   }, [availableTypeIds]);
 
-  const effectiveFilters = useMemo(() => {
-    if (
-      filters.selectedOutcomes.length === 0 &&
-      filters.selectedSubtypes.length === 0 &&
-      seededFilters
-    ) {
+  const displayFilters = useMemo(() => {
+    if (isDefaultAllSelection && seededFilters) {
       return {
         ...filters,
         selectedOutcomes: seededFilters.selectedOutcomes,
@@ -80,57 +115,59 @@ const EventsPage: React.FC = () => {
     }
 
     return filters;
-  }, [filters, seededFilters]);
+  }, [filters, seededFilters, isDefaultAllSelection]);
 
   const filteredEvents = useMemo(() => {
     let result = pitchEvents;
 
-    if (effectiveFilters.team !== "both" && game) {
+    if (displayFilters.team !== "both" && game) {
       const teamId =
-        effectiveFilters.team === "home"
+        displayFilters.team === "home"
           ? game.home_team.team_id
           : game.away_team.team_id;
       result = result.filter((event: PitchEvent) => event.team_id === teamId);
     }
 
-    const selectedOutcomeOptions = OUTCOME_OPTIONS_BY_TYPE[
-      effectiveFilters.selectedEventType
-    ].filter((option) => effectiveFilters.selectedOutcomes.includes(option.id));
-    result = result.filter((event) =>
-      selectedOutcomeOptions.some((option) => eventMatchesOutcome(event, option)),
-    );
+    if (!isDefaultAllSelection) {
+      const selectedOutcomeOptions = OUTCOME_OPTIONS_BY_TYPE[
+        displayFilters.selectedEventType
+      ].filter((option) => displayFilters.selectedOutcomes.includes(option.id));
+      result = result.filter((event) =>
+        selectedOutcomeOptions.some((option) => eventMatchesOutcome(event, option)),
+      );
 
-    const selectedSubtypeOptions = EVENT_SUBTYPE_OPTIONS_BY_TYPE[
-      effectiveFilters.selectedEventType
-    ].filter((option) => effectiveFilters.selectedSubtypes.includes(option.id));
-    if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[effectiveFilters.selectedEventType].length > 0) {
-      result = result.filter((event) => {
-        const eventHasSubtypeOptions = EVENT_SUBTYPE_OPTIONS_FLAT.some((option) =>
-          option.typeIds.includes(event.type_id),
-        );
+      const selectedSubtypeOptions = EVENT_SUBTYPE_OPTIONS_BY_TYPE[
+        displayFilters.selectedEventType
+      ].filter((option) => displayFilters.selectedSubtypes.includes(option.id));
+      if (EVENT_SUBTYPE_OPTIONS_BY_TYPE[displayFilters.selectedEventType].length > 0) {
+        result = result.filter((event) => {
+          const eventHasSubtypeOptions = EVENT_SUBTYPE_OPTIONS_FLAT.some((option) =>
+            option.typeIds.includes(event.type_id),
+          );
 
-        // Events without subtype taxonomy (e.g. Out, Shot) should not be excluded
-        // just because "all" includes pass-specific subtype options.
-        if (!eventHasSubtypeOptions) {
-          return true;
-        }
+          // Events without subtype taxonomy (e.g. Out, Shot) should not be excluded
+          // just because "all" includes pass-specific subtype options.
+          if (!eventHasSubtypeOptions) {
+            return true;
+          }
 
-        return selectedSubtypeOptions.some((option) => eventMatchesSubtype(event, option));
-      });
+          return selectedSubtypeOptions.some((option) => eventMatchesSubtype(event, option));
+        });
+      }
     }
 
-    const [minMinute, maxMinute] = effectiveFilters.minuteRange;
+    const [minMinute, maxMinute] = displayFilters.minuteRange;
     result = result.filter((event) => {
       const minute = event.min ?? 0;
       return minute >= minMinute && minute <= maxMinute;
     });
 
-    if (effectiveFilters.mode === "last") {
-      result = result.slice(-effectiveFilters.lastCount);
+    if (displayFilters.mode === "last") {
+      result = result.slice(-displayFilters.lastCount);
     }
 
     return result;
-  }, [pitchEvents, effectiveFilters, game]);
+  }, [pitchEvents, displayFilters, game, isDefaultAllSelection]);
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4">
@@ -159,7 +196,7 @@ const EventsPage: React.FC = () => {
           ) : (
             <EventsPitch
               events={filteredEvents}
-              mode={effectiveFilters.mode}
+              mode={displayFilters.mode}
               teamColors={teamColors}
               orientation="horizontal"
             />
@@ -173,8 +210,8 @@ const EventsPage: React.FC = () => {
           )}
         >
           <EventsPitchTabs
-            filters={effectiveFilters}
-            onFiltersChange={setFilters}
+            filters={displayFilters}
+            onFiltersChange={handleFiltersChange}
             homeTeamName={game?.home_team.team_name}
             awayTeamName={game?.away_team.team_name}
             isOpen={showFilters}

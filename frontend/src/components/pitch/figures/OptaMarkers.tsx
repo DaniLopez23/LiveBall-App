@@ -97,6 +97,8 @@ export interface OptaMarkersProps {
   eventColors?: Record<string, string>;
   /** When true, events animate in/out sequentially (used in "last" mode) */
   animated?: boolean;
+  /** Show connector figures (carry/link) between consecutive events. */
+  showConnectors?: boolean;
 }
 
 const OptaMarkers: React.FC<OptaMarkersProps> = ({
@@ -104,6 +106,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   teamColors = {},
   eventColors = {},
   animated = false,
+  showConnectors = true,
 }) => {
   /**
    * Wraps each marker. When `skipEnterFade=true` the wrapper starts already
@@ -199,7 +202,9 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
           eventColors[event.id] ??
           (team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff");
         const connector =
-          renderIndex > 0 ? getConnector(renderableEvents[renderIndex - 1].event, event) : null;
+          showConnectors && renderIndex > 0
+            ? getConnector(renderableEvents[renderIndex - 1].event, event)
+            : null;
 
         // ── Pass ──────────────────────────────────────────────────────
         if (isPassEvent(event)) {

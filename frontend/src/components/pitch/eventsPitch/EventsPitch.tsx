@@ -112,6 +112,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           <OptaMarkers
             events={displayedEvents}
             animated={mode === "last"}
+            showConnectors={mode === "last"}
             teamColors={teamColors}
             eventColors={eventColors}
           />
