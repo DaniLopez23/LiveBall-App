@@ -1,6 +1,6 @@
 import React, { useId } from "react";
 import { motion } from "motion/react";
-import { transformOptaToSvgPure, type Orientation } from "@/store/optaPitchConfigStore";
+import { transformOptaToSvgPure, type Orientation, VB_SHORT, VB_LONG, MARGIN } from "@/store/optaPitchConfigStore";
 import type { PassNetworkNode, PassNetworkEdge } from "@/types/passNetwork";
 
 export interface PassNetworkElementsProps {
@@ -61,6 +61,12 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
 }) => {
   const uid = useId().replace(/:/g, "");
   const arrowId = `${ARROW_ID}-${uid}`;
+  const [hoveredId, setHoveredId] = React.useState<string | null>(null);
+  const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
+
+  // Viewbox dims based on orientation prop (matches OptaPitch logic)
+  const vW = orientation === 'vertical' ? VB_SHORT : VB_LONG;
+  const vH = orientation === 'vertical' ? VB_LONG  : VB_SHORT;
 
   // ── Pre-compute node SVG positions ─────────────────────────────────
   const nodeMap = React.useMemo(() => {
@@ -154,8 +160,10 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
             strokeWidth={strokeWidth}
             strokeOpacity={opacity}
             fill="none"
-            strokeLinecap="round"
+              strokeLinecap="round"
             markerEnd={`url(#${arrowId})`}
+              onMouseEnter={() => setHoveredEdge(key)}
+              onMouseLeave={() => setHoveredEdge((k) => (k === key ? null : k))}
             initial={animated ? { opacity: 0, pathLength: 0 } : false}
             animate={{ opacity: 1, pathLength: 1 }}
             transition={
@@ -174,14 +182,20 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
 
         const { svgX, svgY } = pos;
         const r = lerp(node.pass_count, maxNodePasses, NODE_R_MIN, NODE_R_MAX);
-        const digits = String(node.pass_count).length;
-        const fontSize = digits === 1 ? 3.5 : 2.8;
+        // Display player id truncated to 3 digits inside the node.
+        const idStr = String(node.player_id);
+        const displayId = idStr.slice(0, 3);
+        const idLen = displayId.length;
+        const fontSize = idLen <= 3 ? 3.5 : idLen <= 6 ? 3.0 : 2.4;
+        const totalWeight = (node.passes_given ?? 0) + (node.passes_received ?? 0);
 
         return (
           <motion.g
             key={node.player_id}
             initial={animated ? { opacity: 0, scale: 0, x: svgX, y: svgY } : { x: svgX, y: svgY }}
             animate={{ opacity: 1, scale: 1, x: svgX, y: svgY }}
+            onMouseEnter={() => setHoveredId(node.player_id)}
+            onMouseLeave={() => setHoveredId((id) => (id === node.player_id ? null : id))}
             transition={{
               opacity: animated ? { duration: 0.4, ease: "backOut", delay: 0.5 } : { duration: 0 },
               scale:   animated ? { duration: 0.4, ease: "backOut", delay: 0.5 } : { duration: 0 },
@@ -189,6 +203,9 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
               y: { duration: 0.5, ease: "easeOut" },
             }}
             style={{ transformOrigin: "0px 0px" }}
+            role="button"
+            aria-label={`Jugador ${node.player_id}`}
+            cursor="pointer"
           >
             {/* Shadow ring */}
             <circle
@@ -205,7 +222,7 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
               fill={color}
               fillOpacity={0.9}
             />
-            {/* Pass count */}
+            {/* Player id (displayed, truncated to 3 chars) */}
             <text
               x={0}
               y={0}
@@ -216,10 +233,108 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
               fill="#1a1a1a"
               style={{ userSelect: "none" }}
             >
-              {node.pass_count}
+              {displayId}
             </text>
+
+            {/* Hover info box (full id + total weight) — clamp inside viewBox */}
+            {hoveredId === node.player_id ? (
+              (() => {
+                const label = `ID: ${node.player_id} — Peso: ${totalWeight}`;
+                const tipFont = 6; // mucho más grande
+                const padding = 4;
+                const estWidth = Math.max(label.length * tipFont * 0.7 + padding * 2, 36);
+                const estHeight = tipFont * 1.6 + padding * 2;
+                let tipX = -estWidth / 2;
+                let tipY = -(r + estHeight + 4);
+
+                // Absolute position of tip in SVG coords
+                let absLeft = svgX + tipX;
+                let absTop = svgY + tipY;
+
+                // Clamp horizontally
+                if (absLeft < 0) tipX += -absLeft;
+                if (absLeft + estWidth > vW) tipX -= (absLeft + estWidth - vW);
+
+                // Clamp vertically
+                if (absTop < 0) tipY += -absTop;
+                if (absTop + estHeight > vH) tipY -= (absTop + estHeight - vH);
+
+                return (
+                  <g>
+                    <rect
+                      x={tipX}
+                      y={tipY}
+                      width={estWidth}
+                      height={estHeight}
+                      rx={3}
+                      fill="#111"
+                      fillOpacity={0.95}
+                    />
+                    <text
+                      x={0}
+                      y={tipY + estHeight / 2}
+                      textAnchor="middle"
+                      dominantBaseline="central"
+                      fontSize={tipFont}
+                      fill="#fff"
+                      style={{ userSelect: "none" }}
+                    >
+                      {label}
+                    </text>
+                  </g>
+                );
+              })()
+            ) : null}
           </motion.g>
         );
+      })}
+
+      {/* Edge hover label (rendered at computed midpoint, clamped) */}
+      {edges.map((edge) => {
+        const from = nodeMap.get(edge.from_player_id);
+        const to   = nodeMap.get(edge.to_player_id);
+        if (!from || !to) return null;
+
+        const { svgX: x1, svgY: y1 } = from;
+        const { svgX: x2, svgY: y2 } = to;
+
+        const curv = hasBidirectional(edge.from_player_id, edge.to_player_id)
+          ? EDGE_CURVATURE
+          : 0;
+        const { cpx, cpy } = controlPoint(x1, y1, x2, y2, curv);
+
+        // Midpoint of quadratic bezier at t=0.5
+        const midX = 0.25 * x1 + 0.5 * cpx + 0.25 * x2;
+        const midY = 0.25 * y1 + 0.5 * cpy + 0.25 * y2;
+
+        const key = `${edge.from_player_id}->${edge.to_player_id}`;
+        const weight = edge.pass_count;
+
+        // Render small hover box when hoveredEdge matches
+        return hoveredEdge === key ? (
+          (() => {
+            const label = `${weight}`;
+            const tipFont = 5;
+            const padding = 3;
+            const estWidth = Math.max(label.length * tipFont * 0.8 + padding * 2, 24);
+            const estHeight = tipFont * 1.6 + padding * 2;
+            let tipX = midX - estWidth / 2;
+            let tipY = midY - estHeight / 2;
+
+            // Clamp to viewBox
+            if (tipX < 0) tipX = 0;
+            if (tipX + estWidth > vW) tipX = vW - estWidth;
+            if (tipY < 0) tipY = 0;
+            if (tipY + estHeight > vH) tipY = vH - estHeight;
+
+            return (
+              <g key={`hover-edge-${key}`}>
+                <rect x={tipX} y={tipY} width={estWidth} height={estHeight} rx={2} fill="#000" fillOpacity={0.9} />
+                <text x={tipX + estWidth / 2} y={tipY + estHeight / 2} textAnchor="middle" dominantBaseline="central" fontSize={tipFont} fill="#fff">{label}</text>
+              </g>
+            );
+          })()
+        ) : null;
       })}
     </g>
   );
