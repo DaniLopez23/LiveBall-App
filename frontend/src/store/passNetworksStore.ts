@@ -65,6 +65,27 @@ const defaultTeamNetwork = (statistics: PassNetworkStatistics): TeamPassNetwork 
 	statistics,
 });
 
+const mergeStatistics = (
+	currentStatistics: PassNetworkStatistics,
+	incomingStatistics: PassNetworkStatistics,
+): PassNetworkStatistics => {
+	const bucketsByIndex = new Map(
+		currentStatistics.buckets.map((bucket) => [bucket.bucket_index, bucket]),
+	);
+
+	for (const bucket of incomingStatistics.buckets) {
+		bucketsByIndex.set(bucket.bucket_index, bucket);
+	}
+
+	return {
+		...currentStatistics,
+		team_id: incomingStatistics.team_id ?? currentStatistics.team_id,
+		buckets: Array.from(bucketsByIndex.values()).sort(
+			(a, b) => a.bucket_index - b.bucket_index,
+		),
+	};
+};
+
 const baseState = {
 	gameId: null,
 	byTeamId: {},
@@ -86,11 +107,15 @@ const usePassNetworksStore = create<PassNetworksStoreState>((set, get) => ({
 
 		const currentTeamNetwork =
 			baseByTeamId[teamKey] ?? defaultTeamNetwork(statistics);
+		const mergedStatistics = mergeStatistics(
+			currentTeamNetwork.statistics,
+			statistics,
+		);
 
 		baseByTeamId[teamKey] = {
 			nodes: mergeNodes(currentTeamNetwork.nodes, nodes),
 			edges: mergeEdges(currentTeamNetwork.edges, edges),
-			statistics,
+			statistics: mergedStatistics,
 		};
 
 		set({

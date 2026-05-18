@@ -12,8 +12,8 @@ from app.api.v1.api import api_router
 from app.core.logging import setup_logging
 from app.websockets.event_broadcaster import broadcast_message
 from app.state.game_state import GameStateCache
-from app.services.process_events_service import ProcessEventsService
-from app.services.process_stats_service import ProcessStatsService
+from app.services.events.processing_service import ProcessEventsService
+from app.services.stats.processing_service import ProcessStatsService
 from app.websockets.websocket_manager import ConnectionManager
 from app.workers.xml_file_watcher import f24_events_xml_watcher, f9_stats_xml_watcher
 
