@@ -162,7 +162,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const isOutEventSelected = filters.selectedEventType === "out";
 
   return (
-    <div className="flex flex-col gap-5 h-full overflow-y-auto">
+    <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
 
       {/* Section 1: Mode */}
       <div>
@@ -172,11 +172,11 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         <RadioGroup
           value={filters.mode}
           onValueChange={handleModeChange}
-          className="flex flex-row flex-wrap gap-x-4 gap-y-2"
+          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
         >
-          <div className="flex items-center gap-2 flex-wrap bg-background border border-input rounded-md px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
             <RadioGroupItem value="last" id="mode-last" />
-            <label htmlFor="mode-last" className="text-sm cursor-pointer">
+            <label htmlFor="mode-last" className="min-w-0 flex-1 truncate text-sm cursor-pointer">
               Últimos eventos
             </label>
             <NumberInput
@@ -187,9 +187,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               disabled={filters.mode === "all"}
             />
           </div>
-          <div className="flex items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
+          <div className="flex min-w-0 items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
             <RadioGroupItem value="all" id="mode-all" />
-            <label htmlFor="mode-all" className="text-sm cursor-pointer">
+            <label htmlFor="mode-all" className="min-w-0 flex-1 truncate text-sm cursor-pointer">
               Todos los eventos
             </label>
           </div>
@@ -209,23 +209,23 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           onValueChange={(v) => v && handleTeamChange(v)}
           variant="outline"
           size="sm"
-          className="flex w-full gap-1"
+          className="grid w-full grid-cols-3 gap-1"
         >
           <ToggleGroupItem
             value="home"
-            className="flex-1 text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:border-blue-500"
+            className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:border-blue-500"
           >
             {homeTeamName}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="away"
-            className="flex-1 text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-red-500 data-[state=on]:text-white data-[state=on]:border-red-500"
+            className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-red-500 data-[state=on]:text-white data-[state=on]:border-red-500"
           >
             {awayTeamName}
           </ToggleGroupItem>
           <ToggleGroupItem
             value="both"
-            className="flex-1 text-xs px-1 bg-background hover:bg-background/80 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+            className="w-full text-xs px-1 bg-background hover:bg-background/80 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
           >
             Ambos
           </ToggleGroupItem>
@@ -260,7 +260,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         </div>
 
         {!isOutEventSelected && (
-          <div className="grid grid-cols-2 gap-3 min-h-0">
+          <div className="grid grid-cols-1 gap-3 min-h-0 sm:grid-cols-2">
             <div className="flex min-w-0 flex-col gap-2 min-h-0">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
@@ -423,7 +423,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           />
           <span className="text-xs text-muted-foreground w-6">{filters.minuteRange[1]}&apos;</span>
         </div>
-        <div className="flex gap-1">
+        <div className="grid grid-cols-3 gap-1">
           {([
             { label: "1ª Parte", range: [0, 45] as [number, number] },
             { label: "2ª Parte", range: [45, 90] as [number, number] },
@@ -438,7 +438,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                 type="button"
                 onClick={() => onChange({ ...filters, minuteRange: range })}
                 className={cn(
-                  "flex-1 rounded-md border px-1 py-1 text-xs transition-colors",
+                  "rounded-md border px-1 py-1 text-xs transition-colors",
                   active
                     ? "bg-primary text-primary-foreground border-primary"
                     : "bg-background text-muted-foreground border-input hover:bg-muted/60 hover:text-foreground"

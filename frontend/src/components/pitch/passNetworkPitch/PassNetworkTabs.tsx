@@ -2,6 +2,7 @@ import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-
 
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import type { TeamPassNetwork } from "@/types/passNetwork";
 import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
 
@@ -27,10 +28,13 @@ interface PassNetworkTabsProps {
 	awayTeamName: string;
 	homeColor: string;
 	awayColor: string;
+	maxMinute: number;
+	defaultValue?: "stats" | "filters";
+	showToggle?: boolean;
 }
 
 const triggerClassName =
-	"bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 h-full rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!";
+	"bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!";
 
 const toggleButtonClassName =
 	"text-muted-foreground hover:text-foreground hover:bg-muted/60";
@@ -54,6 +58,9 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	awayTeamName,
 	homeColor,
 	awayColor,
+	maxMinute,
+	defaultValue = "stats",
+	showToggle = true,
 }) => {
 	if (!isOpen) {
 		return (
@@ -73,9 +80,14 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	}
 
 	return (
-		<Tabs defaultValue="stats" className="flex h-full flex-col">
-			<div className="flex items-center border-b shrink-0 px-2 bg-muted/40">
-				<TabsList className="bg-transparent justify-start rounded-none border-0 p-0 h-10 gap-0">
+		<Tabs defaultValue={defaultValue} className="flex h-full flex-col">
+			<div
+				className={cn(
+					"flex flex-wrap items-center border-b shrink-0 px-2 py-1 bg-muted/40",
+					!showToggle && "pr-12",
+				)}
+			>
+				<TabsList className="min-w-0 flex-wrap bg-transparent justify-start rounded-none border-0 p-0 h-auto min-h-10 gap-0">
 					<TabsTrigger value="stats" className={triggerClassName}>
 						<BarChart2 className="size-3.5" />
 						Estadisticas
@@ -86,16 +98,18 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 					</TabsTrigger>
 				</TabsList>
 
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon-xs"
-					onClick={onToggle}
-					className={`ml-auto ${toggleButtonClassName}`}
-					aria-label="Ocultar panel"
-				>
-					<ChevronRight className="size-4" />
-				</Button>
+				{showToggle && (
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon-xs"
+						onClick={onToggle}
+						className={`ml-auto ${toggleButtonClassName}`}
+						aria-label="Ocultar panel"
+					>
+						<ChevronRight className="size-4" />
+					</Button>
+				)}
 			</div>
 
 			<TabsContent value="stats" className="flex-1 overflow-auto p-3">
@@ -122,6 +136,7 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 					onCurrentMinuteChange={onCurrentMinuteChange}
 					homeScoreAtMinute={homeScoreAtMinute}
 					awayScoreAtMinute={awayScoreAtMinute}
+					maxMinute={maxMinute}
 				/>
 			</TabsContent>
 		</Tabs>

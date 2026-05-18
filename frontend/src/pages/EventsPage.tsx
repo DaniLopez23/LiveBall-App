@@ -1,9 +1,17 @@
 import { useMemo, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
 import NewEventsAlert from "@/components/pitch/eventsPitch/NewEventsAlert";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
 import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
@@ -32,6 +40,7 @@ const EventsPage: React.FC = () => {
   const events = useEventsStore((state) => state.events);
   const [filters, setFilters] = useState<EventsFilters>(DEFAULT_FILTERS);
   const [showFilters, setShowFilters] = useState(true);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [isDefaultAllSelection, setIsDefaultAllSelection] = useState(true);
 
   const teamColors = useMemo(() => {
@@ -179,13 +188,25 @@ const EventsPage: React.FC = () => {
         <div className="shrink-0 ml-4">
           <NewEventsAlert key={game?.game_id ?? "no-game"} />
         </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsMobilePanelOpen(true)}
+          className="ml-auto xl:hidden"
+        >
+          <SlidersHorizontal className="size-4" />
+          Filtros
+        </Button>
       </div>
 
-      <div className="flex h-155 gap-2">
+      <div className="flex h-[min(70svh,38.75rem)] gap-2 xl:h-155">
         <div
           className={cn(
             "flex items-center justify-center rounded-lg bg-slate-100 p-2 transition-all duration-300 dark:bg-slate-800",
-            showFilters ? "flex-2" : "flex-1",
+            showFilters ? "xl:flex-2" : "xl:flex-1",
+            "flex-1",
           )}
         >
           {events.length === 0 ? (
@@ -205,8 +226,8 @@ const EventsPage: React.FC = () => {
 
         <div
           className={cn(
-            "flex flex-col overflow-hidden rounded-lg bg-slate-100 transition-all duration-300 dark:bg-slate-800",
-            showFilters ? "flex-1" : "w-10",
+            "hidden flex-col overflow-hidden rounded-lg bg-slate-100 transition-all duration-300 dark:bg-slate-800 xl:flex",
+            showFilters ? "xl:flex-1" : "xl:w-10",
           )}
         >
           <EventsPitchTabs
@@ -220,6 +241,28 @@ const EventsPage: React.FC = () => {
           />
         </div>
       </div>
+
+      <Sheet open={isMobilePanelOpen} onOpenChange={setIsMobilePanelOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[85svh] max-h-[46rem] gap-0 rounded-t-lg p-0"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Panel de eventos</SheetTitle>
+          </SheetHeader>
+          <EventsPitchTabs
+            filters={displayFilters}
+            onFiltersChange={handleFiltersChange}
+            homeTeamName={game?.home_team.team_name}
+            awayTeamName={game?.away_team.team_name}
+            isOpen
+            showToggle={false}
+            defaultValue="filters"
+            onToggle={() => setIsMobilePanelOpen(false)}
+            availableTypeIds={availableTypeIds}
+          />
+        </SheetContent>
+      </Sheet>
 
       <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-800">
         <h2 className="mb-3 text-sm font-semibold">Tabla de eventos</h2>

@@ -5,6 +5,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { cn } from "@/lib/utils";
 import EventsPitchFilters, { type EventsFilters } from "./EventsPitchFilters";
 import EventsPitchStats from "./EventsPitchStats";
 
@@ -16,6 +17,8 @@ interface EventsPitchTabsProps {
   isOpen: boolean;
   onToggle: () => void;
   availableTypeIds: string[];
+  defaultValue?: "stats" | "filters";
+  showToggle?: boolean;
 }
 
 const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
@@ -26,6 +29,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   isOpen,
   onToggle,
   availableTypeIds,
+  defaultValue = "filters",
+  showToggle = true,
 }) => {
   if (!isOpen) {
     return (
@@ -43,33 +48,40 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   }
 
   return (
-    <Tabs defaultValue="filters" className="flex flex-col h-full">
+    <Tabs defaultValue={defaultValue} className="flex flex-col h-full">
       {/* Header bar: lifted-tab style border-b */}
-      <div className="flex items-center border-b shrink-0 px-2 bg-muted/40">
-        <TabsList className="bg-transparent justify-start rounded-none border-0 p-0 h-10 gap-0">
+      <div
+        className={cn(
+          "flex flex-wrap items-center border-b shrink-0 px-2 py-1 bg-muted/40",
+          !showToggle && "pr-12",
+        )}
+      >
+        <TabsList className="min-w-0 flex-wrap bg-transparent justify-start rounded-none border-0 p-0 h-auto min-h-10 gap-0">
           <TabsTrigger
             value="stats"
-            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 h-full rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
+            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
           >
             <BarChart2 className="size-3.5" />
             Estadísticas
           </TabsTrigger>
           <TabsTrigger
             value="filters"
-            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 h-full rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
+            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
           >
             <SlidersHorizontal className="size-3.5" />
             Filtros
           </TabsTrigger>
         </TabsList>
-        <button
-          type="button"
-          onClick={onToggle}
-          className="ml-auto flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          aria-label="Ocultar panel"
-        >
-          <ChevronRight className="size-4" />
-        </button>
+        {showToggle && (
+          <button
+            type="button"
+            onClick={onToggle}
+            className="ml-auto flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
+            aria-label="Ocultar panel"
+          >
+            <ChevronRight className="size-4" />
+          </button>
+        )}
       </div>
 
       <TabsContent value="filters" className="flex-1 overflow-auto p-4">

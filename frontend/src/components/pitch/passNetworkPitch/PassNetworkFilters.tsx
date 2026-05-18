@@ -19,16 +19,28 @@ interface PassNetworkFiltersProps {
 	onCurrentMinuteChange: (minute: number) => void;
 	homeScoreAtMinute: number;
 	awayScoreAtMinute: number;
+	maxMinute: number;
 }
 
-const MOMENT_PRESETS = [
-	{ label: "1ª Parte", range: [0, 45] as [number, number] },
-	{ label: "2ª Parte", range: [45, 90] as [number, number] },
-	{ label: "Completo", range: [0, 90] as [number, number] },
-] as const;
+const getMomentPresets = (maxMinute: number) => {
+	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
 
-const getMomentPresetLabel = (minuteRange: [number, number]): string => {
-	const preset = MOMENT_PRESETS.find(
+	if (boundedMaxMinute <= 45) {
+		return [{ label: "Completo", range: [0, boundedMaxMinute] as [number, number] }];
+	}
+
+	return [
+		{ label: "1ª Parte", range: [0, 45] as [number, number] },
+		{ label: "2ª Parte", range: [45, boundedMaxMinute] as [number, number] },
+		{ label: "Completo", range: [0, boundedMaxMinute] as [number, number] },
+	];
+};
+
+const getMomentPresetLabel = (
+	minuteRange: [number, number],
+	maxMinute: number,
+): string => {
+	const preset = getMomentPresets(maxMinute).find(
 		(item) =>
 			item.range[0] === minuteRange[0] &&
 			item.range[1] === minuteRange[1],
@@ -48,23 +60,35 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 	onCurrentMinuteChange,
 	homeScoreAtMinute,
 	awayScoreAtMinute,
+	maxMinute,
 }) => {
+	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
 	const [activePointerId, setActivePointerId] = React.useState<number | null>(null);
 	const progressTrackRef = React.useRef<HTMLDivElement | null>(null);
-	const [startMinute, endMinute] = filters.minuteRange;
+	const [rawStartMinute, rawEndMinute] = filters.minuteRange;
+	const startMinute = Math.min(boundedMaxMinute, Math.max(0, rawStartMinute));
+	const endMinute = Math.min(boundedMaxMinute, Math.max(startMinute, rawEndMinute));
 	const clampedMinute = Math.min(endMinute, Math.max(startMinute, currentMinute));
-	const progressStart = (startMinute / 90) * 100;
-	const progressEnd = (clampedMinute / 90) * 100;
+	const progressStart = boundedMaxMinute > 0 ? (startMinute / boundedMaxMinute) * 100 : 0;
+	const progressEnd = boundedMaxMinute > 0 ? (clampedMinute / boundedMaxMinute) * 100 : 0;
 	const progressWidth = Math.max(0, progressEnd - progressStart);
 	const canPlay = startMinute < endMinute;
-	const selectedPresetLabel = getMomentPresetLabel(filters.minuteRange);
+	const momentPresets = getMomentPresets(boundedMaxMinute);
+	const selectedPresetLabel = getMomentPresetLabel([startMinute, endMinute], boundedMaxMinute);
+	const sliderMax = Math.max(1, boundedMaxMinute);
 
 	const handleMinuteRangeChange = (values: number[]) => {
 		const first = values[0] ?? 0;
 		const second = values[1] ?? first;
+		const nextStart = Math.min(boundedMaxMinute, Math.max(0, first));
+		const nextEnd = Math.min(boundedMaxMinute, Math.max(0, second));
+
 		onChange({
 			...filters,
-			minuteRange: [Math.min(first, second), Math.max(first, second)] as [number, number],
+			minuteRange: [Math.min(nextStart, nextEnd), Math.max(nextStart, nextEnd)] as [
+				number,
+				number,
+			],
 		});
 	};
 
@@ -76,7 +100,7 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 		if (rect.width <= 0) return;
 
 		const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-		const rawMinute = Math.round(ratio * 90);
+		const rawMinute = Math.round(ratio * boundedMaxMinute);
 		const nextMinute = Math.min(endMinute, Math.max(startMinute, rawMinute));
 
 		onCurrentMinuteChange(nextMinute);
@@ -156,9 +180,10 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 
 							<Slider
 								min={0}
-								max={90}
+								max={sliderMax}
 								step={1}
-								value={filters.minuteRange}
+								disabled={boundedMaxMinute === 0}
+								value={[startMinute, endMinute]}
 								onValueChange={handleMinuteRangeChange}
 								className="relative z-10"
 							/>
@@ -212,10 +237,10 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 					<Separator className="my-4" />
 
 					<div className="mt-4 flex gap-1">
-						{MOMENT_PRESETS.map(({ label, range }) => {
+						{momentPresets.map(({ label, range }) => {
 							const active =
-								filters.minuteRange[0] === range[0] &&
-								filters.minuteRange[1] === range[1];
+								startMinute === range[0] &&
+								endMinute === range[1];
 
 							return (
 								<button
@@ -312,7 +337,12 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 
 			<button
 				type="button"
-				onClick={() => onChange(DEFAULT_PASS_NETWORK_FILTERS)}
+				onClick={() =>
+					onChange({
+						...DEFAULT_PASS_NETWORK_FILTERS,
+						minuteRange: [0, boundedMaxMinute],
+					})
+				}
 				className="mt-auto inline-flex items-center justify-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-xs text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
 			>
 				<RotateCcw className="size-3.5" />

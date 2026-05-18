@@ -1,9 +1,17 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { SlidersHorizontal } from "lucide-react";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
 import useEventsStore from "@/store/eventsStore";
 import PassNetworkPitch from "@/components/pitch/passNetworkPitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/pitch/passNetworkPitch/PassNetworkTabs";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type {
   NodePositionMode,
   PassNetworkFiltersState,
@@ -26,12 +34,26 @@ const clampMinute = (
   [minMinute, maxMinute]: [number, number],
 ): number => Math.min(maxMinute, Math.max(minMinute, minute));
 
+const clampMinuteRange = (
+  [minMinute, maxMinute]: [number, number],
+  availableMaxMinute: number,
+): [number, number] => {
+  const boundedMaxMinute = Math.max(0, Math.floor(availableMaxMinute));
+  const nextMinMinute = Math.min(boundedMaxMinute, Math.max(0, minMinute));
+  const nextMaxMinute = Math.min(boundedMaxMinute, Math.max(0, maxMinute));
+
+  return [
+    Math.min(nextMinMinute, nextMaxMinute),
+    Math.max(nextMinMinute, nextMaxMinute),
+  ];
+};
+
 const sumMinuteStats = (
   stats: MinutePositionStat[],
   [minMinute, maxMinute]: [number, number],
 ): MinutePositionStat => {
   const start = Math.max(0, minMinute);
-  const end = Math.min(90, maxMinute);
+  const end = Math.min(Math.max(0, stats.length - 1), Math.max(start, maxMinute));
   let count = 0;
   let x_sum = 0;
   let y_sum = 0;
@@ -147,6 +169,7 @@ const PassNetworkPage: React.FC = () => {
   const byTeamId = usePassNetworksStore((s) => s.byTeamId);
   const events = useEventsStore((s) => s.events);
   const [isPanelOpen, setIsPanelOpen] = useState(true);
+  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [filters, setFilters] = useState<PassNetworkFiltersState>(
     DEFAULT_PASS_NETWORK_FILTERS,
   );
@@ -156,6 +179,46 @@ const PassNetworkPage: React.FC = () => {
   );
 
   const [rangeStart, rangeEnd] = filters.minuteRange;
+
+  const lastEventMinute = useMemo(() => {
+    if (events.length === 0) return 0;
+
+    return Math.max(0, Math.floor(events[events.length - 1].min ?? 0));
+  }, [events]);
+
+  const previousMaxMinuteRef = useRef(lastEventMinute);
+
+  useEffect(() => {
+    const previousMaxMinute = previousMaxMinuteRef.current;
+    previousMaxMinuteRef.current = lastEventMinute;
+
+    setFilters((currentFilters) => {
+      const wasPinnedToLatestMinute = currentFilters.minuteRange[1] >= previousMaxMinute;
+      const targetRange: [number, number] = wasPinnedToLatestMinute
+        ? [currentFilters.minuteRange[0], lastEventMinute]
+        : currentFilters.minuteRange;
+      const nextMinuteRange = clampMinuteRange(targetRange, lastEventMinute);
+
+      if (
+        nextMinuteRange[0] === currentFilters.minuteRange[0] &&
+        nextMinuteRange[1] === currentFilters.minuteRange[1]
+      ) {
+        return currentFilters;
+      }
+
+      return {
+        ...currentFilters,
+        minuteRange: nextMinuteRange,
+      };
+    });
+
+    setCurrentMinute((minute) => {
+      const wasAtLatestMinute = minute >= previousMaxMinute;
+      return wasAtLatestMinute
+        ? lastEventMinute
+        : Math.min(lastEventMinute, Math.max(0, minute));
+    });
+  }, [lastEventMinute]);
 
   useEffect(() => {
     if (!isPlaying) return;
@@ -177,16 +240,20 @@ const PassNetworkPage: React.FC = () => {
   }, [isPlaying, rangeStart, rangeEnd]);
 
   const handleFiltersChange = (nextFilters: PassNetworkFiltersState) => {
+    const boundedNextFilters: PassNetworkFiltersState = {
+      ...nextFilters,
+      minuteRange: clampMinuteRange(nextFilters.minuteRange, lastEventMinute),
+    };
     const minuteRangeChanged =
-      nextFilters.minuteRange[0] !== filters.minuteRange[0] ||
-      nextFilters.minuteRange[1] !== filters.minuteRange[1];
+      boundedNextFilters.minuteRange[0] !== filters.minuteRange[0] ||
+      boundedNextFilters.minuteRange[1] !== filters.minuteRange[1];
 
-    setFilters(nextFilters);
+    setFilters(boundedNextFilters);
     setIsPlaying(false);
     setCurrentMinute(
       minuteRangeChanged
-        ? nextFilters.minuteRange[1]
-        : clampMinute(currentMinute, nextFilters.minuteRange),
+        ? boundedNextFilters.minuteRange[1]
+        : clampMinute(currentMinute, boundedNextFilters.minuteRange),
     );
   };
 
@@ -268,15 +335,25 @@ const PassNetworkPage: React.FC = () => {
   return (
     <div className="flex flex-col p-4 gap-4 min-h-full">
       {/* Header */}
-      <div>
+      <div className="flex flex-wrap items-center gap-2">
         <h1 className="text-2xl font-bold">Redes de Pases</h1>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => setIsMobilePanelOpen(true)}
+          className="ml-auto xl:hidden"
+        >
+          <SlidersHorizontal className="size-4" />
+          Filtros
+        </Button>
       </div>
 
       {/* 3-column layout */}
-      <div className="flex-1 grid grid-cols-3 gap-3 min-h-0 h-150">
+      <div className="grid flex-1 grid-cols-1 gap-3 min-h-0 md:grid-cols-2 xl:h-150 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)_minmax(0,1fr)]">
 
         {/* Column 1: Home team pass network */}
-        <div className="flex flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0">
+        <div className="flex h-[min(72svh,34rem)] flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0 xl:h-auto">
           <p
             className="text-xs font-semibold mb-2 truncate"
             style={{ color: HOME_COLOR }}
@@ -296,7 +373,7 @@ const PassNetworkPage: React.FC = () => {
         </div>
 
         {/* Column 2: Stats / filters (placeholder) */}
-        <div className="flex flex-col bg-slate-100 dark:bg-slate-800 rounded-lg min-h-0 overflow-hidden">
+        <div className="hidden flex-col bg-slate-100 dark:bg-slate-800 rounded-lg min-h-0 overflow-hidden xl:flex">
           <PassNetworkTabs
             isOpen={isPanelOpen}
             onToggle={() => setIsPanelOpen((current) => !current)}
@@ -316,11 +393,12 @@ const PassNetworkPage: React.FC = () => {
             awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
             homeColor={HOME_COLOR}
             awayColor={AWAY_COLOR}
+            maxMinute={lastEventMinute}
           />
         </div>
 
         {/* Column 3: Away team pass network */}
-        <div className="flex flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0">
+        <div className="flex h-[min(72svh,34rem)] flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0 xl:h-auto">
           <p
             className="text-xs font-semibold mb-2 truncate"
             style={{ color: AWAY_COLOR }}
@@ -341,6 +419,40 @@ const PassNetworkPage: React.FC = () => {
         </div>
 
       </div>
+
+      <Sheet open={isMobilePanelOpen} onOpenChange={setIsMobilePanelOpen}>
+        <SheetContent
+          side="bottom"
+          className="h-[85svh] max-h-[46rem] gap-0 rounded-t-lg p-0"
+        >
+          <SheetHeader className="sr-only">
+            <SheetTitle>Panel de red de pases</SheetTitle>
+          </SheetHeader>
+          <PassNetworkTabs
+            isOpen
+            showToggle={false}
+            defaultValue="filters"
+            onToggle={() => setIsMobilePanelOpen(false)}
+            filters={filters}
+            onFiltersChange={handleFiltersChange}
+            currentMinute={effectiveFilters.minuteRange[1]}
+            isPlaying={isPlaying}
+            onPlay={handlePlay}
+            onPause={handlePause}
+            onResetPlayback={handleResetPlayback}
+            onCurrentMinuteChange={handleCurrentMinuteChange}
+            homeScoreAtMinute={scoreAtMinute.home}
+            awayScoreAtMinute={scoreAtMinute.away}
+            homeNetwork={homeNetwork}
+            awayNetwork={awayNetwork}
+            homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
+            awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
+            homeColor={HOME_COLOR}
+            awayColor={AWAY_COLOR}
+            maxMinute={lastEventMinute}
+          />
+        </SheetContent>
+      </Sheet>
     </div>
   );
 };
