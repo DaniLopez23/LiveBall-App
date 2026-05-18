@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 
@@ -10,8 +10,9 @@ from app.schemas.pass_networks import (
     PassNetwork,
     PlayerNode,
     bucket_minute_range,
+    minute_to_bucket,
 )
-from app.services.network_metrics import compute_network_metrics
+from app.services.pass_networks.metrics import compute_network_metrics
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +138,10 @@ class PassNetworkService:
         self.network.changed_players.clear()
         self.network.changed_edges.clear()
 
+    def has_processed_event(self, event_id: str) -> bool:
+        """Returns True when a pass event has already been applied."""
+        return event_id in self.network.processed_event_ids
+
     # ------------------------------------------------------------------ #
     # Read helpers                                                         #
     # ------------------------------------------------------------------ #
@@ -201,7 +206,9 @@ class PassNetworkService:
         }
 
     def get_bucket_statistics(
-        self, bucket: Optional[int] = None
+        self,
+        bucket: Optional[int] = None,
+        bucket_indices: Optional[Iterable[int]] = None,
     ) -> Dict[str, Any]:
         """
         Calcula métricas de teoría de redes acumuladas por buckets de 5 minutos.
@@ -222,6 +229,13 @@ class PassNetworkService:
 
         if bucket is not None:
             buckets_to_compute = [max(0, min(N_5MIN_BUCKETS - 1, bucket))]
+        elif bucket_indices is not None:
+            buckets_to_compute = sorted(
+                {
+                    max(0, min(N_5MIN_BUCKETS - 1, bucket_index))
+                    for bucket_index in bucket_indices
+                }
+            )
         else:
             buckets_to_compute = list(range(N_5MIN_BUCKETS))
 
@@ -235,7 +249,7 @@ class PassNetworkService:
             minute = max(5, minute)  # bucket 0 ends at min 4, label as 5
 
             if total_passes_bucket == 0:
-                from app.services.network_metrics import _empty_metrics
+                from app.services.pass_networks.metrics import _empty_metrics
                 metrics = _empty_metrics()
             else:
                 metrics = compute_network_metrics(W, present_ids)
@@ -271,20 +285,21 @@ class PassNetworkService:
     def add_passes_incremental(
         self,
         events: List[Event],
-    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[int]]:
         """
         Procesa una lista de eventos y devuelve solo los nodos y aristas
         que han cambiado (actualizaciones incrementales).
 
         Solo se procesan pases exitosos (type_id='1', outcome=1) cuyo
         receptor haya sido previamente asignado en ``event.player_receiver_id``
-        por ``ProcessEventsService._assign_receivers``.
+        por ``EventScanner``.
         Los eventos ya procesados se omiten para evitar duplicados.
 
         Returns:
-            (changed_nodes, changed_edges)
+            (changed_nodes, changed_edges, changed_bucket_indices)
         """
         self.clear_changes()
+        min_changed_bucket: Optional[int] = None
 
         for event in events:
             # Solo pases exitosos con receptor calculado
@@ -322,8 +337,20 @@ class PassNetworkService:
                 event.min,
             )
             self.network.processed_event_ids.add(event.event_id)
+            event_bucket = minute_to_bucket(event.min)
+            min_changed_bucket = (
+                event_bucket
+                if min_changed_bucket is None
+                else min(min_changed_bucket, event_bucket)
+            )
 
-        return self.get_changed_nodes(), self.get_changed_edges()
+        changed_bucket_indices = (
+            list(range(min_changed_bucket, N_5MIN_BUCKETS))
+            if min_changed_bucket is not None
+            else []
+        )
+
+        return self.get_changed_nodes(), self.get_changed_edges(), changed_bucket_indices
 
     # ------------------------------------------------------------------ #
     # Serialization helpers                                                #

@@ -10,7 +10,7 @@ from typing import Any, Dict, Optional, Tuple
 
 from app.schemas.games import ParsedGame
 from app.schemas.stats import ParsedMatchStats
-from app.services.pass_network_service import PassNetworkService
+from app.services.pass_networks.service import PassNetworkService
 
 
 class GameStateCache:
@@ -39,8 +39,6 @@ class GameStateCache:
         self._exported_events: Dict[str, Dict[Tuple[str, str], Dict[str, Any]]] = {}
         # game_id → latest inferred match state (pre_match, first_period_active, ...)
         self._match_states: Dict[str, str] = {}
-        # game_id → last event index scanned for pass receiver assignment
-        self._receiver_scan_indices: Dict[str, int] = {}
         # game_id → full ParsedMatchStats (latest ingested version)
         self.stats: Dict[str, ParsedMatchStats] = {}
         # game_id → comparable snapshot dict used for stats change detection
@@ -113,14 +111,6 @@ class GameStateCache:
         """Stores the inferred match state for *game_id*."""
         self._match_states[game_id] = state
 
-    def get_receiver_scan_index(self, game_id: str) -> int:
-        """Returns the latest scanned index used for receiver assignment."""
-        return self._receiver_scan_indices.get(game_id, 0)
-
-    def store_receiver_scan_index(self, game_id: str, index: int) -> None:
-        """Stores the latest scanned index used for receiver assignment."""
-        self._receiver_scan_indices[game_id] = index
-
     # ------------------------------------------------------------------ #
     # Stats helpers                                                       #
     # ------------------------------------------------------------------ #
@@ -156,11 +146,53 @@ class GameStateCache:
             self.pass_networks[key] = PassNetworkService(team_id=int(team_id))
         return self.pass_networks[key]
 
+    def get_pass_network(
+        self, game_id: str, team_id: str
+    ) -> Optional[PassNetworkService]:
+        """Returns the existing pass-network service without creating it."""
+        return self.pass_networks.get((game_id, team_id))
+
     def store_pass_network_statistics(
         self, game_id: str, team_id: str, statistics: Dict[str, Any]
     ) -> None:
         """Persists the latest computed bucket statistics for ``(game_id, team_id)``."""
         self._pass_network_statistics[(game_id, team_id)] = statistics
+
+    def merge_pass_network_statistics(
+        self,
+        game_id: str,
+        team_id: str,
+        statistics: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Merges partial bucket statistics into the cached full snapshot.
+
+        WebSocket deltas can carry only changed buckets, but reconnecting
+        clients still need the complete latest statistics in their snapshot.
+        """
+        key = (game_id, team_id)
+        current = self._pass_network_statistics.get(key)
+        if not current:
+            self._pass_network_statistics[key] = statistics
+            return statistics
+
+        buckets_by_index = {
+            bucket["bucket_index"]: bucket
+            for bucket in current.get("buckets", [])
+        }
+        for bucket in statistics.get("buckets", []):
+            buckets_by_index[bucket["bucket_index"]] = bucket
+
+        merged = {
+            **current,
+            "team_id": statistics.get("team_id", current.get("team_id")),
+            "buckets": [
+                buckets_by_index[index]
+                for index in sorted(buckets_by_index)
+            ],
+        }
+        self._pass_network_statistics[key] = merged
+        return merged
 
     def get_pass_network_statistics(
         self, game_id: str, team_id: str

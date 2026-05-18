@@ -4,6 +4,7 @@ Service for ingesting data.
 
 import hashlib
 import logging
+from pathlib import Path
 from typing import Optional
 
 
@@ -17,6 +18,7 @@ class XmlReaderService:
 
     def __init__(self):
         self._last_hashes: dict[str, str] = {}
+        self._last_file_signatures: dict[str, tuple[int, int]] = {}
 
     def _compute_hash(self, content: str) -> str:
         return hashlib.md5(content.encode("utf-8")).hexdigest()
@@ -58,14 +60,26 @@ class XmlReaderService:
         Reads the XML file only if its content has changed since the last call.
         Returns the raw XML string if changed, or None if unchanged or unreadable.
         '''
+        try:
+            stat = Path(file_path).stat()
+            file_signature = (stat.st_mtime_ns, stat.st_size)
+        except OSError as e:
+            logger.error("Failed to stat XML file '%s': %s", file_path, e)
+            return None
+
+        if self._last_file_signatures.get(file_path) == file_signature:
+            return None
+
         content = self.read_raw_xml(file_path)
         if content is None:
             logger.warning("No content read from file: %s", file_path)
             return None
 
         if self.has_changed(file_path, content):
+            self._last_file_signatures[file_path] = file_signature
             logger.info("Change detected in XML file: %s", file_path)
             return content
 
+        self._last_file_signatures[file_path] = file_signature
         # logger.debug("No changes detected for: %s", file_path)
         return None

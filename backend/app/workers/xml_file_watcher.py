@@ -9,11 +9,11 @@ import logging
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
-from app.services.ingest_service import XmlReaderService
-from app.services.parse_service import XmlParseService
-from app.services.parse_stats_service import XmlParseStatsService
-from app.services.process_events_service import ProcessEventsService
-from app.services.process_stats_service import ProcessStatsService
+from app.services.events.processing_service import ProcessEventsService
+from app.services.stats.processing_service import ProcessStatsService
+from app.services.xml.f24_parser import XmlParseService
+from app.services.xml.f9_parser import XmlParseStatsService
+from app.services.xml.reader import XmlReaderService
 
 logger = logging.getLogger(__name__)
 

@@ -4,7 +4,7 @@ from typing import Any, Dict
 
 from fastapi import APIRouter, HTTPException
 
-from app.services.players_service import PlayersService
+from app.services.players.service import PlayersService
 
 router = APIRouter()
 

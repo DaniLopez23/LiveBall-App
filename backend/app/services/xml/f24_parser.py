@@ -10,7 +10,7 @@ from app.schemas.teams import TeamInGame
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).parent.parent.parent   # → backend/
+BASE_DIR = Path(__file__).resolve().parents[3]  # -> backend/
 
 EVENT_MAPPER_PATH     = BASE_DIR / "utils" / "event_mapper.json"
 QUALIFIER_MAPPER_PATH = BASE_DIR / "utils" / "qualifier_mapper.json"

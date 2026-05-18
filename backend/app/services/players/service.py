@@ -16,7 +16,7 @@ from app.state.players_state import PlayersStateCache, players_state_cache
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).resolve().parents[3]
+BASE_DIR = Path(__file__).resolve().parents[4]
 DEFAULT_F40_FILE = BASE_DIR / "simulated-real-time-data" / "F40-squad-23.xml"
 
 
