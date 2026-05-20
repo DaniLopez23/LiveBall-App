@@ -11,7 +11,7 @@ class StubPlayersService:
     def get_player_brief(self, team_id, player_id):
         return {
             "id": player_id,
-            "name": None,
+            "name": f"Player {player_id}",
             "dorsal": None,
         }
 
@@ -106,6 +106,19 @@ class ProcessEventsServiceTests(unittest.TestCase):
             pass_network_message["edges"][0]["to_player_id"],
             "p2",
         )
+        nodes_by_id = {
+            node["player_id"]: node
+            for node in pass_network_message["nodes"]
+        }
+        self.assertEqual(nodes_by_id["p1"]["player_name"], "Player p1")
+        self.assertEqual(nodes_by_id["p2"]["player_name"], "Player p2")
+
+        snapshot_nodes = {
+            node["player_id"]: node
+            for node in self.cache.get_pass_network("game-1", "1").get_nodes()
+        }
+        self.assertEqual(snapshot_nodes["p1"]["player_name"], "Player p1")
+        self.assertEqual(snapshot_nodes["p2"]["player_name"], "Player p2")
         self.assertEqual(
             len(self.cache.get_pass_network_statistics("game-1", "1")["buckets"]),
             19,

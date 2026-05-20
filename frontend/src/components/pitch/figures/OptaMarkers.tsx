@@ -7,32 +7,43 @@ import LinkFigure from "./LinkFigure";
 import ShotFigure from "./ShotFigure";
 import FoulFigure from "./FoulFigure";
 import DefensiveFigure from "./DefensiveFigure";
-import useOptaPitchConfigStore, { type Orientation } from "@/store/optaPitchConfigStore";
+import useOptaPitchConfigStore, {
+  type Orientation,
+  VB_LONG,
+  VB_SHORT,
+} from "@/store/optaPitchConfigStore";
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
-import { type PitchEvent, isDefensiveEvent, isFoulEvent, isPassEvent, isOutEvent, isShotEvent } from "@/types/event";
+  type PitchEvent,
+  isDefensiveEvent,
+  isFoulEvent,
+  isOutEvent,
+  isPassEvent,
+  isShotEvent,
+} from "@/types/event";
+
+/** Pitch-renderable events only. */
+export type OptaEvent = PitchEvent;
+
+export interface OptaMarkersProps {
+  events: OptaEvent[];
+  /** Map of teamId -> hex/css color string */
+  teamColors?: Record<string, string>;
+  /** Optional per-event color override, keyed by event.id */
+  eventColors?: Record<string, string>;
+  /** When true, events animate in/out sequentially (used in "last" mode) */
+  animated?: boolean;
+  /** Show connector figures (carry/link) between consecutive events. */
+  showConnectors?: boolean;
+}
 
 /**
  * Determines which SVG viewport edge the ball crossed, derived from
  * raw (unclamped) Opta coordinates and the current pitch orientation.
- *
- * In Opta space x/y ∈ [0,100]. Values outside that range indicate the
- * side the ball exited from.
- *
- * Vertical pitch: Opta-X → SVG-Y (long axis), Opta-Y → SVG-X (short axis)
- * Horizontal pitch: Opta-X → SVG-X (long axis), Opta-Y → SVG-Y (short axis)
  */
 function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation): FieldEdge {
   const xOut = optaX < 0 ? -optaX : optaX > 100 ? optaX - 100 : 0;
   const yOut = optaY < 0 ? -optaY : optaY > 100 ? optaY - 100 : 0;
 
-  // If feed coordinates are still inside [0,100], infer side by nearest boundary.
-  // This avoids misclassifying Out events as left/right when they are actually
-  // near the top/bottom touchline.
   if (xOut === 0 && yOut === 0) {
     const dXMin = optaX;
     const dXMax = 100 - optaX;
@@ -47,7 +58,6 @@ function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation)
       return "left";
     }
 
-    // Horizontal: Opta-X -> SVG-X, Opta-Y -> SVG-Y (inverted)
     if (minD === dXMin) return "left";
     if (minD === dXMax) return "right";
     if (minD === dYMin) return "bottom";
@@ -57,15 +67,12 @@ function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation)
   const useX = xOut >= yOut;
 
   if (orientation === "vertical") {
-    // Opta X maps to SVG Y: low optaX → high SVG Y (bottom), high → top
     if (useX) return optaX <= 50 ? "bottom" : "top";
-    // Opta Y maps to SVG X: low optaY → high SVG X (right), high → left
     return optaY <= 50 ? "right" : "left";
-  } else {
-    // Horizontal: Opta X maps to SVG X, Opta Y maps to SVG Y
-    if (useX) return optaX <= 50 ? "left" : "right";
-    return optaY <= 50 ? "bottom" : "top";
   }
+
+  if (useX) return optaX <= 50 ? "left" : "right";
+  return optaY <= 50 ? "bottom" : "top";
 }
 
 function getDefensiveSubtypeLabel(typeId: string): string {
@@ -86,19 +93,128 @@ function getDefensiveSubtypeLabel(typeId: string): string {
   }
 }
 
-/** Pitch-renderable events only. */
-export type OptaEvent = PitchEvent;
+function getEventLabel(event: OptaEvent): string {
+  if (isPassEvent(event)) return "Pass";
+  if (isOutEvent(event)) return "Out";
+  if (isShotEvent(event)) return "Shot";
+  if (isFoulEvent(event)) return "Foul";
+  if (isDefensiveEvent(event)) return getDefensiveSubtypeLabel(event.type_id);
+  return event.type_name ?? event.event_name ?? "Event";
+}
 
-export interface OptaMarkersProps {
-  events: OptaEvent[];
-  /** Map of teamId → hex/css color string */
-  teamColors?: Record<string, string>;
-  /** Optional per-event color override, keyed by event.id */
-  eventColors?: Record<string, string>;
-  /** When true, events animate in/out sequentially (used in "last" mode) */
-  animated?: boolean;
-  /** Show connector figures (carry/link) between consecutive events. */
-  showConnectors?: boolean;
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getTooltipBox(
+  anchorX: number,
+  anchorY: number,
+  lines: string[],
+  viewBoxWidth: number,
+  viewBoxHeight: number,
+): { x: number; y: number; width: number; height: number } {
+  const fontSize = 4.4;
+  const paddingX = 4.2;
+  const paddingY = 3.4;
+  const lineHeight = 6.2;
+  const gap = 7;
+  const longestLine = Math.max(...lines.map((line) => line.length));
+  const width = clamp(longestLine * fontSize * 0.55 + paddingX * 2, 46, 118);
+  const height = paddingY * 2 + lines.length * lineHeight;
+  const opensRight = anchorX + gap + width <= viewBoxWidth - 2;
+  const opensTop = anchorY - gap - height >= 2;
+  const rawX = opensRight ? anchorX + gap : anchorX - width - gap;
+  const rawY = opensTop ? anchorY - height - gap : anchorY + gap;
+
+  return {
+    x: clamp(rawX, 2, viewBoxWidth - width - 2),
+    y: clamp(rawY, 2, viewBoxHeight - height - 2),
+    width,
+    height,
+  };
+}
+
+function EventTooltip({
+  anchorX,
+  anchorY,
+  color,
+  lines,
+  viewBoxWidth,
+  viewBoxHeight,
+}: {
+  anchorX: number;
+  anchorY: number;
+  color: string;
+  lines: string[];
+  viewBoxWidth: number;
+  viewBoxHeight: number;
+}) {
+  const box = getTooltipBox(anchorX, anchorY, lines, viewBoxWidth, viewBoxHeight);
+  const linkX = clamp(anchorX, box.x, box.x + box.width);
+  const linkY = clamp(anchorY, box.y, box.y + box.height);
+
+  return (
+    <g pointerEvents="none">
+      <line
+        x1={anchorX}
+        y1={anchorY}
+        x2={linkX}
+        y2={linkY}
+        stroke="#0f172a"
+        strokeOpacity={0.45}
+        strokeWidth={0.6}
+      />
+      <circle
+        cx={anchorX}
+        cy={anchorY}
+        r={5.2}
+        fill="none"
+        stroke="#0f172a"
+        strokeOpacity={0.42}
+        strokeWidth={1.4}
+      />
+      <circle
+        cx={anchorX}
+        cy={anchorY}
+        r={4.2}
+        fill="none"
+        stroke={color}
+        strokeOpacity={0.95}
+        strokeWidth={0.85}
+      />
+      <rect
+        x={box.x}
+        y={box.y}
+        width={box.width}
+        height={box.height}
+        rx={3.5}
+        fill="#111827"
+        fillOpacity={0.95}
+        stroke="rgba(255,255,255,0.22)"
+        strokeWidth={0.5}
+      />
+      <rect x={box.x} y={box.y} width={2.6} height={box.height} rx={1.3} fill={color} />
+      <text
+        x={box.x + 5.8}
+        y={box.y + 7.2}
+        fontSize={4.4}
+        fill="#f8fafc"
+        style={{ userSelect: "none" }}
+      >
+        {lines.map((line, index) => (
+          <tspan
+            key={`${line}-${index}`}
+            x={box.x + 5.8}
+            dy={index === 0 ? 0 : 6.2}
+            fontWeight={index === 0 ? 700 : 500}
+            fill={index === 0 ? "#ffffff" : "#d1d5db"}
+          >
+            {line}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
 }
 
 const OptaMarkers: React.FC<OptaMarkersProps> = ({
@@ -108,10 +224,12 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   animated = false,
   showConnectors = true,
 }) => {
-  /**
-   * Wraps each marker. When `skipEnterFade=true` the wrapper starts already
-   * visible — used for PassArrow which manages its own entry animation.
-   */
+  const orientation = useOptaPitchConfigStore((s) => s.orientation);
+  const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
+  const [hoveredEventId, setHoveredEventId] = React.useState<string | null>(null);
+  const viewBoxWidth = orientation === "vertical" ? VB_SHORT : VB_LONG;
+  const viewBoxHeight = orientation === "vertical" ? VB_LONG : VB_SHORT;
+
   const wrap = (key: string, content: React.ReactNode, skipEnterFade = false) =>
     animated ? (
       <motion.g
@@ -126,10 +244,54 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     ) : (
       <React.Fragment key={key}>{content}</React.Fragment>
     );
-  // Subscribe to orientation so the component re-renders on layout changes;
-  // transformOptaToSvg reads state via get() at call time.
-  const orientation = useOptaPitchConfigStore((s) => s.orientation);
-  const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
+
+  const formatCoord = (value: number | null | undefined) =>
+    value == null ? "-" : Number(value.toFixed(1)).toString();
+
+  const getTooltipLines = (event: OptaEvent, sequence: number): string[] => {
+    const lines = [`${sequence}. ${getEventLabel(event)}`];
+    const minute =
+      event.min != null
+        ? `Min ${event.min}${event.sec != null ? `:${String(event.sec).padStart(2, "0")}` : ""}`
+        : null;
+
+    if (minute) lines.push(minute);
+    lines.push(`Inicio X ${formatCoord(event.x)} | Y ${formatCoord(event.y)}`);
+
+    if (isPassEvent(event)) {
+      lines.push(`Fin X ${formatCoord(event.end_x)} | Y ${formatCoord(event.end_y)}`);
+    }
+
+    return lines;
+  };
+
+  const renderHoverMarker = (
+    event: OptaEvent,
+    sequence: number,
+    anchorX: number,
+    anchorY: number,
+    color: string,
+    content: React.ReactNode,
+  ) => (
+    <g
+      onMouseEnter={() => setHoveredEventId(event.id)}
+      onMouseLeave={() => setHoveredEventId((current) => (current === event.id ? null : current))}
+      cursor="help"
+    >
+      {content}
+      <circle cx={anchorX} cy={anchorY} r={7} fill="transparent" pointerEvents="all" />
+      {hoveredEventId === event.id ? (
+        <EventTooltip
+          anchorX={anchorX}
+          anchorY={anchorY}
+          color={color}
+          lines={getTooltipLines(event, sequence)}
+          viewBoxWidth={viewBoxWidth}
+          viewBoxHeight={viewBoxHeight}
+        />
+      ) : null}
+    </g>
+  );
 
   const getEventPoint = (event: OptaEvent) => {
     if (isPassEvent(event) && event.end_x != null && event.end_y != null) {
@@ -169,7 +331,6 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     );
   };
 
-  // Filter and prepare events that will actually be rendered
   const renderableEvents = events
     .map((event, originalIndex) => ({ event, originalIndex }))
     .filter(({ event }) => {
@@ -195,183 +356,140 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     });
 
   const markers = renderableEvents.map(({ event }, renderIndex) => {
-        const { x, y, outcome, team_id } = event;
+    const { x, y, outcome, team_id } = event;
+    const sequence = renderIndex + 1;
+    const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
+    const color =
+      eventColors[event.id] ??
+      (team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff");
+    const connector =
+      showConnectors && renderIndex > 0
+        ? getConnector(renderableEvents[renderIndex - 1].event, event)
+        : null;
 
-        const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
-        const color =
-          eventColors[event.id] ??
-          (team_id && teamColors[team_id] ? teamColors[team_id] : "#ffffff");
-        const connector =
-          showConnectors && renderIndex > 0
-            ? getConnector(renderableEvents[renderIndex - 1].event, event)
-            : null;
+    if (isPassEvent(event)) {
+      const { x: svgX2, y: svgY2 } = transformOptaToSvg(event.end_x!, event.end_y!);
 
-        // ── Pass ──────────────────────────────────────────────────────
-        if (isPassEvent(event)) {
-          const { x: svgX2, y: svgY2 } = transformOptaToSvg(
-            event.end_x!,
-            event.end_y!,
-          );
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            <PassArrow
+              x1={svgX1}
+              y1={svgY1}
+              x2={svgX2}
+              y2={svgY2}
+              sequence={sequence}
+              outcome={typeof outcome === "number" ? outcome : 0}
+              color={color}
+              animated={animated}
+            />,
+          )}
+        </>
+      ), animated);
+    }
 
-          return wrap(event.id, (
-            <>
-              {connector}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <g>
-                    <PassArrow
-                      x1={svgX1}
-                      y1={svgY1}
-                      x2={svgX2}
-                      y2={svgY2}
-                      sequence={renderIndex + 1}
-                      outcome={typeof outcome === "number" ? outcome : 0}
-                      color={color}
-                      animated={animated}
-                    />
-                  </g>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={2}>
-                  <div className="space-y-0.5">
-                    <div>ID {event.id}</div>
-                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ), animated); // PassArrow handles its own enter animation
-        }
+    if (isOutEvent(event)) {
+      const edge = deriveFieldEdge(x!, y!, orientation);
 
-        // ── Ball Out ──────────────────────────────────────────────────
-        if (isOutEvent(event)) {
-          const edge = deriveFieldEdge(x!, y!, orientation);
-          return wrap(event.id, (
-            <>
-              {connector}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <g>
-                    <BallOutFigure
-                      svgX={svgX1}
-                      svgY={svgY1}
-                      edge={edge}
-                      sequence={renderIndex + 1}
-                      color={color}
-                    />
-                  </g>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={2}>
-                  <div className="space-y-0.5">
-                    <div>ID {event.id}</div>
-                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ));
-        }
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            <BallOutFigure
+              svgX={svgX1}
+              svgY={svgY1}
+              edge={edge}
+              sequence={sequence}
+              color={color}
+            />,
+          )}
+        </>
+      ));
+    }
 
-        // ── Foul ────────────────────────────────────────────────────────
-        if (isFoulEvent(event)) {
-          return wrap(event.id, (
-            <>
-              {connector}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <g>
-                    <FoulFigure
-                      x={svgX1}
-                      y={svgY1}
-                      sequence={renderIndex + 1}
-                      color={color}
-                    />
-                  </g>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={2}>
-                  <div className="space-y-0.5">
-                    <div>ID {event.id}</div>
-                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ));
-        }
+    if (isFoulEvent(event)) {
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            <FoulFigure x={svgX1} y={svgY1} sequence={sequence} color={color} />,
+          )}
+        </>
+      ));
+    }
 
-        // ── Defensive (Tackle/Interception/Duel/Clearance/Ball Recovery) ─
-        if (isDefensiveEvent(event)) {
-          const subtypeLabel = getDefensiveSubtypeLabel(event.type_id);
-          return wrap(event.id, (
-            <>
-              {connector}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <g>
-                    <DefensiveFigure
-                      x={svgX1}
-                      y={svgY1}
-                      sequence={renderIndex + 1}
-                      subtypeLabel={subtypeLabel}
-                      color={color}
-                    />
-                  </g>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={2}>
-                  <div className="space-y-0.5">
-                    <div>ID {event.id}</div>
-                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ));
-        }
+    if (isDefensiveEvent(event)) {
+      const subtypeLabel = getDefensiveSubtypeLabel(event.type_id);
 
-        // ── Shot ──────────────────────────────────────────────────
-        if (isShotEvent(event)) {
-          // Determine goal-line endpoint:
-          // shots with x > 50 attack toward x=100, otherwise x=0.
-          const goalOptaX = (event.x ?? 50) > 50 ? 100 : 0;
-          const goalOptaY = event.goal_mouth_y ?? event.y ?? 50;
-          const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            <DefensiveFigure
+              x={svgX1}
+              y={svgY1}
+              sequence={sequence}
+              subtypeLabel={subtypeLabel}
+              color={color}
+            />,
+          )}
+        </>
+      ));
+    }
 
-          return wrap(event.id, (
-            <>
-              {connector}
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <g>
-                    <ShotFigure
-                      x1={svgX1}
-                      y1={svgY1}
-                      x2={svgX2}
-                      y2={svgY2}
-                      sequence={renderIndex + 1}
-                      outcome={event.outcome ?? "Miss"}
-                      color={color}
-                    />
-                  </g>
-                </TooltipTrigger>
-                <TooltipContent side="top" sideOffset={2}>
-                  <div className="space-y-0.5">
-                    <div>ID {event.id}</div>
-                    {x != null && y != null ? <div>X: {x} | Y: {y}</div> : null}
-                  </div>
-                </TooltipContent>
-              </Tooltip>
-            </>
-          ));
-        }
+    if (isShotEvent(event)) {
+      const goalOptaX = (event.x ?? 50) > 50 ? 100 : 0;
+      const goalOptaY = event.goal_mouth_y ?? event.y ?? 50;
+      const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
 
-        // Additional event types can be added here as new cases
-        return null;
-      });
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            <ShotFigure
+              x1={svgX1}
+              y1={svgY1}
+              x2={svgX2}
+              y2={svgY2}
+              sequence={sequence}
+              outcome={event.outcome ?? "Miss"}
+              color={color}
+            />,
+          )}
+        </>
+      ));
+    }
 
-  return (
-    <TooltipProvider delayDuration={80}>
-      {animated ? <AnimatePresence>{markers}</AnimatePresence> : markers}
-    </TooltipProvider>
-  );
+    return null;
+  });
+
+  return animated ? <AnimatePresence>{markers}</AnimatePresence> : markers;
 };
 
 export default OptaMarkers;

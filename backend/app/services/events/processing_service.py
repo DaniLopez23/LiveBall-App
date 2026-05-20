@@ -30,7 +30,10 @@ class ProcessEventsService:
         self._game_change_detector = GameChangeDetector(cache)
         self._event_exporter = EventExporter(self._players_service)
         self._event_scanner = EventScanner(cache, self._event_exporter)
-        self._pass_network_updater = PassNetworkUpdateService(cache)
+        self._pass_network_updater = PassNetworkUpdateService(
+            cache,
+            self._players_service,
+        )
 
     def process_game(self, parsed_root: ParsedGamesRoot) -> List[Dict[str, Any]]:
         messages: List[Dict[str, Any]] = []

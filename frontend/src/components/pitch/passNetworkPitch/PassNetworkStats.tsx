@@ -18,6 +18,22 @@ interface PassNetworkStatsProps {
 	awayColor: string;
 }
 
+interface MetricValue {
+	main: string;
+	count?: string;
+	detail?: string;
+}
+
+interface MetricRowProps {
+	label: string;
+	homeValue: MetricValue;
+	awayValue: MetricValue;
+	homeColor: string;
+	awayColor: string;
+}
+
+const EMPTY_VALUE: MetricValue = { main: "-" };
+
 const pickBucketFromFilters = (
 	buckets: PassNetworkStatisticsBucket[] | undefined,
 	minuteRange: [number, number],
@@ -36,25 +52,6 @@ const pickBucketFromFilters = (
 	return closestPrevious ?? buckets[0] ?? null;
 };
 
-const findTopCentrality = (
-	centrality: Record<string, number> | undefined,
-): { playerId: string; value: number } | null => {
-	if (!centrality) return null;
-	const entries = Object.entries(centrality);
-	if (entries.length === 0) return null;
-
-	const sorted = [...entries].sort((a, b) => b[1] - a[1]);
-	const [playerId, value] = sorted[0];
-	if (playerId === undefined || value === undefined) return null;
- 
-	return { playerId, value };
-};
-
-const formatCentrality = (value: number | undefined): string => {
-	if (value === undefined) return "-";
-	return value.toFixed(4);
-};
-
 const resolvePlayerName = (
 	playerId: string | undefined,
 	nodes: PassNetworkNode[],
@@ -64,20 +61,95 @@ const resolvePlayerName = (
 	return node?.player_name || playerId;
 };
 
-interface MetricRowProps {
-	label: string;
-	homeValue: string;
-	awayValue: string;
-}
+const playerMetricValue = (
+	playerId: string | undefined,
+	nodes: PassNetworkNode[],
+	count: number | undefined,
+): MetricValue => {
+	if (!playerId) return EMPTY_VALUE;
 
-const MetricRow: React.FC<MetricRowProps> = ({ label, homeValue, awayValue }) => {
+	return {
+		main: resolvePlayerName(playerId, nodes),
+		count: count === undefined ? undefined : String(count),
+	};
+};
+
+const connectionMetricValue = (
+	connection: PassNetworkStatisticsBucket["top_connection"] | undefined,
+	nodes: PassNetworkNode[],
+): MetricValue => {
+	if (!connection) return EMPTY_VALUE;
+
+	return {
+		main: resolvePlayerName(connection.from_player_id, nodes),
+		count: String(connection.pass_count),
+		detail: `→ ${resolvePlayerName(connection.to_player_id, nodes)}`,
+	};
+};
+
+const totalPassesMetricValue = (
+	bucket: PassNetworkStatisticsBucket | null,
+): MetricValue => ({
+	main: bucket ? String(bucket.total_passes) : "-",
+	detail: bucket ? "pases" : undefined,
+});
+
+const MetricValueCell: React.FC<{
+	value: MetricValue;
+	color: string;
+	align: "left" | "right";
+}> = ({ value, color, align }) => {
+	const isRight = align === "right";
+
 	return (
-		<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-2">
-			<p className="truncate justify-self-start text-left text-sm font-medium text-foreground">{homeValue}</p>
-			<p className="text-center text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-600 dark:text-sky-400">
+		<div
+			className={[
+				"min-w-0",
+				isRight ? "text-right" : "text-left",
+			].join(" ")}
+			title={[value.main, value.detail].filter(Boolean).join(" ")}
+		>
+			<div
+				className={[
+					"flex min-w-0 items-start gap-1.5",
+					isRight ? "flex-row-reverse" : "",
+				].join(" ")}
+			>
+				<p className="min-w-0 flex-1 break-words text-sm font-medium leading-snug text-foreground">
+					{value.main}
+				</p>
+				{value.count ? (
+					<span
+						className="mt-0.5 shrink-0 rounded-md px-1.5 py-0.5 text-[11px] font-bold leading-none text-white"
+						style={{ backgroundColor: color }}
+					>
+						{value.count}
+					</span>
+				) : null}
+			</div>
+			{value.detail ? (
+				<p className="mt-0.5 break-words text-xs leading-snug text-muted-foreground">
+					{value.detail}
+				</p>
+			) : null}
+		</div>
+	);
+};
+
+const MetricRow: React.FC<MetricRowProps> = ({
+	label,
+	homeValue,
+	awayValue,
+	homeColor,
+	awayColor,
+}) => {
+	return (
+		<div className="grid grid-cols-[minmax(0,1fr)_4.75rem_minmax(0,1fr)] items-start gap-2 py-2.5">
+			<MetricValueCell value={homeValue} color={homeColor} align="left" />
+			<p className="pt-0.5 text-center text-[10px] font-semibold uppercase leading-tight tracking-[0.12em] text-sky-600 dark:text-sky-400">
 				{label}
 			</p>
-			<p className="truncate justify-self-end text-right text-sm font-medium text-foreground">{awayValue}</p>
+			<MetricValueCell value={awayValue} color={awayColor} align="right" />
 		</div>
 	);
 };
@@ -109,98 +181,86 @@ const PassNetworkStats: React.FC<PassNetworkStatsProps> = ({
 	const homeNodes = homeNetwork?.nodes ?? [];
 	const awayNodes = awayNetwork?.nodes ?? [];
 
-	const homeTopPasser = `${resolvePlayerName(homeBucket?.top_passer?.player_id, homeNodes)}${homeBucket?.top_passer?.passes_given !== undefined ? ` (${homeBucket.top_passer.passes_given})` : ""}`;
-	const awayTopPasser = `${resolvePlayerName(awayBucket?.top_passer?.player_id, awayNodes)}${awayBucket?.top_passer?.passes_given !== undefined ? ` (${awayBucket.top_passer.passes_given})` : ""}`;
-
-	const homeTopReceiver = `${resolvePlayerName(homeBucket?.top_receiver?.player_id, homeNodes)}${homeBucket?.top_receiver?.passes_received !== undefined ? ` (${homeBucket.top_receiver.passes_received})` : ""}`;
-	const awayTopReceiver = `${resolvePlayerName(awayBucket?.top_receiver?.player_id, awayNodes)}${awayBucket?.top_receiver?.passes_received !== undefined ? ` (${awayBucket.top_receiver.passes_received})` : ""}`;
-
-	const homeTopTotal = `${resolvePlayerName(homeBucket?.top_player_total?.player_id, homeNodes)}${homeBucket?.top_player_total?.total_passes !== undefined ? ` (${homeBucket.top_player_total.total_passes})` : ""}`;
-	const awayTopTotal = `${resolvePlayerName(awayBucket?.top_player_total?.player_id, awayNodes)}${awayBucket?.top_player_total?.total_passes !== undefined ? ` (${awayBucket.top_player_total.total_passes})` : ""}`;
-
-	const homeTopConnection = homeBucket?.top_connection
-		? `${resolvePlayerName(homeBucket.top_connection.from_player_id, homeNodes)} -> ${resolvePlayerName(homeBucket.top_connection.to_player_id, homeNodes)} (${homeBucket.top_connection.pass_count})`
-		: "-";
-	const awayTopConnection = awayBucket?.top_connection
-		? `${resolvePlayerName(awayBucket.top_connection.from_player_id, awayNodes)} -> ${resolvePlayerName(awayBucket.top_connection.to_player_id, awayNodes)} (${awayBucket.top_connection.pass_count})`
-		: "-";
-
-	const homeBetweennessTop = findTopCentrality(homeBucket?.betweenness_centrality);
-	const awayBetweennessTop = findTopCentrality(awayBucket?.betweenness_centrality);
-	const homeEigenvectorTop = findTopCentrality(homeBucket?.eigenvector_centrality);
-	const awayEigenvectorTop = findTopCentrality(awayBucket?.eigenvector_centrality);
-	const homeFlowTop = findTopCentrality(homeBucket?.flow_centrality);
-	const awayFlowTop = findTopCentrality(awayBucket?.flow_centrality);
-
-	const homeBetweenness = homeBetweennessTop
-		? `${resolvePlayerName(homeBetweennessTop.playerId, homeNodes)} (${formatCentrality(homeBetweennessTop.value)})`
-		: "-";
-	const awayBetweenness = awayBetweennessTop
-		? `${resolvePlayerName(awayBetweennessTop.playerId, awayNodes)} (${formatCentrality(awayBetweennessTop.value)})`
-		: "-";
-
-	const homeEigenvector = homeEigenvectorTop
-		? `${resolvePlayerName(homeEigenvectorTop.playerId, homeNodes)} (${formatCentrality(homeEigenvectorTop.value)})`
-		: "-";
-	const awayEigenvector = awayEigenvectorTop
-		? `${resolvePlayerName(awayEigenvectorTop.playerId, awayNodes)} (${formatCentrality(awayEigenvectorTop.value)})`
-		: "-";
-
-	const homeFlow = homeFlowTop
-		? `${resolvePlayerName(homeFlowTop.playerId, homeNodes)} (${formatCentrality(homeFlowTop.value)})`
-		: "-";
-	const awayFlow = awayFlowTop
-		? `${resolvePlayerName(awayFlowTop.playerId, awayNodes)} (${formatCentrality(awayFlowTop.value)})`
-		: "-";
-
 	return (
-		<div className="flex h-full flex-col gap-2">
-			<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 py-1">
-				<p className="truncate text-left text-xs font-semibold" style={{ color: homeColor }}>
+		<div className="flex h-full min-h-0 flex-col gap-2">
+			<div className="grid grid-cols-[minmax(0,1fr)_4.75rem_minmax(0,1fr)] items-center gap-2 py-1">
+				<p className="break-words text-left text-xs font-semibold leading-tight" style={{ color: homeColor }}>
 					{homeTeamName}
 				</p>
 				<p className="text-center text-[10px] font-bold uppercase tracking-[0.16em] text-sky-600 dark:text-sky-400">
 					Metrica
 				</p>
-				<p className="truncate text-right text-xs font-semibold" style={{ color: awayColor }}>
+				<p className="break-words text-right text-xs font-semibold leading-tight" style={{ color: awayColor }}>
 					{awayTeamName}
 				</p>
 			</div>
 
 			<Separator />
 
-			<div className="grid overflow-auto pr-1">
+			<div className="min-h-0 overflow-auto pr-1">
 				<MetricRow
 					label="Total pases"
-					homeValue={homeBucket ? String(homeBucket.total_passes) : "-"}
-					awayValue={awayBucket ? String(awayBucket.total_passes) : "-"}
+					homeValue={totalPassesMetricValue(homeBucket)}
+					awayValue={totalPassesMetricValue(awayBucket)}
+					homeColor={homeColor}
+					awayColor={awayColor}
 				/>
 				<Separator />
-				<MetricRow label="Top pasador" homeValue={homeTopPasser} awayValue={awayTopPasser} />
+				<MetricRow
+					label="Top pasador"
+					homeValue={playerMetricValue(
+						homeBucket?.top_passer?.player_id,
+						homeNodes,
+						homeBucket?.top_passer?.passes_given,
+					)}
+					awayValue={playerMetricValue(
+						awayBucket?.top_passer?.player_id,
+						awayNodes,
+						awayBucket?.top_passer?.passes_given,
+					)}
+					homeColor={homeColor}
+					awayColor={awayColor}
+				/>
 				<Separator />
-				<MetricRow label="Top receptor" homeValue={homeTopReceiver} awayValue={awayTopReceiver} />
+				<MetricRow
+					label="Top receptor"
+					homeValue={playerMetricValue(
+						homeBucket?.top_receiver?.player_id,
+						homeNodes,
+						homeBucket?.top_receiver?.passes_received,
+					)}
+					awayValue={playerMetricValue(
+						awayBucket?.top_receiver?.player_id,
+						awayNodes,
+						awayBucket?.top_receiver?.passes_received,
+					)}
+					homeColor={homeColor}
+					awayColor={awayColor}
+				/>
 				<Separator />
-				<MetricRow label="Top jugador total" homeValue={homeTopTotal} awayValue={awayTopTotal} />
+				<MetricRow
+					label="Top jugador total"
+					homeValue={playerMetricValue(
+						homeBucket?.top_player_total?.player_id,
+						homeNodes,
+						homeBucket?.top_player_total?.total_passes,
+					)}
+					awayValue={playerMetricValue(
+						awayBucket?.top_player_total?.player_id,
+						awayNodes,
+						awayBucket?.top_player_total?.total_passes,
+					)}
+					homeColor={homeColor}
+					awayColor={awayColor}
+				/>
 				<Separator />
 				<MetricRow
 					label="Top conexion"
-					homeValue={homeTopConnection}
-					awayValue={awayTopConnection}
+					homeValue={connectionMetricValue(homeBucket?.top_connection, homeNodes)}
+					awayValue={connectionMetricValue(awayBucket?.top_connection, awayNodes)}
+					homeColor={homeColor}
+					awayColor={awayColor}
 				/>
-				<Separator />
-				{/* <MetricRow
-					label="Top betweenness"
-					homeValue={homeBetweenness}
-					awayValue={awayBetweenness}
-				/>
-				<Separator />
-				<MetricRow
-					label="Top eigenvector"
-					homeValue={homeEigenvector}
-					awayValue={awayEigenvector}
-				/>
-				<Separator />
-				<MetricRow label="Top flow" homeValue={homeFlow} awayValue={awayFlow} /> */}
 			</div>
 		</div>
 	);

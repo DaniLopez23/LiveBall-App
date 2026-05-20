@@ -1,5 +1,5 @@
 import logging
-from typing import Any, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import numpy as np
 
@@ -56,6 +56,8 @@ class PassNetworkService:
         end_x: float = 0.0,
         end_y: float = 0.0,
         minute: int | None = None,
+        from_player_name: str = "",
+        to_player_name: str = "",
     ) -> None:
         """
         Añade una arista dirigida entre dos jugadores y rastrea el cambio.
@@ -67,8 +69,8 @@ class PassNetworkService:
             end_x / end_y: Posición de destino del pase
             minute: Minuto del evento (se normaliza al rango 0..90)
         """
-        self.add_player(from_player_id)
-        self.add_player(to_player_id)
+        self.add_player(from_player_id, from_player_name, self.network.team_id)
+        self.add_player(to_player_id, to_player_name, self.network.team_id)
 
         fp = self.network.players[from_player_id]
         tp = self.network.players[to_player_id]
@@ -285,6 +287,7 @@ class PassNetworkService:
     def add_passes_incremental(
         self,
         events: List[Event],
+        player_name_lookup: Optional[Callable[[str, str], Optional[str]]] = None,
     ) -> tuple[List[Dict[str, Any]], List[Dict[str, Any]], List[int]]:
         """
         Procesa una lista de eventos y devuelve solo los nodos y aristas
@@ -315,6 +318,7 @@ class PassNetworkService:
             from_player_id = event.player_id
             if not from_player_id:
                 continue
+            to_player_id = event.player_receiver_id
 
             x = event.x or 0.0
             y = event.y or 0.0
@@ -327,14 +331,23 @@ class PassNetworkService:
                 elif q.qualifier_id == "141":
                     end_y = float(q.value)
 
+            event_team_id = str(event.team_id or self.network.team_id)
+            from_player_name = ""
+            to_player_name = ""
+            if player_name_lookup:
+                from_player_name = player_name_lookup(event_team_id, from_player_id) or ""
+                to_player_name = player_name_lookup(event_team_id, to_player_id) or ""
+
             self.add_pass(
                 from_player_id,
-                event.player_receiver_id,
+                to_player_id,
                 x,
                 y,
                 end_x,
                 end_y,
                 event.min,
+                from_player_name=from_player_name,
+                to_player_name=to_player_name,
             )
             self.network.processed_event_ids.add(event.event_id)
             event_bucket = minute_to_bucket(event.min)

@@ -1,7 +1,12 @@
-import React, { useId } from "react";
+import React from "react";
 import { motion } from "motion/react";
-import { transformOptaToSvgPure, type Orientation, VB_SHORT, VB_LONG, MARGIN } from "@/store/optaPitchConfigStore";
-import type { PassNetworkNode, PassNetworkEdge } from "@/types/passNetwork";
+import {
+  transformOptaToSvgPure,
+  type Orientation,
+  VB_LONG,
+  VB_SHORT,
+} from "@/store/optaPitchConfigStore";
+import type { PassNetworkEdge, PassNetworkNode } from "@/types/passNetwork";
 
 export interface PassNetworkElementsProps {
   nodes: PassNetworkNode[];
@@ -10,24 +15,82 @@ export interface PassNetworkElementsProps {
   color?: string;
   /** When true, elements animate in */
   animated?: boolean;
-  /** Pitch orientation — must match the parent OptaPitch to position nodes correctly */
+  /** Pitch orientation: must match the parent OptaPitch to position nodes correctly */
   orientation?: Orientation;
   /** Mirrors Opta X (length axis) to show the team on the opposite half */
   mirrorX?: boolean;
 }
 
-// ── Normalise a value from [0, max] to [min, max] linear range ────────
-function lerp(value: number, max: number, outMin: number, outMax: number): number {
-  if (max === 0) return outMin;
-  return outMin + (value / max) * (outMax - outMin);
+interface NodePosition {
+  svgX: number;
+  svgY: number;
+  node: PassNetworkNode;
 }
 
-// ── Perpendicular offset for bidirectional edges ──────────────────────
-// Returns a quadratic bezier control point offset perpendicularly
-// so that A→B and B→A don't overlap.
+interface BoxLine {
+  text: string;
+  strong?: boolean;
+}
+
+interface WeightDomain {
+  min: number;
+  max: number;
+}
+
+const NODE_R_MIN = 6.8;
+const NODE_R_MAX = 12.2;
+const STROKE_MIN = 0.9;
+const STROKE_MAX = 4.2;
+const EDGE_CURVATURE = 14;
+const CLOSE_EDGE_CURVATURE = 24;
+const CLOSE_EDGE_GAP = 34;
+const HIT_STROKE_MIN = 12;
+const BOX_PADDING = 4;
+const NODE_WEIGHT_CONTRAST = 0.56;
+const EDGE_WEIGHT_CONTRAST = 0.66;
+
+function clamp(value: number, min: number, max: number): number {
+  return Math.min(max, Math.max(min, value));
+}
+
+function getWeightDomain(values: number[]): WeightDomain {
+  if (values.length === 0) return { min: 0, max: 0 };
+
+  return {
+    min: Math.min(...values),
+    max: Math.max(...values),
+  };
+}
+
+function scaleWeight(
+  value: number,
+  domain: WeightDomain,
+  outMin: number,
+  outMax: number,
+  contrast: number,
+): number {
+  const range = domain.max - domain.min;
+
+  if (range <= 0) {
+    return outMin + (outMax - outMin) * 0.5;
+  }
+
+  const ratio = clamp((value - domain.min) / range, 0, 1);
+  const balancedRatio = clamp(0.5 + (ratio - 0.5) * contrast, 0, 1);
+
+  return outMin + balancedRatio * (outMax - outMin);
+}
+
+function getNodeWeight(node: PassNetworkNode): number {
+  const total = (node.passes_given ?? 0) + (node.passes_received ?? 0);
+  return total > 0 ? total : node.pass_count;
+}
+
 function controlPoint(
-  x1: number, y1: number,
-  x2: number, y2: number,
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
   curvature: number,
 ): { cpx: number; cpy: number } {
   const mx = (x1 + x2) / 2;
@@ -35,42 +98,192 @@ function controlPoint(
   const dx = x2 - x1;
   const dy = y2 - y1;
   const len = Math.sqrt(dx * dx + dy * dy) || 1;
+
   return {
     cpx: mx - (dy / len) * curvature,
     cpy: my + (dx / len) * curvature,
   };
 }
 
-const ARROW_ID = "pass-net-arrow";
-const NODE_R_MIN = 3;
-const NODE_R_MAX = 10;
-const STROKE_MIN = 0.4;
-const STROKE_MAX = 3.5;
-/** Perpendicular offset (SVG units) applied to each directed edge */
-const EDGE_CURVATURE = 13;
-/** Arrow marker size (smaller = less intrusive tip) */
-const ARROW_SIZE = 3.5;
+function getEffectiveEdgeCurvature(
+  x1: number,
+  y1: number,
+  x2: number,
+  y2: number,
+  fromRadius: number,
+  toRadius: number,
+  isBidirectional: boolean,
+): number {
+  const distance = Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+  const visibleGap = distance - fromRadius - toRadius;
+  const closePressure = clamp((CLOSE_EDGE_GAP - visibleGap) / CLOSE_EDGE_GAP, 0, 1);
+  const baseCurvature = isBidirectional ? EDGE_CURVATURE : 0;
+
+  return baseCurvature + closePressure * CLOSE_EDGE_CURVATURE;
+}
+
+function getCompactPlayerName(playerName: string, fallback: string): string {
+  const trimmedName = playerName.trim();
+  if (!trimmedName) return fallback;
+
+  const parts = trimmedName.split(/\s+/);
+  const lastName = parts[parts.length - 1] ?? trimmedName;
+  return lastName.length > 9 ? `${lastName.slice(0, 8)}.` : lastName;
+}
+
+function truncateText(value: string, maxLength = 30): string {
+  return value.length > maxLength ? `${value.slice(0, maxLength - 1)}.` : value;
+}
+
+function getReadableTextColor(backgroundColor: string): string {
+  const normalized = backgroundColor.trim();
+  const hex =
+    normalized.length === 4 && normalized.startsWith("#")
+      ? `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`
+      : normalized;
+
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return "#111827";
+
+  const red = Number.parseInt(hex.slice(1, 3), 16) / 255;
+  const green = Number.parseInt(hex.slice(3, 5), 16) / 255;
+  const blue = Number.parseInt(hex.slice(5, 7), 16) / 255;
+  const luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue;
+
+  return luminance < 0.48 ? "#ffffff" : "#111827";
+}
+
+function getFloatingBoxPosition(
+  anchorX: number,
+  anchorY: number,
+  width: number,
+  height: number,
+  viewBoxWidth: number,
+  viewBoxHeight: number,
+  gap = 8,
+): { x: number; y: number } {
+  const canOpenRight = anchorX + gap + width <= viewBoxWidth;
+  const x = canOpenRight ? anchorX + gap : anchorX - width - gap;
+  const y = anchorY - height / 2;
+
+  return {
+    x: clamp(x, 2, viewBoxWidth - width - 2),
+    y: clamp(y, 2, viewBoxHeight - height - 2),
+  };
+}
+
+function getTooltipBox(
+  anchorX: number,
+  anchorY: number,
+  lines: BoxLine[],
+  viewBoxWidth: number,
+  viewBoxHeight: number,
+): { x: number; y: number; width: number; height: number } {
+  const fontSize = 5;
+  const maxLineLength = Math.max(...lines.map((line) => line.text.length));
+  const width = clamp(maxLineLength * fontSize * 0.62 + BOX_PADDING * 2, 42, 128);
+  const height = BOX_PADDING * 2 + lines.length * 7;
+  const x = clamp(anchorX - width / 2, 2, viewBoxWidth - width - 2);
+  const y = clamp(anchorY - height - 9, 2, viewBoxHeight - height - 2);
+
+  return { x, y, width, height };
+}
+
+function FloatingInfoBox({
+  accentColor,
+  lines,
+  variant = "tooltip",
+  x,
+  y,
+  width,
+  height,
+}: {
+  accentColor: string;
+  lines: BoxLine[];
+  variant?: "tooltip" | "card";
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}) {
+  const isCard = variant === "card";
+  const fill = isCard ? "#ffffff" : "#111827";
+  const stroke = isCard ? "rgba(15,23,42,0.18)" : "rgba(255,255,255,0.16)";
+  const textFill = isCard ? "#111827" : "#ffffff";
+  const secondaryFill = isCard ? "#475569" : "#d1d5db";
+
+  return (
+    <g pointerEvents="none">
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        rx={4}
+        fill={fill}
+        fillOpacity={isCard ? 0.96 : 0.94}
+        stroke={stroke}
+        strokeWidth={0.6}
+      />
+      <rect x={x} y={y} width={2.5} height={height} rx={1.25} fill={accentColor} />
+      <text x={x + BOX_PADDING + 2} y={y + BOX_PADDING + 5} fontSize={5} fill={textFill}>
+        {lines.map((line, index) => (
+          <tspan
+            key={`${line.text}-${index}`}
+            x={x + BOX_PADDING + 2}
+            dy={index === 0 ? 0 : 7}
+            fontWeight={line.strong ? 700 : 500}
+            fill={line.strong ? textFill : secondaryFill}
+          >
+            {line.text}
+          </tspan>
+        ))}
+      </text>
+    </g>
+  );
+}
+
+function getArrowPoints(
+  tipX: number,
+  tipY: number,
+  directionX: number,
+  directionY: number,
+  size: number,
+): string {
+  const len = Math.sqrt(directionX * directionX + directionY * directionY) || 1;
+  const ux = directionX / len;
+  const uy = directionY / len;
+  const px = -uy;
+  const py = ux;
+  const baseX = tipX - ux * size;
+  const baseY = tipY - uy * size;
+  const halfWidth = size * 0.48;
+
+  return [
+    `${tipX},${tipY}`,
+    `${baseX + px * halfWidth},${baseY + py * halfWidth}`,
+    `${baseX - px * halfWidth},${baseY - py * halfWidth}`,
+  ].join(" ");
+}
 
 const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
   nodes,
   edges,
   color = "#ffffff",
   animated = false,
-  orientation = 'vertical',
+  orientation = "vertical",
   mirrorX = false,
 }) => {
-  const uid = useId().replace(/:/g, "");
-  const arrowId = `${ARROW_ID}-${uid}`;
-  const [hoveredId, setHoveredId] = React.useState<string | null>(null);
-  const [hoveredEdge, setHoveredEdge] = React.useState<string | null>(null);
+  const [hoveredNodeId, setHoveredNodeId] = React.useState<string | null>(null);
+  const [hoveredEdgeId, setHoveredEdgeId] = React.useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = React.useState<string | null>(null);
 
-  // Viewbox dims based on orientation prop (matches OptaPitch logic)
-  const vW = orientation === 'vertical' ? VB_SHORT : VB_LONG;
-  const vH = orientation === 'vertical' ? VB_LONG  : VB_SHORT;
+  const vW = orientation === "vertical" ? VB_SHORT : VB_LONG;
+  const vH = orientation === "vertical" ? VB_LONG : VB_SHORT;
+  const nodeTextColor = getReadableTextColor(color);
 
-  // ── Pre-compute node SVG positions ─────────────────────────────────
   const nodeMap = React.useMemo(() => {
-    const m = new Map<string, { svgX: number; svgY: number; node: PassNetworkNode }>();
+    const map = new Map<string, NodePosition>();
+
     for (const node of nodes) {
       const optaX = mirrorX ? 100 - node.avg_position_total.x : node.avg_position_total.x;
       const { x: svgX, y: svgY } = transformOptaToSvgPure(
@@ -78,264 +291,373 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
         node.avg_position_total.y,
         orientation,
       );
-      m.set(node.player_id, { svgX, svgY, node });
+
+      map.set(node.player_id, { svgX, svgY, node });
     }
-    return m;
+
+    return map;
   }, [nodes, orientation, mirrorX]);
 
-  // ── Normalisation bounds ────────────────────────────────────────────
-  const maxNodePasses = Math.max(1, ...nodes.map((n) => n.pass_count));
-  const maxEdgePasses = Math.max(1, ...edges.map((e) => e.pass_count));
+  const nodeWeightDomain = React.useMemo(
+    () => getWeightDomain(nodes.map(getNodeWeight)),
+    [nodes],
+  );
+  const edgeWeightDomain = React.useMemo(
+    () => getWeightDomain(edges.map((edge) => edge.pass_count)),
+    [edges],
+  );
 
-  // ── Build a set of reverse-edge keys to detect bidirectional pairs ──
   const edgeKeySet = React.useMemo(() => {
-    const s = new Set<string>();
-    for (const e of edges) s.add(`${e.from_player_id}->${e.to_player_id}`);
-    return s;
+    const set = new Set<string>();
+    for (const edge of edges) {
+      set.add(`${edge.from_player_id}->${edge.to_player_id}`);
+    }
+    return set;
   }, [edges]);
 
-  const hasBidirectional = (from: string, to: string) =>
-    edgeKeySet.has(`${from}->${to}`) && edgeKeySet.has(`${to}->${from}`);
+  const nodeConnectionStats = React.useMemo(() => {
+    const map = new Map<string, { inEdges: number; outEdges: number; inPasses: number; outPasses: number }>();
+
+    for (const node of nodes) {
+      map.set(node.player_id, { inEdges: 0, outEdges: 0, inPasses: 0, outPasses: 0 });
+    }
+
+    for (const edge of edges) {
+      const fromStats = map.get(edge.from_player_id);
+      if (fromStats) {
+        fromStats.outEdges += 1;
+        fromStats.outPasses += edge.pass_count;
+      }
+
+      const toStats = map.get(edge.to_player_id);
+      if (toStats) {
+        toStats.inEdges += 1;
+        toStats.inPasses += edge.pass_count;
+      }
+    }
+
+    return map;
+  }, [nodes, edges]);
+
+  const getNodeRadius = React.useCallback(
+    (node: PassNetworkNode) =>
+      scaleWeight(
+        getNodeWeight(node),
+        nodeWeightDomain,
+        NODE_R_MIN,
+        NODE_R_MAX,
+        NODE_WEIGHT_CONTRAST,
+      ),
+    [nodeWeightDomain],
+  );
+
+  const hasBidirectional = React.useCallback(
+    (from: string, to: string) => edgeKeySet.has(`${from}->${to}`) && edgeKeySet.has(`${to}->${from}`),
+    [edgeKeySet],
+  );
+
+  const selectedNodePosition = selectedNodeId ? nodeMap.get(selectedNodeId) : null;
 
   return (
     <g>
-      {/* ── Arrow marker definition ──────────────────────────────── */}
-      <defs>
-        <marker
-          id={arrowId}
-          markerWidth={ARROW_SIZE * 2}
-          markerHeight={ARROW_SIZE * 2}
-          refX={ARROW_SIZE * 1.8}
-          refY={ARROW_SIZE}
-          orient="auto"
-          markerUnits="userSpaceOnUse"
-        >
-          <path
-            d={`M0,0 L0,${ARROW_SIZE * 2} L${ARROW_SIZE * 2},${ARROW_SIZE} z`}
-            fill={color}
-            fillOpacity={0.85}
-          />
-        </marker>
-      </defs>
+      <rect
+        x={0}
+        y={0}
+        width={vW}
+        height={vH}
+        fill="transparent"
+        onClick={() => setSelectedNodeId(null)}
+      />
 
-      {/* ── Edges (drawn below nodes) ─────────────────────────────── */}
       {edges.map((edge) => {
         const from = nodeMap.get(edge.from_player_id);
-        const to   = nodeMap.get(edge.to_player_id);
+        const to = nodeMap.get(edge.to_player_id);
         if (!from || !to) return null;
 
         const { svgX: x1, svgY: y1 } = from;
         const { svgX: x2, svgY: y2 } = to;
-
-        const strokeWidth = lerp(edge.pass_count, maxEdgePasses, STROKE_MIN, STROKE_MAX);
-        const opacity     = lerp(edge.pass_count, maxEdgePasses, 0.3, 0.9);
-
-        // Apply curvature only when a reverse edge also exists
-        const curv = hasBidirectional(edge.from_player_id, edge.to_player_id)
-          ? EDGE_CURVATURE
-          : 0;
-
-        const { cpx, cpy } = controlPoint(x1, y1, x2, y2, curv);
-
-        // Shorten the line so the arrowhead doesn't overlap the target node
-        const toR = lerp(nodeMap.get(edge.to_player_id)!.node.pass_count, maxNodePasses, NODE_R_MIN, NODE_R_MAX);
-        // For bezier, approximate end point retracted along tangent at t≈1
-        const tanX = x2 - cpx;
-        const tanY = y2 - cpy;
-        const tanLen = Math.sqrt(tanX * tanX + tanY * tanY) || 1;
-        const ex = x2 - (tanX / tanLen) * (toR + 1);
-        const ey = y2 - (tanY / tanLen) * (toR + 1);
-
-        const d = curv === 0
-          ? `M ${x1} ${y1} L ${ex} ${ey}`
-          : `M ${x1} ${y1} Q ${cpx} ${cpy} ${ex} ${ey}`;
-
+        const fromRadius = getNodeRadius(from.node);
+        const toRadius = getNodeRadius(to.node);
+        const strokeWidth = scaleWeight(
+          edge.pass_count,
+          edgeWeightDomain,
+          STROKE_MIN,
+          STROKE_MAX,
+          EDGE_WEIGHT_CONTRAST,
+        );
+        const baseOpacity = scaleWeight(
+          edge.pass_count,
+          edgeWeightDomain,
+          0.34,
+          0.78,
+          EDGE_WEIGHT_CONTRAST,
+        );
         const key = `${edge.from_player_id}->${edge.to_player_id}`;
+        const isHovered = hoveredEdgeId === key;
+        const isConnectedToHoveredNode =
+          hoveredNodeId === edge.from_player_id || hoveredNodeId === edge.to_player_id;
+        const isConnectedToSelectedNode =
+          selectedNodeId === edge.from_player_id || selectedNodeId === edge.to_player_id;
+        const shouldHighlight = isHovered || isConnectedToHoveredNode || isConnectedToSelectedNode;
+
+        const isBidirectionalEdge = hasBidirectional(edge.from_player_id, edge.to_player_id);
+        const curvature = getEffectiveEdgeCurvature(
+          x1,
+          y1,
+          x2,
+          y2,
+          fromRadius,
+          toRadius,
+          isBidirectionalEdge,
+        );
+        const { cpx, cpy } = controlPoint(x1, y1, x2, y2, curvature);
+
+        const startTanX = curvature === 0 ? x2 - x1 : cpx - x1;
+        const startTanY = curvature === 0 ? y2 - y1 : cpy - y1;
+        const endTanX = curvature === 0 ? x2 - x1 : x2 - cpx;
+        const endTanY = curvature === 0 ? y2 - y1 : y2 - cpy;
+        const startLen = Math.sqrt(startTanX * startTanX + startTanY * startTanY) || 1;
+        const endLen = Math.sqrt(endTanX * endTanX + endTanY * endTanY) || 1;
+        const startX = x1 + (startTanX / startLen) * (fromRadius + 0.8);
+        const startY = y1 + (startTanY / startLen) * (fromRadius + 0.8);
+        const arrowSize = clamp(strokeWidth * 2.15, 3.8, 7.2);
+        const tipX = x2 - (endTanX / endLen) * (toRadius + 0.9);
+        const tipY = y2 - (endTanY / endLen) * (toRadius + 0.9);
+        const endX = tipX - (endTanX / endLen) * arrowSize;
+        const endY = tipY - (endTanY / endLen) * arrowSize;
+        const pathD =
+          curvature === 0
+            ? `M ${startX} ${startY} L ${endX} ${endY}`
+            : `M ${startX} ${startY} Q ${cpx} ${cpy} ${endX} ${endY}`;
+        const arrowPoints = getArrowPoints(tipX, tipY, endTanX, endTanY, arrowSize);
 
         return (
-          <motion.path
+          <motion.g
             key={key}
-            d={d}
-            stroke={color}
-            strokeWidth={strokeWidth}
-            strokeOpacity={opacity}
-            fill="none"
+            initial={animated ? { opacity: 0 } : false}
+            animate={{ opacity: shouldHighlight ? 1 : 0.95 }}
+            transition={animated ? { duration: 0.45, ease: "easeOut" } : { duration: 0.12 }}
+          >
+            <path
+              d={pathD}
+              stroke="#020617"
+              strokeWidth={strokeWidth + 1.6}
+              strokeOpacity={shouldHighlight ? 0.24 : 0.16}
+              fill="none"
               strokeLinecap="round"
-            markerEnd={`url(#${arrowId})`}
-              onMouseEnter={() => setHoveredEdge(key)}
-              onMouseLeave={() => setHoveredEdge((k) => (k === key ? null : k))}
-            initial={animated ? { opacity: 0, pathLength: 0 } : false}
-            animate={{ opacity: 1, pathLength: 1 }}
-            transition={
-              animated
-                ? { duration: 0.7, ease: "easeOut" }
-                : { duration: 0 }
-            }
+              pointerEvents="none"
+            />
+            <motion.path
+              d={pathD}
+              stroke={color}
+              strokeWidth={shouldHighlight ? strokeWidth + 0.55 : strokeWidth}
+              strokeOpacity={shouldHighlight ? 0.95 : baseOpacity}
+              fill="none"
+              strokeLinecap="round"
+              initial={animated ? { pathLength: 0 } : false}
+              animate={{ pathLength: 1 }}
+              transition={animated ? { duration: 0.7, ease: "easeOut" } : { duration: 0 }}
+              pointerEvents="none"
+            />
+            <polygon
+              points={arrowPoints}
+              fill="#020617"
+              fillOpacity={shouldHighlight ? 0.26 : 0.18}
+              transform={`translate(${(endTanY / endLen) * 0.45} ${(-endTanX / endLen) * 0.45})`}
+              pointerEvents="none"
+            />
+            <polygon
+              points={arrowPoints}
+              fill={color}
+              fillOpacity={shouldHighlight ? 0.98 : clamp(baseOpacity + 0.12, 0.35, 0.9)}
+              pointerEvents="none"
+            />
+            <path
+              d={pathD}
+              stroke="transparent"
+              strokeWidth={Math.max(HIT_STROKE_MIN, strokeWidth + 8)}
+              fill="none"
+              strokeLinecap="round"
+              pointerEvents="stroke"
+              onMouseEnter={() => setHoveredEdgeId(key)}
+              onMouseLeave={() => setHoveredEdgeId((current) => (current === key ? null : current))}
+            />
+          </motion.g>
+        );
+      })}
+
+      {edges.map((edge) => {
+        const from = nodeMap.get(edge.from_player_id);
+        const to = nodeMap.get(edge.to_player_id);
+        const key = `${edge.from_player_id}->${edge.to_player_id}`;
+        if (!from || !to || hoveredEdgeId !== key) return null;
+
+        const curvature = getEffectiveEdgeCurvature(
+          from.svgX,
+          from.svgY,
+          to.svgX,
+          to.svgY,
+          getNodeRadius(from.node),
+          getNodeRadius(to.node),
+          hasBidirectional(edge.from_player_id, edge.to_player_id),
+        );
+        const { cpx, cpy } = controlPoint(from.svgX, from.svgY, to.svgX, to.svgY, curvature);
+        const midX = curvature === 0
+          ? (from.svgX + to.svgX) / 2
+          : 0.25 * from.svgX + 0.5 * cpx + 0.25 * to.svgX;
+        const midY = curvature === 0
+          ? (from.svgY + to.svgY) / 2
+          : 0.25 * from.svgY + 0.5 * cpy + 0.25 * to.svgY;
+        const lines: BoxLine[] = [
+          {
+            text: `${truncateText(from.node.player_name, 18)} -> ${truncateText(to.node.player_name, 18)}`,
+            strong: true,
+          },
+          { text: `Pases: ${edge.pass_count}` },
+        ];
+        const box = getTooltipBox(midX, midY, lines, vW, vH);
+
+        return (
+          <FloatingInfoBox
+            key={`edge-tip-${key}`}
+            accentColor={color}
+            lines={lines}
+            x={box.x}
+            y={box.y}
+            width={box.width}
+            height={box.height}
           />
         );
       })}
 
-      {/* ── Nodes (drawn above edges) ─────────────────────────────── */}
       {nodes.map((node) => {
-        const pos = nodeMap.get(node.player_id);
-        if (!pos) return null;
+        const position = nodeMap.get(node.player_id);
+        if (!position) return null;
 
-        const { svgX, svgY } = pos;
-        const r = lerp(node.pass_count, maxNodePasses, NODE_R_MIN, NODE_R_MAX);
-        // Display player id truncated to 3 digits inside the node.
-        const idStr = String(node.player_id);
-        const displayId = idStr.slice(0, 3);
-        const idLen = displayId.length;
-        const fontSize = idLen <= 3 ? 3.5 : idLen <= 6 ? 3.0 : 2.4;
-        const totalWeight = (node.passes_given ?? 0) + (node.passes_received ?? 0);
+        const { svgX, svgY } = position;
+        const radius = getNodeRadius(node);
+        const weight = getNodeWeight(node);
+        const label = getCompactPlayerName(node.player_name, String(node.player_id));
+        const fontSize = clamp((radius * 1.45) / Math.max(label.length * 0.58, 1), 2.8, 5.2);
+        const isFocused = hoveredNodeId === node.player_id || selectedNodeId === node.player_id;
+        const haloRadius = radius + (isFocused ? 3.4 : 1.4);
 
         return (
           <motion.g
             key={node.player_id}
             initial={animated ? { opacity: 0, scale: 0, x: svgX, y: svgY } : { x: svgX, y: svgY }}
             animate={{ opacity: 1, scale: 1, x: svgX, y: svgY }}
-            onMouseEnter={() => setHoveredId(node.player_id)}
-            onMouseLeave={() => setHoveredId((id) => (id === node.player_id ? null : id))}
+            onMouseEnter={() => setHoveredNodeId(node.player_id)}
+            onMouseLeave={() => setHoveredNodeId((current) => (current === node.player_id ? null : current))}
+            onClick={(event) => {
+              event.stopPropagation();
+              setSelectedNodeId((current) => (current === node.player_id ? null : node.player_id));
+            }}
             transition={{
-              opacity: animated ? { duration: 0.4, ease: "backOut", delay: 0.5 } : { duration: 0 },
-              scale:   animated ? { duration: 0.4, ease: "backOut", delay: 0.5 } : { duration: 0 },
+              opacity: animated ? { duration: 0.4, ease: "backOut", delay: 0.45 } : { duration: 0 },
+              scale: animated ? { duration: 0.4, ease: "backOut", delay: 0.45 } : { duration: 0 },
               x: { duration: 0.5, ease: "easeOut" },
               y: { duration: 0.5, ease: "easeOut" },
             }}
             style={{ transformOrigin: "0px 0px" }}
             role="button"
-            aria-label={`Jugador ${node.player_id}`}
+            aria-label={`Jugador ${node.player_name}`}
             cursor="pointer"
           >
-            {/* Shadow ring */}
+            <circle cx={0} cy={0} r={haloRadius} fill="#020617" fillOpacity={isFocused ? 0.36 : 0.24} />
             <circle
               cx={0}
               cy={0}
-              r={r + 0.8}
-              fill="rgba(0,0,0,0.35)"
-            />
-            {/* Main node circle */}
-            <circle
-              cx={0}
-              cy={0}
-              r={r}
+              r={radius}
               fill={color}
-              fillOpacity={0.9}
+              fillOpacity={0.96}
+              stroke="#ffffff"
+              strokeOpacity={isFocused ? 0.95 : 0.62}
+              strokeWidth={isFocused ? 1.3 : 0.7}
             />
-            {/* Player id (displayed, truncated to 3 chars) */}
             <text
               x={0}
               y={0}
               textAnchor="middle"
               dominantBaseline="central"
               fontSize={fontSize}
-              fontWeight="bold"
-              fill="#1a1a1a"
+              fontWeight={800}
+              fill={nodeTextColor}
+              pointerEvents="none"
               style={{ userSelect: "none" }}
             >
-              {displayId}
+              {label}
             </text>
-
-            {/* Hover info box (full id + total weight) — clamp inside viewBox */}
-            {hoveredId === node.player_id ? (
-              (() => {
-                const label = `ID: ${node.player_id} — Peso: ${totalWeight}`;
-                const tipFont = 6; // mucho más grande
-                const padding = 4;
-                const estWidth = Math.max(label.length * tipFont * 0.7 + padding * 2, 36);
-                const estHeight = tipFont * 1.6 + padding * 2;
-                let tipX = -estWidth / 2;
-                let tipY = -(r + estHeight + 4);
-
-                // Absolute position of tip in SVG coords
-                let absLeft = svgX + tipX;
-                let absTop = svgY + tipY;
-
-                // Clamp horizontally
-                if (absLeft < 0) tipX += -absLeft;
-                if (absLeft + estWidth > vW) tipX -= (absLeft + estWidth - vW);
-
-                // Clamp vertically
-                if (absTop < 0) tipY += -absTop;
-                if (absTop + estHeight > vH) tipY -= (absTop + estHeight - vH);
-
-                return (
-                  <g>
-                    <rect
-                      x={tipX}
-                      y={tipY}
-                      width={estWidth}
-                      height={estHeight}
-                      rx={3}
-                      fill="#111"
-                      fillOpacity={0.95}
-                    />
-                    <text
-                      x={0}
-                      y={tipY + estHeight / 2}
-                      textAnchor="middle"
-                      dominantBaseline="central"
-                      fontSize={tipFont}
-                      fill="#fff"
-                      style={{ userSelect: "none" }}
-                    >
-                      {label}
-                    </text>
-                  </g>
-                );
-              })()
-            ) : null}
+            <title>{`${node.player_name} - peso ${weight}`}</title>
           </motion.g>
         );
       })}
 
-      {/* Edge hover label (rendered at computed midpoint, clamped) */}
-      {edges.map((edge) => {
-        const from = nodeMap.get(edge.from_player_id);
-        const to   = nodeMap.get(edge.to_player_id);
-        if (!from || !to) return null;
+      {nodes.map((node) => {
+        const position = nodeMap.get(node.player_id);
+        if (!position || hoveredNodeId !== node.player_id || selectedNodeId === node.player_id) return null;
 
-        const { svgX: x1, svgY: y1 } = from;
-        const { svgX: x2, svgY: y2 } = to;
+        const lines: BoxLine[] = [
+          { text: truncateText(node.player_name), strong: true },
+          { text: `Peso: ${getNodeWeight(node)}` },
+          { text: `Dados: ${node.passes_given} | Recibidos: ${node.passes_received}` },
+        ];
+        const box = getTooltipBox(position.svgX, position.svgY - getNodeRadius(node), lines, vW, vH);
 
-        const curv = hasBidirectional(edge.from_player_id, edge.to_player_id)
-          ? EDGE_CURVATURE
-          : 0;
-        const { cpx, cpy } = controlPoint(x1, y1, x2, y2, curv);
-
-        // Midpoint of quadratic bezier at t=0.5
-        const midX = 0.25 * x1 + 0.5 * cpx + 0.25 * x2;
-        const midY = 0.25 * y1 + 0.5 * cpy + 0.25 * y2;
-
-        const key = `${edge.from_player_id}->${edge.to_player_id}`;
-        const weight = edge.pass_count;
-
-        // Render small hover box when hoveredEdge matches
-        return hoveredEdge === key ? (
-          (() => {
-            const label = `${weight}`;
-            const tipFont = 5;
-            const padding = 3;
-            const estWidth = Math.max(label.length * tipFont * 0.8 + padding * 2, 24);
-            const estHeight = tipFont * 1.6 + padding * 2;
-            let tipX = midX - estWidth / 2;
-            let tipY = midY - estHeight / 2;
-
-            // Clamp to viewBox
-            if (tipX < 0) tipX = 0;
-            if (tipX + estWidth > vW) tipX = vW - estWidth;
-            if (tipY < 0) tipY = 0;
-            if (tipY + estHeight > vH) tipY = vH - estHeight;
-
-            return (
-              <g key={`hover-edge-${key}`}>
-                <rect x={tipX} y={tipY} width={estWidth} height={estHeight} rx={2} fill="#000" fillOpacity={0.9} />
-                <text x={tipX + estWidth / 2} y={tipY + estHeight / 2} textAnchor="middle" dominantBaseline="central" fontSize={tipFont} fill="#fff">{label}</text>
-              </g>
-            );
-          })()
-        ) : null;
+        return (
+          <FloatingInfoBox
+            key={`node-tip-${node.player_id}`}
+            accentColor={color}
+            lines={lines}
+            x={box.x}
+            y={box.y}
+            width={box.width}
+            height={box.height}
+          />
+        );
       })}
+
+      {selectedNodePosition ? (
+        (() => {
+          const node = selectedNodePosition.node;
+          const stats = nodeConnectionStats.get(node.player_id) ?? {
+            inEdges: 0,
+            outEdges: 0,
+            inPasses: 0,
+            outPasses: 0,
+          };
+          const width = 100;
+          const height = 57;
+          const { x, y } = getFloatingBoxPosition(
+            selectedNodePosition.svgX,
+            selectedNodePosition.svgY,
+            width,
+            height,
+            vW,
+            vH,
+          );
+          const lines: BoxLine[] = [
+            { text: truncateText(node.player_name, 27), strong: true },
+            { text: `Peso total: ${getNodeWeight(node)}` },
+            { text: `Pases dados: ${node.passes_given}` },
+            { text: `Pases recibidos: ${node.passes_received}` },
+            { text: `Relaciones: ${stats.outEdges} sal. / ${stats.inEdges} ent.` },
+            { text: `ID: ${truncateText(node.player_id, 22)}` },
+          ];
+
+          return (
+            <FloatingInfoBox
+              accentColor={color}
+              lines={lines}
+              variant="card"
+              x={x}
+              y={y}
+              width={width}
+              height={height}
+            />
+          );
+        })()
+      ) : null}
     </g>
   );
 };

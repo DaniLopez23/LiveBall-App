@@ -134,14 +134,19 @@ class PlayersService:
         root = tree.getroot()
 
         teams_payload: Dict[str, Dict[str, Any]] = {}
-        # Expected hierarchy: SoccerFeed -> SoccerDocument -> Team
-        team_elements = root.findall("./SoccerDocument/Team")
+        # F40 can contain repeated team blocks for the same team. Some match
+        # events reference players from those secondary blocks, so merge them.
+        team_elements = root.findall("./SoccerDocument//Team")
         for team_el in team_elements:
             team_id = self._normalize_team_id(team_el.attrib.get("uID", ""))
             if not team_id:
                 continue
 
-            teams_payload[team_id] = self._parse_team(team_el, team_id)
+            parsed_team = self._parse_team(team_el, team_id)
+            if team_id in teams_payload:
+                self._merge_team_payload(teams_payload[team_id], parsed_team)
+            else:
+                teams_payload[team_id] = parsed_team
 
         return teams_payload
 
@@ -156,6 +161,28 @@ class PlayersService:
                     continue
                 lookup[(team_key, player_key)] = player
         self._player_lookup = lookup
+
+    def _merge_team_payload(
+        self,
+        current: Dict[str, Any],
+        incoming: Dict[str, Any],
+    ) -> None:
+        """Merges duplicate F40 team blocks without duplicating players."""
+        for field in ("team_name", "team_short_name", "team_official_name"):
+            if not current.get(field) and incoming.get(field):
+                current[field] = incoming[field]
+
+        players_by_id = {
+            str(player.get("player_id", "")): player
+            for player in current.get("players", [])
+        }
+        for player in incoming.get("players", []):
+            player_id = str(player.get("player_id", ""))
+            if not player_id:
+                continue
+            if player_id not in players_by_id:
+                current.setdefault("players", []).append(player)
+                players_by_id[player_id] = player
 
     def _parse_team(self, team_el: ET.Element, team_id: str) -> Dict[str, Any]:
         """Builds one team payload including all players."""
