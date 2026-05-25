@@ -3,6 +3,7 @@ import { GameWebSocketClient } from "@/services/websocket";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
+import useStatsStore from "@/store/statsStore";
 import useWebsocketStore from "@/store/websocketStore";
 import { applyWebsocketMessageToStores } from "@/store/websocketStateUpdater";
 import type { IncomingWsMessage } from "@/types/websocket";
@@ -40,6 +41,7 @@ export const useWebsocket = ({
 			useGameStore.getState().reset();
 			useEventsStore.getState().reset();
 			usePassNetworksStore.getState().reset();
+			useStatsStore.getState().reset();
 		};
 
 		if (!enabled) {

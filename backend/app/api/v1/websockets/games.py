@@ -30,13 +30,8 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
         game = cache.games.get(game_id)
         if game:
             exported_events = cache.get_exported_events(game_id)
-            stats_data = {}
-            match_stats = cache.get_stats(game_id)
-            if match_stats:
-                stats_data = {
-                    team.team_id: team.model_dump()
-                    for team in match_stats.teams
-                }
+            stats_update = cache.get_match_stats_update(game_id)
+            stats_data = stats_update.model_dump() if stats_update else {}
 
             pass_networks_data = {}
             for (g_id, team_id), network_svc in cache.pass_networks.items():

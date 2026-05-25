@@ -1,6 +1,6 @@
 import { isFoulEvent, isOutEvent, isPassEvent, isShotEvent, type PitchEvent } from "@/types/event";
 
-export type PitchEventType = "pass" | "shot" | "out" | "abp" | "foul" | "defensive";
+export type PitchEventType = "pass" | "take_on" | "shot" | "out" | "abp" | "foul" | "defensive";
 
 export interface OutcomeOption {
   id: string;
@@ -36,8 +36,9 @@ export const PITCH_EVENT_TYPES_CONFIG: {
   label: string;
   typeIds: string[];
 }[] = [
-  { value: "all", label: "Todos", typeIds: ["1", "2", "4", "5", "7", "8", "12", "13", "14", "15", "16", "44", "49", "67"] },
+  { value: "all", label: "Todos", typeIds: ["1", "2", "3", "4", "5", "7", "8", "12", "13", "14", "15", "16", "44", "49", "67"] },
   { value: "pass", label: "Pase", typeIds: ["1", "2"] },
+  { value: "take_on", label: "Take On", typeIds: ["3"] },
   { value: "abp", label: "ABP", typeIds: ["1", "2"] },
   { value: "shot", label: "Disparo", typeIds: ["13", "14", "15", "16"] },
   { value: "out", label: "Fuera del campo", typeIds: ["5"] },
@@ -83,6 +84,7 @@ export const EVENT_SUBTYPE_OPTIONS_BY_TYPE: Record<PitchEventType | "all", Event
     { id: "pass-blocked", typeIds: ["1", "2"], passFlag: "blocked", label: "Bloqueado" },
     { id: "pass-kick-off", typeIds: ["1", "2"], passFlag: "is_kick_off", label: "Saque de centro" },
   ],
+  take_on: [],
   abp: [
     { id: "abp-free-kick", typeIds: ["1", "2"], passFlag: "free_kick_taken", label: "ABP: Falta" },
     { id: "abp-corner", typeIds: ["1", "2"], passFlag: "corner_taken", label: "ABP: Córner" },
@@ -143,6 +145,8 @@ export const OUTCOME_OPTIONS_BY_TYPE: Record<PitchEventType | "all", OutcomeOpti
     { id: "pass-ok",      typeId: "1",  outcome: 1, label: "Pase exitoso" },
     { id: "pass-fail",    typeId: "1",  outcome: 0, label: "Pase fallido" },
     { id: "offside-pass", typeId: "2",             label: "Pase en fuera de juego" },
+    { id: "take-on-ok",   typeId: "3",  outcome: 1, label: "Take On acertado" },
+    { id: "take-on-fail", typeId: "3",  outcome: 0, label: "Take On fallido" },
     { id: "shot-miss",    typeId: "13",            label: "Fallo" },
     { id: "shot-post",    typeId: "14",            label: "Poste" },
     { id: "shot-saved",   typeId: "15",            label: "Disparo parado" },
@@ -161,6 +165,10 @@ export const OUTCOME_OPTIONS_BY_TYPE: Record<PitchEventType | "all", OutcomeOpti
     { id: "pass-ok",      typeId: "1", outcome: 1, label: "Pase exitoso" },
     { id: "pass-fail",    typeId: "1", outcome: 0, label: "Pase fallido" },
     { id: "offside-pass", typeId: "2",             label: "Pase en fuera de juego" },
+  ],
+  take_on: [
+    { id: "take-on-ok", typeId: "3", outcome: 1, label: "Take On acertado" },
+    { id: "take-on-fail", typeId: "3", outcome: 0, label: "Take On fallido" },
   ],
   abp: [
     { id: "pass-ok", typeId: "1", outcome: 1, label: "Pase exitoso" },

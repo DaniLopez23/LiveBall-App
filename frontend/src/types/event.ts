@@ -157,6 +157,9 @@ export const isOutEvent = (e: Event): e is OutEvent =>
 export const isFoulEvent = (e: Event): e is FoulEvent =>
 	e.type_id === "4";
 
+export const isTakeOnEvent = (e: Event): e is TakeOnEvent =>
+	e.type_id === "3";
+
 export const isDefensiveEvent = (e: Event): e is EventBase & { type_id: DefensiveTypeId } =>
 	e.type_id === "7" ||
 	e.type_id === "8" ||
@@ -168,7 +171,18 @@ export const isDefensiveEvent = (e: Event): e is EventBase & { type_id: Defensiv
 // ---------------------------------------------------------------------------
 // Pitch-renderable events – the only event types drawn on the pitch
 // ---------------------------------------------------------------------------
-export type PitchEvent = PassEvent | ShotEvent | OutEvent | FoulEvent | (EventBase & { type_id: DefensiveTypeId });
+export type PitchEvent =
+	| PassEvent
+	| TakeOnEvent
+	| ShotEvent
+	| OutEvent
+	| FoulEvent
+	| (EventBase & { type_id: DefensiveTypeId });
 
 export const isPitchEvent = (e: Event): e is PitchEvent =>
-	isPassEvent(e) || isShotEvent(e) || isOutEvent(e) || isFoulEvent(e) || isDefensiveEvent(e);
+	isPassEvent(e) ||
+	isTakeOnEvent(e) ||
+	isShotEvent(e) ||
+	isOutEvent(e) ||
+	isFoulEvent(e) ||
+	isDefensiveEvent(e);

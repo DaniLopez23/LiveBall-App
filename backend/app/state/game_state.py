@@ -9,7 +9,7 @@ re-sending unchanged data.
 from typing import Any, Dict, Optional, Tuple
 
 from app.schemas.games import ParsedGame
-from app.schemas.stats import ParsedMatchStats
+from app.schemas.stats import MatchStatsTimeline, MatchStatsUpdateData, ParsedMatchStats
 from app.services.pass_networks.service import PassNetworkService
 
 
@@ -23,7 +23,8 @@ class GameStateCache:
       change detection.
     - **Events**: per-game mapping of ``(team_id, event_id) → type_id``
       so that new/updated events can be distinguished.
-        - **Stats**: parsed F9 stats payload + comparable snapshot per game.
+        - **Stats**: parsed F9 stats payload, bucket timeline, and comparable
+          snapshot per game.
     - **Pass networks**: one ``PassNetworkService`` instance per
       ``(game_id, team_id)`` pair.
     """
@@ -41,6 +42,8 @@ class GameStateCache:
         self._match_states: Dict[str, str] = {}
         # game_id → full ParsedMatchStats (latest ingested version)
         self.stats: Dict[str, ParsedMatchStats] = {}
+        self.match_stats_updates: Dict[str, MatchStatsUpdateData] = {}
+        self.match_stats_timelines: Dict[str, MatchStatsTimeline] = {}
         # game_id → comparable snapshot dict used for stats change detection
         self._stats_snapshots: Dict[str, Dict[str, Any]] = {}
         # (game_id, team_id) → PassNetworkService
@@ -131,6 +134,31 @@ class GameStateCache:
         """Persists the full stats payload and its comparable snapshot."""
         self.stats[parsed_stats.game_id] = parsed_stats
         self._stats_snapshots[parsed_stats.game_id] = snapshot
+
+    def get_match_stats_update(self, game_id: str) -> Optional[MatchStatsUpdateData]:
+        """Returns the latest frontend-oriented stats payload for *game_id*."""
+        return self.match_stats_updates.get(game_id)
+
+    def get_match_stats_timeline(self, game_id: str) -> Optional[MatchStatsTimeline]:
+        """Returns the latest bucket timeline stored for *game_id*, if any."""
+        return self.match_stats_timelines.get(game_id)
+
+    def store_match_stats_timeline(
+        self,
+        game_id: str,
+        timeline: MatchStatsTimeline,
+    ) -> None:
+        """Persists the bucket timeline used by stats snapshots."""
+        self.match_stats_timelines[game_id] = timeline
+
+    def store_match_stats_update(
+        self,
+        game_id: str,
+        payload: MatchStatsUpdateData,
+    ) -> None:
+        """Persists the latest frontend-oriented stats payload for *game_id*."""
+        self.match_stats_updates[game_id] = payload
+        self.store_match_stats_timeline(game_id, payload.timeline)
 
     # ------------------------------------------------------------------ #
     # Pass network helpers                                                 #

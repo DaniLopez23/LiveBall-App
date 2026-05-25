@@ -7,6 +7,7 @@ MATCH_STATE_MATCH_FINISHED = "match_finished"
 EXPORTED_EVENT_TYPES = {
     "1",
     "2",
+    "3",
     "5",
     "13",
     "14",

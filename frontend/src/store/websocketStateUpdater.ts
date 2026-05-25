@@ -2,6 +2,7 @@ import type { IncomingWsMessage } from "@/types/websocket";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
+import useStatsStore from "@/store/statsStore";
 
 export const applyWebsocketMessageToStores = (
 	message: IncomingWsMessage,
@@ -22,6 +23,11 @@ export const applyWebsocketMessageToStores = (
 			usePassNetworksStore.getState().setFromSnapshot({
 				gameId: message.game_id,
 				passNetworks: message.pass_networks,
+			});
+
+			useStatsStore.getState().setFromSnapshot({
+				gameId: message.game_id,
+				stats: message.stats,
 			});
 			return;
 		}
@@ -61,6 +67,14 @@ export const applyWebsocketMessageToStores = (
 				nodes: message.nodes,
 				edges: message.edges,
 				statistics: message.statistics,
+			});
+			return;
+		}
+
+		case "match_stats_update": {
+			useStatsStore.getState().applyUpdate({
+				gameId: message.game_id,
+				data: message.data,
 			});
 			return;
 		}

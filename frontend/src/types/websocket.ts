@@ -6,6 +6,7 @@ import type {
 	PassNetworkStatistics,
 	SnapshotPassNetworks,
 } from "@/types/passNetwork";
+import type { MatchStatsUpdateData } from "@/types/stats";
 
 export type ConnectionWsMessage = {
 	type: "connection";
@@ -22,6 +23,7 @@ export type MatchStateSnapshotWsMessage = {
 	total_events: number;
 	last_event_id: string | null;
 	events: Event[];
+	stats?: MatchStatsUpdateData | null;
 	pass_networks: SnapshotPassNetworks;
 };
 
@@ -46,6 +48,12 @@ export type PassNetworkUpdatedWsMessage = {
 	statistics: PassNetworkStatistics;
 };
 
+export type MatchStatsUpdatedWsMessage = {
+	type: "match_stats_update";
+	game_id: string;
+	data: MatchStatsUpdateData;
+};
+
 export type PongWsMessage = {
 	type: "pong";
 	message: string;
@@ -62,5 +70,6 @@ export type IncomingWsMessage =
 	| GameUpdateWsMessage
 	| EventsUpdateWsMessage
 	| PassNetworkUpdatedWsMessage
+	| MatchStatsUpdatedWsMessage
 	| PongWsMessage
 	| InvalidJsonWsMessage;

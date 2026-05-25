@@ -7,6 +7,7 @@ import LinkFigure from "./LinkFigure";
 import ShotFigure from "./ShotFigure";
 import FoulFigure from "./FoulFigure";
 import DefensiveFigure from "./DefensiveFigure";
+import TakeOnFigure from "./TakeOnFigure";
 import useOptaPitchConfigStore, {
   type Orientation,
   VB_LONG,
@@ -19,6 +20,7 @@ import {
   isOutEvent,
   isPassEvent,
   isShotEvent,
+  isTakeOnEvent,
 } from "@/types/event";
 
 /** Pitch-renderable events only. */
@@ -106,6 +108,7 @@ function getDefensiveSubtypeLabel(typeId: string): string {
 
 function getEventLabel(event: OptaEvent): string {
   if (isPassEvent(event)) return "Pass";
+  if (isTakeOnEvent(event)) return "Take On";
   if (isOutEvent(event)) return "Out";
   if (isShotEvent(event)) return "Shot";
   if (isFoulEvent(event)) return "Foul";
@@ -491,7 +494,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         return true;
       }
 
-      if (isFoulEvent(event) || isDefensiveEvent(event)) {
+      if (isTakeOnEvent(event) || isFoulEvent(event) || isDefensiveEvent(event)) {
         return true;
       }
 
@@ -590,6 +593,31 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               sequence={sequence}
               markerLabel={markerLabel}
               markerScale={visualState.markerScale}
+              color={color}
+            />,
+          )}
+        </>
+      ));
+    }
+
+    if (isTakeOnEvent(event)) {
+      return wrap(event.id, (
+        <>
+          {connector}
+          {renderHoverMarker(
+            event,
+            sequence,
+            svgX1,
+            svgY1,
+            color,
+            visualState,
+            <TakeOnFigure
+              x={svgX1}
+              y={svgY1}
+              sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
+              outcome={typeof outcome === "number" ? outcome : 0}
               color={color}
             />,
           )}

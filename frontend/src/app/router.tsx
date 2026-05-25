@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import EventsPage from "@/pages/EventsPage";
 import PassNetworkPage from "@/pages/PassNetworkPage";
+import StatsPage from "@/pages/StatsPage";
 
 // Pages (uncomment as they are created)
 // import { HomePage }         from "@/components/pages/HomePage";
@@ -21,7 +22,7 @@ export const router = createBrowserRouter([
       },
       {
         path: "stats",
-        element: <div className="p-6 text-muted-foreground">Estadísticas – próximamente</div>,
+        element: <StatsPage />,
         // element: <EstadisticasPage />,
       },
       {

@@ -23,10 +23,11 @@ def make_event(
     team_id: str = "1",
     outcome: int | None = 1,
     minute: int = 1,
+    qualifiers: list[Qualifier] | None = None,
 ) -> Event:
-    qualifiers = []
-    if type_id == "1":
-        qualifiers = [
+    event_qualifiers = qualifiers if qualifiers is not None else []
+    if qualifiers is None and type_id == "1":
+        event_qualifiers = [
             Qualifier(qualifier_id="140", qualifier_name="Pass End X", value="50"),
             Qualifier(qualifier_id="141", qualifier_name="Pass End Y", value="50"),
         ]
@@ -45,7 +46,7 @@ def make_event(
         outcome=outcome,
         x=10,
         y=20,
-        qualifiers=qualifiers,
+        qualifiers=event_qualifiers,
     )
 
 
@@ -86,7 +87,7 @@ class ProcessEventsServiceTests(unittest.TestCase):
             make_root(
                 [
                     make_event("1", "1", player_id="p1"),
-                    make_event("2", "3", player_id="p2"),
+                    make_event("2", "10", player_id="p2"),
                 ]
             )
         )
@@ -138,9 +139,9 @@ class ProcessEventsServiceTests(unittest.TestCase):
             make_root(
                 [
                     make_event("1", "1", player_id="p1", minute=1),
-                    make_event("2", "3", player_id="p2", minute=1),
+                    make_event("2", "10", player_id="p2", minute=1),
                     make_event("3", "1", player_id="p2", minute=7),
-                    make_event("4", "3", player_id="p3", minute=7),
+                    make_event("4", "10", player_id="p3", minute=7),
                 ]
             )
         )
@@ -162,11 +163,28 @@ class ProcessEventsServiceTests(unittest.TestCase):
         )
 
     def test_non_exported_events_are_registered_for_type_updates(self):
-        self.service.process_game(make_root([make_event("1", "3", player_id="p1")]))
+        self.service.process_game(
+            make_root(
+                [
+                    make_event(
+                        "1",
+                        "3",
+                        player_id="p1",
+                        qualifiers=[
+                            Qualifier(
+                                qualifier_id="211",
+                                qualifier_name="Overrun",
+                                value="1",
+                            )
+                        ],
+                    )
+                ]
+            )
+        )
         self.assertEqual(self.cache.get_event_type("game-1", "1", "1"), "3")
 
         messages = self.service.process_game(
-            make_root([make_event("1", "4", player_id="p1")])
+            make_root([make_event("1", "4", player_id="p1", outcome=0)])
         )
 
         updated_events_message = next(
@@ -192,6 +210,43 @@ class ProcessEventsServiceTests(unittest.TestCase):
         self.assertEqual(new_events_message["events"][0]["event_id"], "10")
         self.assertEqual(new_events_message["events"][0]["team_id"], "1")
         self.assertEqual(new_events_message["events"][0]["outcome"], 1)
+
+    def test_take_on_exports_without_overrun_qualifier(self):
+        messages = self.service.process_game(
+            make_root([make_event("20", "3", player_id="p1", outcome=1)])
+        )
+
+        new_events_message = next(
+            message for message in messages if message["type"] == "new_events"
+        )
+
+        self.assertEqual(len(new_events_message["events"]), 1)
+        self.assertEqual(new_events_message["events"][0]["type_id"], "3")
+        self.assertEqual(new_events_message["events"][0]["outcome"], 1)
+
+    def test_take_on_with_overrun_qualifier_is_not_exported(self):
+        messages = self.service.process_game(
+            make_root(
+                [
+                    make_event(
+                        "21",
+                        "3",
+                        player_id="p1",
+                        outcome=0,
+                        qualifiers=[
+                            Qualifier(
+                                qualifier_id="211",
+                                qualifier_name="Overrun",
+                                value="1",
+                            )
+                        ],
+                    )
+                ]
+            )
+        )
+
+        self.assertFalse(any(message["type"] == "new_events" for message in messages))
+        self.assertEqual(self.cache.get_exported_events("game-1"), [])
 
 
 if __name__ == "__main__":

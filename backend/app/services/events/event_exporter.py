@@ -14,6 +14,8 @@ class EventExporter:
 
     @staticmethod
     def should_export(event: Event) -> bool:
+        if event.type_id == "3":
+            return not any(qualifier.qualifier_id == "211" for qualifier in event.qualifiers)
         if event.type_id == "4":
             return event.outcome == 0
         if event.type_id == "5":
