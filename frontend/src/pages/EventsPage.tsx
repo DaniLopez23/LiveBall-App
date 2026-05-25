@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
@@ -13,6 +13,12 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import {
+  buildEventSequences,
+  EVENT_SEQUENCE_END_REASONS,
+  flattenSequences,
+  type EventSequence,
+} from "@/components/pitch/eventsPitch/eventSequences";
 import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
@@ -26,9 +32,12 @@ import {
 } from "@/types/outcomeOptions";
 
 const DEFAULT_FILTERS: EventsFilters = {
-  mode: "last",
+  mode: "live",
   lastCount: 10,
   team: "both",
+  sequenceEndReasons: EVENT_SEQUENCE_END_REASONS,
+  sequencePassCountMode: "any",
+  sequencePassCount: 3,
   selectedEventType: "all",
   selectedOutcomes: [],
   selectedSubtypes: [],
@@ -53,6 +62,7 @@ const EventsPage: React.FC = () => {
   }, [game]);
 
   const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
+  const eventSequences = useMemo(() => buildEventSequences(pitchEvents), [pitchEvents]);
 
   const availableTypeIds = useMemo(
     () => Array.from(new Set(pitchEvents.map((event) => event.type_id))) as string[],
@@ -83,6 +93,33 @@ const EventsPage: React.FC = () => {
     nextFilters.selectedEventType === "all" &&
     selectionsMatch(nextFilters.selectedOutcomes, allOutcomeIds) &&
     selectionsMatch(nextFilters.selectedSubtypes, allSubtypeIds);
+
+  const sequenceMatchesFilters = useCallback(
+    (sequence: EventSequence, activeFilters: EventsFilters) => {
+      if (activeFilters.team !== "both" && game) {
+        const teamId =
+          activeFilters.team === "home"
+            ? game.home_team.team_id
+            : game.away_team.team_id;
+        if (sequence.teamId !== teamId) return false;
+      }
+
+      if (!activeFilters.sequenceEndReasons.includes(sequence.endReason)) {
+        return false;
+      }
+
+      if (activeFilters.sequencePassCountMode === "more") {
+        return sequence.passCount > activeFilters.sequencePassCount;
+      }
+
+      if (activeFilters.sequencePassCountMode === "less") {
+        return sequence.passCount < activeFilters.sequencePassCount;
+      }
+
+      return true;
+    },
+    [game],
+  );
 
   const handleFiltersChange = (nextFilters: EventsFilters) => {
     const eventSelectionChanged =
@@ -127,6 +164,17 @@ const EventsPage: React.FC = () => {
   }, [filters, seededFilters, isDefaultAllSelection]);
 
   const filteredEvents = useMemo(() => {
+    if (displayFilters.mode === "live") {
+      return pitchEvents.slice(-displayFilters.lastCount);
+    }
+
+    if (displayFilters.mode === "sequences") {
+      const matchingSequences = eventSequences.filter((sequence) =>
+        sequenceMatchesFilters(sequence, displayFilters),
+      );
+      return flattenSequences(matchingSequences);
+    }
+
     let result = pitchEvents;
 
     if (displayFilters.team !== "both" && game) {
@@ -171,12 +219,15 @@ const EventsPage: React.FC = () => {
       return minute >= minMinute && minute <= maxMinute;
     });
 
-    if (displayFilters.mode === "last") {
-      result = result.slice(-displayFilters.lastCount);
-    }
-
     return result;
-  }, [pitchEvents, displayFilters, game, isDefaultAllSelection]);
+  }, [
+    pitchEvents,
+    eventSequences,
+    displayFilters,
+    game,
+    isDefaultAllSelection,
+    sequenceMatchesFilters,
+  ]);
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4">

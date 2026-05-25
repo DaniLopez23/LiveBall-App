@@ -134,7 +134,7 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 				<div className="min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-800">
 					<EventsPitch
 						events={contextEvents}
-						mode="last"
+						mode="all"
 						teamColors={teamColors}
 						eventColors={eventColors}
 						orientation="horizontal"

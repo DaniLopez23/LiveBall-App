@@ -21,6 +21,16 @@ export interface EventBase {
 	timestamp_utc?: string | null;
 	last_modified?: string | null;
 	version?: string | null;
+	player?: {
+		id?: string | null;
+		name?: string | null;
+		dorsal?: string | null;
+	} | null;
+	player_receiver?: {
+		id?: string | null;
+		name?: string | null;
+		dorsal?: string | null;
+	} | null;
 }
 
 export type DefensiveTypeId = "7" | "8" | "12" | "44" | "49" | "67";

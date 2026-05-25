@@ -23,6 +23,15 @@ import {
 
 /** Pitch-renderable events only. */
 export type OptaEvent = PitchEvent;
+export type MarkerPresentationMode = "live" | "sequences" | "all";
+
+interface MarkerVisualState {
+  isLive: boolean;
+  isActive: boolean;
+  opacity: number;
+  markerScale: number;
+  hitRadius: number;
+}
 
 export interface OptaMarkersProps {
   events: OptaEvent[];
@@ -30,7 +39,9 @@ export interface OptaMarkersProps {
   teamColors?: Record<string, string>;
   /** Optional per-event color override, keyed by event.id */
   eventColors?: Record<string, string>;
-  /** When true, events animate in/out sequentially (used in "last" mode) */
+  /** Mode-specific marker presentation; lets each event view style markers differently. */
+  presentationMode?: MarkerPresentationMode;
+  /** When true, events animate in/out as the visible live window changes. */
   animated?: boolean;
   /** Show connector figures (carry/link) between consecutive events. */
   showConnectors?: boolean;
@@ -99,7 +110,20 @@ function getEventLabel(event: OptaEvent): string {
   if (isShotEvent(event)) return "Shot";
   if (isFoulEvent(event)) return "Foul";
   if (isDefensiveEvent(event)) return getDefensiveSubtypeLabel(event.type_id);
-  return event.type_name ?? event.event_name ?? "Event";
+  return "Event";
+}
+
+function getPlayerMarkerLabel(event: OptaEvent): string {
+  const dorsal = event.player?.dorsal?.trim();
+  if (dorsal) return dorsal;
+  return "?";
+}
+
+function getLiveBatchKey(event: OptaEvent): string {
+  if (event.timestamp_utc) return `utc:${event.timestamp_utc}`;
+  if (event.timestamp) return `local:${event.timestamp}`;
+  if (event.min != null || event.sec != null) return `clock:${event.min ?? 0}:${event.sec ?? 0}`;
+  return event.id;
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -221,6 +245,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   events,
   teamColors = {},
   eventColors = {},
+  presentationMode = "all",
   animated = false,
   showConnectors = true,
 }) => {
@@ -256,6 +281,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         : null;
 
     if (minute) lines.push(minute);
+    if (event.player?.dorsal) lines.push(`Dorsal ${event.player.dorsal}`);
     lines.push(`Inicio X ${formatCoord(event.x)} | Y ${formatCoord(event.y)}`);
 
     if (isPassEvent(event)) {
@@ -271,27 +297,63 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     anchorX: number,
     anchorY: number,
     color: string,
+    visualState: MarkerVisualState,
     content: React.ReactNode,
-  ) => (
-    <g
-      onMouseEnter={() => setHoveredEventId(event.id)}
-      onMouseLeave={() => setHoveredEventId((current) => (current === event.id ? null : current))}
-      cursor="help"
-    >
-      {content}
-      <circle cx={anchorX} cy={anchorY} r={7} fill="transparent" pointerEvents="all" />
-      {hoveredEventId === event.id ? (
-        <EventTooltip
-          anchorX={anchorX}
-          anchorY={anchorY}
-          color={color}
-          lines={getTooltipLines(event, sequence)}
-          viewBoxWidth={viewBoxWidth}
-          viewBoxHeight={viewBoxHeight}
+  ) => {
+    const markerContent = visualState.isLive ? (
+      <motion.g
+        initial={{ opacity: 0 }}
+        animate={{ opacity: visualState.opacity }}
+        transition={{
+          opacity: { duration: 0.35, ease: "easeOut" },
+        }}
+      >
+        {content}
+      </motion.g>
+    ) : (
+      content
+    );
+
+    return (
+      <g
+        onMouseEnter={() => setHoveredEventId(event.id)}
+        onMouseLeave={() => setHoveredEventId((current) => (current === event.id ? null : current))}
+        cursor="help"
+      >
+        {visualState.isLive && visualState.isActive ? (
+          <motion.circle
+            cx={anchorX}
+            cy={anchorY}
+            r={4.5}
+            fill="none"
+            stroke={color}
+            strokeWidth={0.75}
+            initial={{ opacity: 0.85, r: 4.5 }}
+            animate={{ opacity: 0, r: 13 }}
+            transition={{ duration: 2.1, ease: "easeOut" }}
+          />
+        ) : null}
+        {markerContent}
+        <circle
+          cx={anchorX}
+          cy={anchorY}
+          r={visualState.hitRadius}
+          fill="transparent"
+          pointerEvents="all"
         />
-      ) : null}
-    </g>
-  );
+        {hoveredEventId === event.id ? (
+          <EventTooltip
+            anchorX={anchorX}
+            anchorY={anchorY}
+            color={color}
+            lines={getTooltipLines(event, sequence)}
+            viewBoxWidth={viewBoxWidth}
+            viewBoxHeight={viewBoxHeight}
+          />
+        ) : null}
+      </g>
+    );
+  };
 
   const getEventPoint = (event: OptaEvent) => {
     if (isPassEvent(event) && event.end_x != null && event.end_y != null) {
@@ -355,9 +417,46 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
       return false;
     });
 
+  const latestLiveBatchKey =
+    presentationMode === "live" && renderableEvents.length > 0
+      ? getLiveBatchKey(renderableEvents[renderableEvents.length - 1].event)
+      : null;
+  const activeLiveEventIds = new Set<string>();
+  if (latestLiveBatchKey) {
+    for (let index = renderableEvents.length - 1; index >= 0; index -= 1) {
+      const event = renderableEvents[index].event;
+      if (getLiveBatchKey(event) !== latestLiveBatchKey) break;
+      activeLiveEventIds.add(event.id);
+    }
+  }
+
+  const getMarkerVisualState = (event: OptaEvent): MarkerVisualState => {
+    if (presentationMode !== "live") {
+      return {
+        isLive: false,
+        isActive: false,
+        opacity: 1,
+        markerScale: 1,
+        hitRadius: 7,
+      };
+    }
+
+    const isActive = activeLiveEventIds.has(event.id);
+
+    return {
+      isLive: true,
+      isActive,
+      opacity: isActive ? 1 : 0.42,
+      markerScale: isActive ? 1.18 : 1,
+      hitRadius: isActive ? 12 : 8,
+    };
+  };
+
   const markers = renderableEvents.map(({ event }, renderIndex) => {
     const { x, y, outcome, team_id } = event;
     const sequence = renderIndex + 1;
+    const markerLabel = getPlayerMarkerLabel(event);
+    const visualState = getMarkerVisualState(event);
     const { x: svgX1, y: svgY1 } = transformOptaToSvg(x!, y!);
     const color =
       eventColors[event.id] ??
@@ -379,12 +478,15 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             svgX1,
             svgY1,
             color,
+            visualState,
             <PassArrow
               x1={svgX1}
               y1={svgY1}
               x2={svgX2}
               y2={svgY2}
               sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
               outcome={typeof outcome === "number" ? outcome : 0}
               color={color}
               animated={animated}
@@ -406,11 +508,14 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             svgX1,
             svgY1,
             color,
+            visualState,
             <BallOutFigure
               svgX={svgX1}
               svgY={svgY1}
               edge={edge}
               sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
               color={color}
             />,
           )}
@@ -428,7 +533,15 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             svgX1,
             svgY1,
             color,
-            <FoulFigure x={svgX1} y={svgY1} sequence={sequence} color={color} />,
+            visualState,
+            <FoulFigure
+              x={svgX1}
+              y={svgY1}
+              sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
+              color={color}
+            />,
           )}
         </>
       ));
@@ -446,10 +559,13 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             svgX1,
             svgY1,
             color,
+            visualState,
             <DefensiveFigure
               x={svgX1}
               y={svgY1}
               sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
               subtypeLabel={subtypeLabel}
               color={color}
             />,
@@ -472,12 +588,15 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             svgX1,
             svgY1,
             color,
+            visualState,
             <ShotFigure
               x1={svgX1}
               y1={svgY1}
               x2={svgX2}
               y2={svgY2}
               sequence={sequence}
+              markerLabel={markerLabel}
+              markerScale={visualState.markerScale}
               outcome={event.outcome ?? "Miss"}
               color={color}
             />,

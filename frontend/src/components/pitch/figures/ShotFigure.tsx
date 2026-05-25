@@ -1,4 +1,5 @@
 import React from "react";
+import { EventSequenceLabel, getMarkerFontSize } from "./EventMarkerLabels";
 
 export interface ShotFigureProps {
   x1: number;
@@ -6,11 +7,13 @@ export interface ShotFigureProps {
   x2: number;
   y2: number;
   sequence: number;
+  markerLabel?: string;
+  markerScale?: number;
   outcome: "Miss" | "Post" | "Attempt Saved" | "Goal";
   color?: string;
 }
 
-const SQUARE_HALF  = 2.6;   // half-side of the start square
+const SQUARE_HALF  = 3.05;  // half-side of the start square
 const ARROW_LEN    = 4.3;   // length of arrowhead arms
 const ARROW_ANGLE  = Math.PI / 6;  // 30°
 const CROSS_SIZE   = 2.2;   // half-size of the × arms
@@ -21,15 +24,18 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
   x1, y1,
   x2, y2,
   sequence,
+  markerLabel,
+  markerScale = 1,
   outcome,
   color = "#ffffff",
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const perp  = angle + Math.PI / 2;
+  const squareHalf = SQUARE_HALF * markerScale;
 
   // Line starts at the edge of the square
-  const lineX1 = x1 + SQUARE_HALF * Math.cos(angle);
-  const lineY1 = y1 + SQUARE_HALF * Math.sin(angle);
+  const lineX1 = x1 + squareHalf * Math.cos(angle);
+  const lineY1 = y1 + squareHalf * Math.sin(angle);
 
   // Arrowhead vertices (tip at x2, y2)
   const ax1 = x2 - ARROW_LEN * Math.cos(angle - ARROW_ANGLE);
@@ -53,9 +59,8 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
   const bx2 = x2 + POST_BAR * Math.cos(perp);
   const by2 = y2 + POST_BAR * Math.sin(perp);
 
-  // Adaptive font size (same logic as PassArrow)
-  const digits   = String(sequence).length;
-  const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
+  const label = markerLabel ?? String(sequence);
+  const fontSize = getMarkerFontSize(label, 4.05) * markerScale;
 
   // Unique clipPath ID for the soccer-ball pattern
   const clipId = `shot-ball-clip-${sequence}`;
@@ -73,10 +78,10 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
 
       {/* Start: filled square */}
       <rect
-        x={x1 - SQUARE_HALF}
-        y={y1 - SQUARE_HALF}
-        width={SQUARE_HALF * 2}
-        height={SQUARE_HALF * 2}
+        x={x1 - squareHalf}
+        y={y1 - squareHalf}
+        width={squareHalf * 2}
+        height={squareHalf * 2}
         fill={color}
         fillOpacity={0.9}
       />
@@ -90,8 +95,14 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
         fill="#1a1a1a"
         style={{ userSelect: "none" }}
       >
-        {sequence}
+        {label}
       </text>
+      <EventSequenceLabel
+        x={x1}
+        y={y1 + squareHalf + 1.15}
+        sequence={sequence}
+        fontSize={3.05 * markerScale}
+      />
 
       {/* ── Miss: rotated × ───────────────────────────────────────── */}
       {outcome === "Miss" && (

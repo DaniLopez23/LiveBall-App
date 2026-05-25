@@ -1,23 +1,29 @@
 import React from "react";
+import { EventSequenceLabel, getMarkerFontSize } from "./EventMarkerLabels";
 
 export interface FoulFigureProps {
 	x: number;
 	y: number;
 	sequence: number;
+	markerLabel?: string;
+	markerScale?: number;
 	color?: string;
 }
 
-const DIAMOND_R = 3.0;
+const DIAMOND_R = 3.55;
 
 const FoulFigure: React.FC<FoulFigureProps> = ({
 	x,
 	y,
 	sequence,
+	markerLabel,
+	markerScale = 1,
 	color = "#ffffff",
 }) => {
-	const points = `${x},${y - DIAMOND_R} ${x + DIAMOND_R},${y} ${x},${y + DIAMOND_R} ${x - DIAMOND_R},${y}`;
-	const digits = String(sequence).length;
-	const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
+	const diamondR = DIAMOND_R * markerScale;
+	const points = `${x},${y - diamondR} ${x + diamondR},${y} ${x},${y + diamondR} ${x - diamondR},${y}`;
+	const label = markerLabel ?? String(sequence);
+	const fontSize = getMarkerFontSize(label, 4.05) * markerScale;
 
 	return (
 		<g>
@@ -32,8 +38,14 @@ const FoulFigure: React.FC<FoulFigureProps> = ({
 				fill="#1a1a1a"
 				style={{ userSelect: "none" }}
 			>
-				{sequence}
+				{label}
 			</text>
+			<EventSequenceLabel
+				x={x}
+				y={y + diamondR + 1.15}
+				sequence={sequence}
+				fontSize={3.05 * markerScale}
+			/>
 		</g>
 	);
 };

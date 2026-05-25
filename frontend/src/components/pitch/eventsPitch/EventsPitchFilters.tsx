@@ -30,12 +30,22 @@ import {
   OUTCOME_OPTIONS_BY_TYPE,
   EVENT_SUBTYPE_OPTIONS_BY_TYPE,
 } from "@/types/outcomeOptions";
+import {
+  EVENT_SEQUENCE_END_REASONS,
+  type EventSequenceEndReason,
+} from "./eventSequences";
 
+
+export type EventsMode = "live" | "sequences" | "all";
+export type SequencePassCountMode = "any" | "more" | "less";
 
 export interface EventsFilters {
-  mode: "last" | "all";
+  mode: EventsMode;
   lastCount: number;
   team: "home" | "away" | "both";
+  sequenceEndReasons: EventSequenceEndReason[];
+  sequencePassCountMode: SequencePassCountMode;
+  sequencePassCount: number;
   selectedEventType: PitchEventType | "all";
   selectedOutcomes: string[];
   selectedSubtypes: string[];
@@ -50,6 +60,12 @@ interface EventsPitchFiltersProps {
   availableTypeIds: string[];
 }
 
+const sequenceEndReasonLabels: Record<EventSequenceEndReason, string> = {
+  shot: "Tiro",
+  foul: "Falta",
+  out: "Fuera",
+  opponent: "Otro equipo",
+};
 
 const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   filters,
@@ -132,7 +148,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   };
 
   const handleModeChange = (value: string) => {
-    if (value === "last" || value === "all") {
+    if (value === "live" || value === "sequences" || value === "all") {
       onChange({ ...filters, mode: value });
     }
   };
@@ -160,6 +176,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   };
 
   const isOutEventSelected = filters.selectedEventType === "out";
+  const isLiveMode = filters.mode === "live";
+  const isSequencesMode = filters.mode === "sequences";
+  const isAllMode = filters.mode === "all";
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
@@ -172,20 +191,26 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         <RadioGroup
           value={filters.mode}
           onValueChange={handleModeChange}
-          className="grid grid-cols-1 gap-2 sm:grid-cols-2"
+          className="grid grid-cols-1 gap-2"
         >
           <div className="flex min-w-0 items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
-            <RadioGroupItem value="last" id="mode-last" />
-            <label htmlFor="mode-last" className="min-w-0 flex-1 truncate text-sm cursor-pointer">
-              Últimos eventos
+            <RadioGroupItem value="live" id="mode-live" />
+            <label htmlFor="mode-live" className="min-w-0 flex-1 truncate text-sm cursor-pointer">
+              LIVE
             </label>
             <NumberInput
               value={filters.lastCount}
               onChange={(v) => onChange({ ...filters, lastCount: v })}
               min={1}
               max={500}
-              disabled={filters.mode === "all"}
+              disabled={!isLiveMode}
             />
+          </div>
+          <div className="flex min-w-0 items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
+            <RadioGroupItem value="sequences" id="mode-sequences" />
+            <label htmlFor="mode-sequences" className="min-w-0 flex-1 truncate text-sm cursor-pointer">
+              Secuencias
+            </label>
           </div>
           <div className="flex min-w-0 items-center gap-2 bg-background border border-input rounded-md px-3 py-2">
             <RadioGroupItem value="all" id="mode-all" />
@@ -196,43 +221,128 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         </RadioGroup>
       </div>
 
-      <Separator />
+      {!isLiveMode && (
+        <>
+          <Separator />
 
-      {/* Section 2: Team */}
-      <div>
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-          Equipo
-        </p>
-        <ToggleGroup
-          type="single"
-          value={filters.team}
-          onValueChange={(v) => v && handleTeamChange(v)}
-          variant="outline"
-          size="sm"
-          className="grid w-full grid-cols-3 gap-1"
-        >
-          <ToggleGroupItem
-            value="home"
-            className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:border-blue-500"
-          >
-            {homeTeamName}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="away"
-            className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-red-500 data-[state=on]:text-white data-[state=on]:border-red-500"
-          >
-            {awayTeamName}
-          </ToggleGroupItem>
-          <ToggleGroupItem
-            value="both"
-            className="w-full text-xs px-1 bg-background hover:bg-background/80 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
-          >
-            Ambos
-          </ToggleGroupItem>
-        </ToggleGroup>
-      </div>
+          {/* Section 2: Team */}
+          <div>
+            <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+              Equipo
+            </p>
+            <ToggleGroup
+              type="single"
+              value={filters.team}
+              onValueChange={(v) => v && handleTeamChange(v)}
+              variant="outline"
+              size="sm"
+              className="grid w-full grid-cols-3 gap-1"
+            >
+              <ToggleGroupItem
+                value="home"
+                className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-blue-500 data-[state=on]:text-white data-[state=on]:border-blue-500"
+              >
+                {homeTeamName}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="away"
+                className="w-full text-xs truncate px-1 bg-background hover:bg-background/80 data-[state=on]:bg-red-500 data-[state=on]:text-white data-[state=on]:border-red-500"
+              >
+                {awayTeamName}
+              </ToggleGroupItem>
+              <ToggleGroupItem
+                value="both"
+                className="w-full text-xs px-1 bg-background hover:bg-background/80 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground data-[state=on]:border-primary"
+              >
+                Ambos
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </>
+      )}
 
-      <Separator />
+      {isSequencesMode && (
+        <>
+          <Separator />
+
+          <div className="flex flex-col gap-4">
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Final de secuencia
+              </p>
+              <ToggleGroup
+                type="multiple"
+                value={filters.sequenceEndReasons}
+                onValueChange={(value) =>
+                  onChange({
+                    ...filters,
+                    sequenceEndReasons: value as EventSequenceEndReason[],
+                  })
+                }
+                variant="outline"
+                size="sm"
+                className="grid w-full grid-cols-2 gap-1"
+              >
+                {EVENT_SEQUENCE_END_REASONS.map((reason) => (
+                  <ToggleGroupItem
+                    key={reason}
+                    value={reason}
+                    className="w-full bg-background px-2 text-xs hover:bg-background/80 data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+                  >
+                    {sequenceEndReasonLabels[reason]}
+                  </ToggleGroupItem>
+                ))}
+              </ToggleGroup>
+            </div>
+
+            <div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Numero de pases
+              </p>
+              <div className="grid grid-cols-3 gap-1">
+                {([
+                  { value: "any", label: "Todos" },
+                  { value: "more", label: "Mas de" },
+                  { value: "less", label: "Menos de" },
+                ] as const).map((option) => {
+                  const active = filters.sequencePassCountMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() =>
+                        onChange({ ...filters, sequencePassCountMode: option.value })
+                      }
+                      className={cn(
+                        "rounded-md border px-2 py-1.5 text-xs transition-colors",
+                        active
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-input hover:bg-muted/60 hover:text-foreground"
+                      )}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <div className="mt-3 flex items-center justify-between gap-3 rounded-md border border-input bg-background px-3 py-2">
+                <span className="text-sm text-muted-foreground">Pases</span>
+                <NumberInput
+                  value={filters.sequencePassCount}
+                  onChange={(value) => onChange({ ...filters, sequencePassCount: value })}
+                  min={0}
+                  max={100}
+                  disabled={filters.sequencePassCountMode === "any"}
+                />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {isAllMode && (
+        <>
+          <Separator />
 
       {/* Section 3: Event types */}
       <div className="flex flex-col gap-3 min-h-0">
@@ -450,6 +560,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           })}
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 };

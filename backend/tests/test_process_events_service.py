@@ -174,6 +174,25 @@ class ProcessEventsServiceTests(unittest.TestCase):
         )
         self.assertEqual(updated_events_message["events"][0]["type_id"], "4")
 
+    def test_foul_exports_only_committing_team_event(self):
+        messages = self.service.process_game(
+            make_root(
+                [
+                    make_event("10", "4", player_id="p1", team_id="1", outcome=1),
+                    make_event("12", "4", player_id="p2", team_id="2", outcome=0),
+                ]
+            )
+        )
+
+        new_events_message = next(
+            message for message in messages if message["type"] == "new_events"
+        )
+
+        self.assertEqual(len(new_events_message["events"]), 1)
+        self.assertEqual(new_events_message["events"][0]["event_id"], "10")
+        self.assertEqual(new_events_message["events"][0]["team_id"], "1")
+        self.assertEqual(new_events_message["events"][0]["outcome"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

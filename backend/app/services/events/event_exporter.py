@@ -14,8 +14,10 @@ class EventExporter:
 
     @staticmethod
     def should_export(event: Event) -> bool:
+        if event.type_id == "4":
+            return event.outcome == 0
         if event.type_id == "5":
-            return event.outcome == 1
+            return event.outcome == 0
         return event.type_id in EXPORTED_EVENT_TYPES
 
     def to_payload(

@@ -1,5 +1,6 @@
 import React from "react";
 import { motion } from "motion/react";
+import { EventSequenceLabel, getMarkerFontSize } from "./EventMarkerLabels";
 
 export interface PassArrowProps {
   x1: number;
@@ -7,13 +8,15 @@ export interface PassArrowProps {
   x2: number;
   y2: number;
   sequence: number;
+  markerLabel?: string;
+  markerScale?: number;
   outcome: number; // 1 = success, 0 = fail
   color?: string;
   /** When true, plays enter animation (line draws + elements scale in) */
   animated?: boolean;
 }
 
-const CIRCLE_R = 2.55;
+const CIRCLE_R = 3.05;
 const ARROW_LEN = 4.4;
 const ARROW_ANGLE = Math.PI / 6; // 30°
 const CROSS_SIZE = 2.2;
@@ -24,16 +27,19 @@ const PassArrow: React.FC<PassArrowProps> = ({
   x2,
   y2,
   sequence,
+  markerLabel,
+  markerScale = 1,
   outcome,
   color = "#ffffff",
   animated = false,
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const success = outcome === 1;
+  const circleR = CIRCLE_R * markerScale;
 
   // Line starts from the edge of the start circle
-  const lineX1 = x1 + CIRCLE_R * Math.cos(angle);
-  const lineY1 = y1 + CIRCLE_R * Math.sin(angle);
+  const lineX1 = x1 + circleR * Math.cos(angle);
+  const lineY1 = y1 + circleR * Math.sin(angle);
 
   // Arrowhead vertices
   const ax1 = x2 - ARROW_LEN * Math.cos(angle - ARROW_ANGLE);
@@ -46,8 +52,8 @@ const PassArrow: React.FC<PassArrowProps> = ({
   const lineX2 = x2 - lineEndOffset * Math.cos(angle);
   const lineY2 = y2 - lineEndOffset * Math.sin(angle);
 
-  const digits = String(sequence).length;
-  const fontSize = digits === 1 ? 3.5 : digits === 2 ? 3 : 2.4;
+  const label = markerLabel ?? String(sequence);
+  const fontSize = getMarkerFontSize(label, 4.05) * markerScale;
 
   // SVG path string for the pass line
   const linePath = `M ${lineX1} ${lineY1} L ${lineX2} ${lineY2}`;
@@ -134,7 +140,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
         transition={animated ? { duration: 0.3, ease: "backOut", delay: 0.2 } : { duration: 0 }}
         style={{ transformOrigin: `${x1}px ${y1}px` }}
       >
-        <circle cx={x1} cy={y1} r={CIRCLE_R} fill={color} fillOpacity={0.9} />
+        <circle cx={x1} cy={y1} r={circleR} fill={color} fillOpacity={0.9} />
         <text
           x={x1}
           y={y1}
@@ -145,8 +151,14 @@ const PassArrow: React.FC<PassArrowProps> = ({
           fill="#1a1a1a"
           style={{ userSelect: "none" }}
         >
-          {sequence}
+          {label}
         </text>
+        <EventSequenceLabel
+          x={x1}
+          y={y1 + circleR + 1.15}
+          sequence={sequence}
+          fontSize={3.05 * markerScale}
+        />
       </motion.g>
     </g>
   );
