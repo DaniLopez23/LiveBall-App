@@ -44,7 +44,7 @@ const FoulFigure: React.FC<FoulFigureProps> = ({
 				x={x}
 				y={y + diamondR + 1.15}
 				sequence={sequence}
-				fontSize={3.05 * markerScale}
+				fontSize={4.15 * markerScale}
 			/>
 		</g>
 	);

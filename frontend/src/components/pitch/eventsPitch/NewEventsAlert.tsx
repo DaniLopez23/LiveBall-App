@@ -7,6 +7,7 @@ import useEventsStore from "@/store/eventsStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
 import { PITCH_EVENT_TYPES_CONFIG } from "@/types/outcomeOptions";
 import { cn } from "@/lib/utils";
+import type { Event } from "@/types/event";
 
 function formatClock(min?: number | null, sec?: number | null): string {
   if (min == null && sec == null) {
@@ -35,6 +36,24 @@ function resolvePlayerName(
   const teamNetwork = teamId ? passNetworksByTeamId[String(teamId)] : undefined;
   const matchedPlayer = teamNetwork?.nodes.find((node) => node.player_id === playerId);
   return matchedPlayer?.player_name?.trim() || `Player ${playerId}`;
+}
+
+function formatLivePlayerLabel(
+  event: Event,
+  passNetworksByTeamId: Record<string, { nodes: { player_id: string; player_name: string }[] }>,
+): string {
+  const dorsal = event.player?.dorsal?.trim();
+  const playerName = event.player?.name?.trim();
+  const fallbackName = resolvePlayerName(
+    event.player_id,
+    event.team_id,
+    passNetworksByTeamId,
+  );
+  const name = playerName || fallbackName;
+
+  if (dorsal && name) return `${dorsal} - ${name}`;
+  if (dorsal) return dorsal;
+  return name;
 }
 
 const NewEventsAlert = () => {
@@ -95,11 +114,7 @@ const NewEventsAlert = () => {
 
     return {
       eventLabel: getEventLabel(latestEvent.type_id, latestEvent.event_name),
-      playerLabel: resolvePlayerName(
-        latestEvent.player_id,
-        latestEvent.team_id,
-        passNetworksByTeamId,
-      ),
+      playerLabel: formatLivePlayerLabel(latestEvent, passNetworksByTeamId),
       timeLabel: formatClock(latestEvent.min, latestEvent.sec),
     };
   }, [latestEvent, passNetworksByTeamId]);

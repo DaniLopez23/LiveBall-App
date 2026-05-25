@@ -101,7 +101,7 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
         x={x1}
         y={y1 + squareHalf + 1.15}
         sequence={sequence}
-        fontSize={3.05 * markerScale}
+        fontSize={4.15 * markerScale}
       />
 
       {/* ── Miss: rotated × ───────────────────────────────────────── */}

@@ -157,7 +157,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
           x={x1}
           y={y1 + circleR + 1.15}
           sequence={sequence}
-          fontSize={3.05 * markerScale}
+          fontSize={4.15 * markerScale}
         />
       </motion.g>
     </g>

@@ -1,7 +1,8 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
 
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
+import EventsPitchSequencesTable from "@/components/pitch/eventsPitch/EventsPitchSequencesTable";
 import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
 import NewEventsAlert from "@/components/pitch/eventsPitch/NewEventsAlert";
@@ -16,7 +17,6 @@ import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFi
 import {
   buildEventSequences,
   EVENT_SEQUENCE_END_REASONS,
-  flattenSequences,
   type EventSequence,
 } from "@/components/pitch/eventsPitch/eventSequences";
 import { cn } from "@/lib/utils";
@@ -44,6 +44,16 @@ const DEFAULT_FILTERS: EventsFilters = {
   minuteRange: [0, 90],
 };
 
+const clampMinuteRange = (
+  minuteRange: [number, number],
+  maxMinute: number,
+): [number, number] => {
+  const boundedMaxMinute = Math.max(0, maxMinute);
+  const start = Math.min(Math.max(0, minuteRange[0]), boundedMaxMinute);
+  const end = Math.min(Math.max(start, minuteRange[1]), boundedMaxMinute);
+  return [start, end];
+};
+
 const EventsPage: React.FC = () => {
   const game = useGameStore((state) => state.game);
   const events = useEventsStore((state) => state.events);
@@ -51,6 +61,7 @@ const EventsPage: React.FC = () => {
   const [showFilters, setShowFilters] = useState(true);
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [isDefaultAllSelection, setIsDefaultAllSelection] = useState(true);
+  const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(null);
 
   const teamColors = useMemo(() => {
     if (!game) return {};
@@ -63,6 +74,21 @@ const EventsPage: React.FC = () => {
 
   const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
   const eventSequences = useMemo(() => buildEventSequences(pitchEvents), [pitchEvents]);
+  const currentMaxMinute = useMemo(
+    () =>
+      pitchEvents.reduce(
+        (maxMinute, event) => Math.max(maxMinute, event.min ?? 0),
+        0,
+      ),
+    [pitchEvents],
+  );
+  const hasSecondHalf = useMemo(
+    () =>
+      pitchEvents.some(
+        (event) => event.period_id === 2 || (event.min ?? 0) >= 45,
+      ),
+    [pitchEvents],
+  );
 
   const availableTypeIds = useMemo(
     () => Array.from(new Set(pitchEvents.map((event) => event.type_id))) as string[],
@@ -157,11 +183,38 @@ const EventsPage: React.FC = () => {
         ...filters,
         selectedOutcomes: seededFilters.selectedOutcomes,
         selectedSubtypes: seededFilters.selectedSubtypes,
+        minuteRange: clampMinuteRange(filters.minuteRange, currentMaxMinute),
       };
     }
 
-    return filters;
-  }, [filters, seededFilters, isDefaultAllSelection]);
+    return {
+      ...filters,
+      minuteRange: clampMinuteRange(filters.minuteRange, currentMaxMinute),
+    };
+  }, [filters, seededFilters, isDefaultAllSelection, currentMaxMinute]);
+
+  const filteredSequences = useMemo(
+    () =>
+      eventSequences.filter((sequence) =>
+        sequenceMatchesFilters(sequence, displayFilters),
+      ),
+    [eventSequences, displayFilters, sequenceMatchesFilters],
+  );
+
+  const selectedSequence = useMemo(
+    () =>
+      selectedSequenceId
+        ? filteredSequences.find((sequence) => sequence.id === selectedSequenceId) ?? null
+        : null,
+    [filteredSequences, selectedSequenceId],
+  );
+
+  useEffect(() => {
+    if (displayFilters.mode !== "sequences") return;
+    if (selectedSequenceId && !selectedSequence) {
+      setSelectedSequenceId(null);
+    }
+  }, [displayFilters.mode, selectedSequence, selectedSequenceId]);
 
   const filteredEvents = useMemo(() => {
     if (displayFilters.mode === "live") {
@@ -169,10 +222,7 @@ const EventsPage: React.FC = () => {
     }
 
     if (displayFilters.mode === "sequences") {
-      const matchingSequences = eventSequences.filter((sequence) =>
-        sequenceMatchesFilters(sequence, displayFilters),
-      );
-      return flattenSequences(matchingSequences);
+      return selectedSequence?.events ?? [];
     }
 
     let result = pitchEvents;
@@ -222,12 +272,16 @@ const EventsPage: React.FC = () => {
     return result;
   }, [
     pitchEvents,
-    eventSequences,
     displayFilters,
     game,
     isDefaultAllSelection,
-    sequenceMatchesFilters,
+    selectedSequence,
   ]);
+
+  const tableResultCount =
+    displayFilters.mode === "sequences" ? filteredSequences.length : filteredEvents.length;
+  const shouldShowSequenceSelectionPrompt =
+    displayFilters.mode === "sequences" && selectedSequence == null;
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4">
@@ -252,7 +306,7 @@ const EventsPage: React.FC = () => {
         </Button>
       </div>
 
-      <div className="flex h-[min(70svh,38.75rem)] gap-2 xl:h-155">
+      <div className="flex min-h-[46rem] gap-2 xl:h-[calc(100svh-8rem)] xl:min-h-[48rem]">
         <div
           className={cn(
             "flex items-center justify-center rounded-lg bg-slate-100 p-2 transition-all duration-300 dark:bg-slate-800",
@@ -265,12 +319,22 @@ const EventsPage: React.FC = () => {
               <p className="text-lg font-medium">Esperando eventos...</p>
               <p className="mt-2 text-sm">Los eventos se mostrarán aquí en tiempo real</p>
             </div>
+          ) : shouldShowSequenceSelectionPrompt ? (
+            <EventsPitch
+              events={[]}
+              mode={displayFilters.mode}
+              teamColors={teamColors}
+              orientation="horizontal"
+              noDataMessage="Seleccione una secuencia en la Tabla para observarla en el campo"
+              game={game}
+            />
           ) : (
             <EventsPitch
               events={filteredEvents}
               mode={displayFilters.mode}
               teamColors={teamColors}
               orientation="horizontal"
+              game={game}
             />
           )}
         </div>
@@ -289,6 +353,8 @@ const EventsPage: React.FC = () => {
             isOpen={showFilters}
             onToggle={() => setShowFilters((value) => !value)}
             availableTypeIds={availableTypeIds}
+            maxMinute={currentMaxMinute}
+            hasSecondHalf={hasSecondHalf}
           />
         </div>
       </div>
@@ -296,7 +362,7 @@ const EventsPage: React.FC = () => {
       <Sheet open={isMobilePanelOpen} onOpenChange={setIsMobilePanelOpen}>
         <SheetContent
           side="bottom"
-          className="h-[85svh] max-h-[46rem] gap-0 rounded-t-lg p-0"
+          className="h-[92svh] max-h-[58rem] gap-0 rounded-t-lg p-0"
         >
           <SheetHeader className="sr-only">
             <SheetTitle>Panel de eventos</SheetTitle>
@@ -311,13 +377,31 @@ const EventsPage: React.FC = () => {
             defaultValue="filters"
             onToggle={() => setIsMobilePanelOpen(false)}
             availableTypeIds={availableTypeIds}
+            maxMinute={currentMaxMinute}
+            hasSecondHalf={hasSecondHalf}
           />
         </SheetContent>
       </Sheet>
 
       <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-800">
-        <h2 className="mb-3 text-sm font-semibold">Tabla de eventos</h2>
-        <EventsPitchTable events={filteredEvents} sequenceEvents={pitchEvents} game={game} />
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">
+            {displayFilters.mode === "sequences" ? "Tabla de secuencias" : "Tabla de eventos"}
+          </h2>
+          <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
+            Numero de resultados - {tableResultCount}
+          </span>
+        </div>
+        {displayFilters.mode === "sequences" ? (
+          <EventsPitchSequencesTable
+            sequences={filteredSequences}
+            selectedSequenceId={selectedSequenceId}
+            onSelectedSequenceIdChange={setSelectedSequenceId}
+            game={game}
+          />
+        ) : (
+          <EventsPitchTable events={filteredEvents} sequenceEvents={pitchEvents} game={game} />
+        )}
       </div>
     </div>
   );

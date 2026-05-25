@@ -119,11 +119,28 @@ function getPlayerMarkerLabel(event: OptaEvent): string {
   return "?";
 }
 
-function getLiveBatchKey(event: OptaEvent): string {
-  if (event.timestamp_utc) return `utc:${event.timestamp_utc}`;
-  if (event.timestamp) return `local:${event.timestamp}`;
-  if (event.min != null || event.sec != null) return `clock:${event.min ?? 0}:${event.sec ?? 0}`;
-  return event.id;
+function getLiveTagBox(
+  anchorX: number,
+  anchorY: number,
+  label: string,
+  viewBoxWidth: number,
+  viewBoxHeight: number,
+): { x: number; y: number; width: number; height: number } {
+  const fontSize = 4.1;
+  const paddingX = 3.2;
+  const height = 7.2;
+  const width = clamp(label.length * fontSize * 0.56 + paddingX * 2, 32, 90);
+  const preferredY = anchorY + 8.5;
+  const y = preferredY + height <= viewBoxHeight - 2
+    ? preferredY
+    : anchorY - height - 8.5;
+
+  return {
+    x: clamp(anchorX - width / 2, 2, viewBoxWidth - width - 2),
+    y: clamp(y, 2, viewBoxHeight - height - 2),
+    width,
+    height,
+  };
 }
 
 function clamp(value: number, min: number, max: number): number {
@@ -241,6 +258,60 @@ function EventTooltip({
   );
 }
 
+function LiveEventTag({
+  anchorX,
+  anchorY,
+  color,
+  label,
+  viewBoxWidth,
+  viewBoxHeight,
+}: {
+  anchorX: number;
+  anchorY: number;
+  color: string;
+  label: string;
+  viewBoxWidth: number;
+  viewBoxHeight: number;
+}) {
+  const box = getLiveTagBox(anchorX, anchorY, label, viewBoxWidth, viewBoxHeight);
+
+  return (
+    <motion.g
+      pointerEvents="none"
+      initial={{ opacity: 0, scale: 0.92 }}
+      animate={{ opacity: 1, scale: 1 }}
+      exit={{ opacity: 0, scale: 0.96 }}
+      transition={{ duration: 0.22, ease: "easeOut" }}
+      style={{ transformOrigin: `${anchorX}px ${anchorY}px` }}
+    >
+      <rect
+        x={box.x}
+        y={box.y}
+        width={box.width}
+        height={box.height}
+        rx={2}
+        fill="#0f172a"
+        fillOpacity={0.92}
+        stroke={color}
+        strokeOpacity={0.96}
+        strokeWidth={0.65}
+      />
+      <text
+        x={box.x + box.width / 2}
+        y={box.y + box.height / 2}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={4.1}
+        fontWeight={800}
+        fill="#ffffff"
+        style={{ userSelect: "none", fontFamily: "system-ui, sans-serif" }}
+      >
+        {label}
+      </text>
+    </motion.g>
+  );
+}
+
 const OptaMarkers: React.FC<OptaMarkersProps> = ({
   events,
   teamColors = {},
@@ -334,6 +405,16 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
           />
         ) : null}
         {markerContent}
+        {visualState.isLive && visualState.isActive ? (
+          <LiveEventTag
+            anchorX={anchorX}
+            anchorY={anchorY}
+            color={color}
+            label={`${sequence} - ${getEventLabel(event).toUpperCase()}`}
+            viewBoxWidth={viewBoxWidth}
+            viewBoxHeight={viewBoxHeight}
+          />
+        ) : null}
         <circle
           cx={anchorX}
           cy={anchorY}
@@ -417,18 +498,11 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
       return false;
     });
 
-  const latestLiveBatchKey =
+  const activeLiveEventIds = new Set<string>(
     presentationMode === "live" && renderableEvents.length > 0
-      ? getLiveBatchKey(renderableEvents[renderableEvents.length - 1].event)
-      : null;
-  const activeLiveEventIds = new Set<string>();
-  if (latestLiveBatchKey) {
-    for (let index = renderableEvents.length - 1; index >= 0; index -= 1) {
-      const event = renderableEvents[index].event;
-      if (getLiveBatchKey(event) !== latestLiveBatchKey) break;
-      activeLiveEventIds.add(event.id);
-    }
-  }
+      ? [renderableEvents[renderableEvents.length - 1].event.id]
+      : [],
+  );
 
   const getMarkerVisualState = (event: OptaEvent): MarkerVisualState => {
     if (presentationMode !== "live") {
@@ -548,8 +622,6 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     }
 
     if (isDefensiveEvent(event)) {
-      const subtypeLabel = getDefensiveSubtypeLabel(event.type_id);
-
       return wrap(event.id, (
         <>
           {connector}
@@ -566,7 +638,6 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               sequence={sequence}
               markerLabel={markerLabel}
               markerScale={visualState.markerScale}
-              subtypeLabel={subtypeLabel}
               color={color}
             />,
           )}

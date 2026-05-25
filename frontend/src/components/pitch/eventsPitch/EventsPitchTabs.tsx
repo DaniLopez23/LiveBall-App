@@ -17,6 +17,8 @@ interface EventsPitchTabsProps {
   isOpen: boolean;
   onToggle: () => void;
   availableTypeIds: string[];
+  maxMinute: number;
+  hasSecondHalf: boolean;
   defaultValue?: "stats" | "filters";
   showToggle?: boolean;
 }
@@ -29,6 +31,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   isOpen,
   onToggle,
   availableTypeIds,
+  maxMinute,
+  hasSecondHalf,
   defaultValue = "filters",
   showToggle = true,
 }) => {
@@ -91,6 +95,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
           homeTeamName={homeTeamName}
           awayTeamName={awayTeamName}
           availableTypeIds={availableTypeIds}
+          maxMinute={maxMinute}
+          hasSecondHalf={hasSecondHalf}
         />
       </TabsContent>
 

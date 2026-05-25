@@ -21,6 +21,7 @@ export interface EventSequence {
   events: PitchEvent[];
   endReason: EventSequenceEndReason;
   passCount: number;
+  precedingEvent: PitchEvent | null;
 }
 
 interface EventSequenceDraft {
@@ -28,6 +29,7 @@ interface EventSequenceDraft {
   teamId: string;
   events: PitchEvent[];
   passCount: number;
+  precedingEvent: PitchEvent | null;
 }
 
 const canStartSequence = (
@@ -39,11 +41,15 @@ const canStartSequence = (
   Boolean(previousEvent?.team_id) &&
   previousEvent?.team_id !== event.team_id;
 
-const createSequenceDraft = (event: PitchEvent & { team_id: string }): EventSequenceDraft => ({
+const createSequenceDraft = (
+  event: PitchEvent & { team_id: string },
+  precedingEvent: PitchEvent | null,
+): EventSequenceDraft => ({
   id: event.id,
   teamId: event.team_id,
   events: [event],
   passCount: 1,
+  precedingEvent,
 });
 
 const getSameTeamEndReason = (
@@ -76,6 +82,7 @@ export function buildEventSequences(events: PitchEvent[]): EventSequence[] {
       events: nextEvents,
       endReason,
       passCount: draft.passCount,
+      precedingEvent: draft.precedingEvent,
     });
   };
 
@@ -85,7 +92,7 @@ export function buildEventSequences(events: PitchEvent[]): EventSequence[] {
     if (activeSequence && eventTeamId && eventTeamId !== activeSequence.teamId) {
       finishSequence(activeSequence, event, "opponent");
       activeSequence = canStartSequence(event, previousEvent)
-        ? createSequenceDraft(event)
+        ? createSequenceDraft(event, previousEvent)
         : null;
       previousEvent = event;
       continue;
@@ -109,26 +116,11 @@ export function buildEventSequences(events: PitchEvent[]): EventSequence[] {
     }
 
     if (canStartSequence(event, previousEvent)) {
-      activeSequence = createSequenceDraft(event);
+      activeSequence = createSequenceDraft(event, previousEvent);
     }
 
     previousEvent = event;
   }
 
   return sequences;
-}
-
-export function flattenSequences(sequences: EventSequence[]): PitchEvent[] {
-  const seenEventIds = new Set<string>();
-  const flattenedEvents: PitchEvent[] = [];
-
-  for (const sequence of sequences) {
-    for (const event of sequence.events) {
-      if (seenEventIds.has(event.id)) continue;
-      seenEventIds.add(event.id);
-      flattenedEvents.push(event);
-    }
-  }
-
-  return flattenedEvents;
 }

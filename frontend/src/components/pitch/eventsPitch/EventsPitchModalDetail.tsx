@@ -12,6 +12,8 @@ interface EventsPitchModalDetailProps {
 	game?: Game | null;
 	actionLabel: string;
 	outcomeLabel?: string;
+	contextEventsOverride?: OptaEvent[];
+	highlightSelectedEvent?: boolean;
 	onClose: () => void;
 }
 
@@ -43,6 +45,8 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 	game,
 	actionLabel,
 	outcomeLabel,
+	contextEventsOverride,
+	highlightSelectedEvent = true,
 	onClose,
 }) => {
 	React.useEffect(() => {
@@ -64,12 +68,13 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 	}, [events, event]);
 
 	const contextEvents = React.useMemo(() => {
+		if (contextEventsOverride) return contextEventsOverride;
 		if (selectedIndex < 0) return [];
 		if (!event) return [];
 		const start = Math.max(0, selectedIndex - 3);
 		const end = isShotEvent(event) ? selectedIndex + 1 : Math.min(events.length, selectedIndex + 4);
 		return events.slice(start, end);
-	}, [events, event, selectedIndex]);
+	}, [contextEventsOverride, events, event, selectedIndex]);
 
 	const teamColors = React.useMemo(() => {
 		if (!game) return {};
@@ -80,7 +85,7 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 	}, [game]);
 
 	const eventColors = React.useMemo(() => {
-		if (!event) return {};
+		if (!event || !highlightSelectedEvent) return {};
 
 		const selectedId = event.id;
 		const colorByEventId: Record<string, string> = {};
@@ -93,7 +98,7 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 		}
 
 		return colorByEventId;
-	}, [contextEvents, event, teamColors]);
+	}, [contextEvents, event, highlightSelectedEvent, teamColors]);
 
 	if (!open || !event) return null;
 
@@ -139,6 +144,7 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 						eventColors={eventColors}
 						orientation="horizontal"
 						showHeader={false}
+						game={game}
 					/>
 				</div>
 			</div>

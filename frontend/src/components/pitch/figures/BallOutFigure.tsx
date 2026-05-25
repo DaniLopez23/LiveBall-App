@@ -81,7 +81,7 @@ const BallOutFigure: React.FC<BallOutFigureProps> = ({
         x={0}
         y={badgeHeight / 2 + 1.15}
         sequence={sequence}
-        fontSize={3.05 * markerScale}
+        fontSize={4.15 * markerScale}
       />
     </g>
   );

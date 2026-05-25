@@ -9,7 +9,7 @@ export function EventSequenceLabel({
   x,
   y,
   sequence,
-  fontSize = 3.05,
+  fontSize = 4.15,
 }: {
   x: number;
   y: number;
