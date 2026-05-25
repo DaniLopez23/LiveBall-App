@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRef } from "react";
 import { SlidersHorizontal } from "lucide-react";
 
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
@@ -54,6 +55,8 @@ const clampMinuteRange = (
   return [start, end];
 };
 
+const PITCH_MODE_READY_DELAY_MS = 320;
+
 const EventsPage: React.FC = () => {
   const game = useGameStore((state) => state.game);
   const events = useEventsStore((state) => state.events);
@@ -62,6 +65,8 @@ const EventsPage: React.FC = () => {
   const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
   const [isDefaultAllSelection, setIsDefaultAllSelection] = useState(true);
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(null);
+  const [isPitchModePreparing, setIsPitchModePreparing] = useState(false);
+  const previousPitchModeRef = useRef<EventsFilters["mode"]>(filters.mode);
 
   const teamColors = useMemo(() => {
     if (!game) return {};
@@ -216,6 +221,19 @@ const EventsPage: React.FC = () => {
     }
   }, [displayFilters.mode, selectedSequence, selectedSequenceId]);
 
+  useEffect(() => {
+    if (previousPitchModeRef.current === displayFilters.mode) return;
+
+    previousPitchModeRef.current = displayFilters.mode;
+    setIsPitchModePreparing(true);
+
+    const timeoutId = window.setTimeout(() => {
+      setIsPitchModePreparing(false);
+    }, PITCH_MODE_READY_DELAY_MS);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [displayFilters.mode]);
+
   const filteredEvents = useMemo(() => {
     if (displayFilters.mode === "live") {
       return pitchEvents.slice(-displayFilters.lastCount);
@@ -282,6 +300,8 @@ const EventsPage: React.FC = () => {
     displayFilters.mode === "sequences" ? filteredSequences.length : filteredEvents.length;
   const shouldShowSequenceSelectionPrompt =
     displayFilters.mode === "sequences" && selectedSequence == null;
+  const pitchLoadingMessage =
+    events.length === 0 || isPitchModePreparing ? "Cargando eventos..." : undefined;
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4">
@@ -314,11 +334,15 @@ const EventsPage: React.FC = () => {
             "flex-1",
           )}
         >
-          {events.length === 0 ? (
-            <div className="text-center text-muted-foreground">
-              <p className="text-lg font-medium">Esperando eventos...</p>
-              <p className="mt-2 text-sm">Los eventos se mostrarán aquí en tiempo real</p>
-            </div>
+          {pitchLoadingMessage ? (
+            <EventsPitch
+              events={events.length === 0 ? [] : filteredEvents}
+              mode={displayFilters.mode}
+              teamColors={teamColors}
+              orientation="horizontal"
+              loadingMessage={pitchLoadingMessage}
+              game={game}
+            />
           ) : shouldShowSequenceSelectionPrompt ? (
             <EventsPitch
               events={[]}

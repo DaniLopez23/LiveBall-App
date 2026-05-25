@@ -5,6 +5,7 @@ import type { Orientation } from "@/store/optaPitchConfigStore";
 import { EventsPitchHeader } from "./EventsPitchHeader";
 import EventsPitchBoard from "./EventsPitchBoard";
 import EventsPitchCaptureModal from "./EventsPitchCaptureModal";
+import EventsPitchLoadingOverlay from "./EventsPitchLoadingOverlay";
 import PassNetworkNoDataOverlay from "@/components/pitch/passNetworkPitch/PassNetworkNoDataOverlay";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,8 @@ interface EventsPitchProps {
   showHeader?: boolean;
   /** When provided, shows a dark overlay message over the pitch. */
   noDataMessage?: string;
+  /** When provided, shows a loading overlay over the pitch. */
+  loadingMessage?: string;
   game?: Game | null;
 }
 
@@ -41,6 +44,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   fieldColor,
   showHeader = true,
   noDataMessage,
+  loadingMessage,
   game,
 }) => {
   const animated = mode === "live";
@@ -157,7 +161,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
       {showHeader ? (
         <>
           <EventsPitchHeader
-            canCapture={displayedEvents.length > 0}
+            canCapture={displayedEvents.length > 0 && !loadingMessage && !noDataMessage}
             onCaptureClick={() => setIsCaptureOpen(true)}
             onFullscreenClick={() => setIsFullscreenOpen(true)}
           />
@@ -176,7 +180,10 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           orientation={orientation}
           fieldColor={fieldColor}
         />
-        {noDataMessage ? <PassNetworkNoDataOverlay message={noDataMessage} /> : null}
+        {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
+        {!loadingMessage && noDataMessage ? (
+          <PassNetworkNoDataOverlay message={noDataMessage} />
+        ) : null}
       </div>
 
       {isFullscreenOpen ? (
@@ -218,7 +225,10 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
                 orientation={orientation}
                 fieldColor={fieldColor}
               />
-              {noDataMessage ? <PassNetworkNoDataOverlay message={noDataMessage} /> : null}
+              {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
+              {!loadingMessage && noDataMessage ? (
+                <PassNetworkNoDataOverlay message={noDataMessage} />
+              ) : null}
             </div>
           </div>
         </div>
