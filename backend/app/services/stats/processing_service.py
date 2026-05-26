@@ -314,14 +314,14 @@ def build_match_stats_comparison(
 
 class MatchStatsTimelineStore:
     """
-    Keeps one 5-minute cumulative snapshot timeline per match.
+    Keeps one 3-minute cumulative snapshot timeline per match.
 
     Bucket strategy is floor-based:
-    minutes 0-4 -> bucket 0, 5-9 -> bucket 5, 10-14 -> bucket 10, etc.
+    minutes 0-2 -> bucket 0, 3-5 -> bucket 3, 6-8 -> bucket 6, etc.
     A new XML reading in an existing bucket replaces that bucket snapshot.
     """
 
-    def __init__(self, interval_minutes: int = 5) -> None:
+    def __init__(self, interval_minutes: int = 3) -> None:
         self.interval_minutes = interval_minutes
         self._timelines: Dict[str, MatchStatsTimeline] = {}
 

@@ -1,3 +1,4 @@
+import logging
 from typing import Any, Dict, List, Optional
 
 from app.schemas.games import ParsedGamesRoot
@@ -5,8 +6,11 @@ from app.services.events.event_exporter import EventExporter
 from app.services.events.event_scanner import EventScanner
 from app.services.events.game_change_detector import GameChangeDetector
 from app.services.events.pass_network_update_service import PassNetworkUpdateService
+from app.services.momentum import MatchMomentumService
 from app.services.players.service import PlayersService
 from app.state.game_state import GameStateCache
+
+logger = logging.getLogger(__name__)
 
 
 class ProcessEventsService:
@@ -34,6 +38,7 @@ class ProcessEventsService:
             cache,
             self._players_service,
         )
+        self._momentum_service = MatchMomentumService(cache)
 
     def process_game(self, parsed_root: ParsedGamesRoot) -> List[Dict[str, Any]]:
         messages: List[Dict[str, Any]] = []
@@ -53,6 +58,16 @@ class ProcessEventsService:
                     event_scan.pass_candidates_by_team,
                 )
             )
+
+        try:
+            messages.extend(
+                self._momentum_service.update(
+                    game,
+                    events_changed=event_scan.has_event_changes,
+                )
+            )
+        except Exception:
+            logger.exception("(MOMENTUM) Unexpected error while updating xT momentum")
 
         if messages or event_scan.has_event_changes:
             self._cache.games[game.game_id] = game

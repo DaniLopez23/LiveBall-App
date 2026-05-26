@@ -9,6 +9,7 @@ re-sending unchanged data.
 from typing import Any, Dict, Optional, Tuple
 
 from app.schemas.games import ParsedGame
+from app.schemas.momentum import MatchMomentumPayload, MomentumEvent
 from app.schemas.stats import MatchStatsTimeline, MatchStatsUpdateData, ParsedMatchStats
 from app.services.pass_networks.service import PassNetworkService
 
@@ -50,6 +51,9 @@ class GameStateCache:
         self.pass_networks: Dict[Tuple[str, str], PassNetworkService] = {}
         # (game_id, team_id) → latest bucket statistics dict
         self._pass_network_statistics: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self._momentum_events: Dict[str, Dict[str, MomentumEvent]] = {}
+        self._momentum_payloads: Dict[str, MatchMomentumPayload] = {}
+        self._momentum_trigger_buckets: Dict[str, int] = {}
 
     # ------------------------------------------------------------------ #
     # Game helpers                                                         #
@@ -227,3 +231,49 @@ class GameStateCache:
     ) -> Dict[str, Any]:
         """Returns the last stored bucket statistics, or an empty dict if not yet computed."""
         return self._pass_network_statistics.get((game_id, team_id), {})
+
+    # ------------------------------------------------------------------ #
+    # Momentum helpers                                                     #
+    # ------------------------------------------------------------------ #
+
+    def upsert_momentum_events(
+        self,
+        game_id: str,
+        events: list[MomentumEvent],
+    ) -> bool:
+        """Stores normalized xT momentum events and returns True if anything changed."""
+        if game_id not in self._momentum_events:
+            self._momentum_events[game_id] = {}
+
+        changed = False
+        for event in events:
+            previous = self._momentum_events[game_id].get(event.event_id)
+            if previous is None or previous.model_dump() != event.model_dump():
+                self._momentum_events[game_id][event.event_id] = event
+                changed = True
+
+        return changed
+
+    def get_momentum_events(self, game_id: str) -> list[MomentumEvent]:
+        """Returns cached normalized xT momentum events for *game_id*."""
+        return list(self._momentum_events.get(game_id, {}).values())
+
+    def get_momentum_payload(self, game_id: str) -> Optional[MatchMomentumPayload]:
+        """Returns the latest xT momentum payload for *game_id*."""
+        return self._momentum_payloads.get(game_id)
+
+    def store_momentum_payload(
+        self,
+        game_id: str,
+        payload: MatchMomentumPayload,
+    ) -> None:
+        """Stores the latest xT momentum payload for *game_id*."""
+        self._momentum_payloads[game_id] = payload
+
+    def get_momentum_trigger_bucket(self, game_id: str) -> Optional[int]:
+        """Returns the latest 2-minute trigger bucket processed for *game_id*."""
+        return self._momentum_trigger_buckets.get(game_id)
+
+    def store_momentum_trigger_bucket(self, game_id: str, bucket: int) -> None:
+        """Stores the latest 2-minute trigger bucket processed for *game_id*."""
+        self._momentum_trigger_buckets[game_id] = bucket

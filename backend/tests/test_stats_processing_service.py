@@ -144,21 +144,21 @@ class StatsProcessingServiceTests(unittest.TestCase):
         self.assertIsNone(grouped.derived.aerialSuccess)
 
     def test_creates_floor_buckets_and_replaces_same_bucket_snapshot(self):
-        store = MatchStatsTimelineStore(interval_minutes=5)
+        store = MatchStatsTimelineStore(interval_minutes=3)
 
-        first_timeline = store.update(make_payload("match-1", 23, "t1", home_passes="10"))
+        first_timeline = store.update(make_payload("match-1", 22, "t1", home_passes="10"))
         self.assertEqual(len(first_timeline.buckets), 1)
-        self.assertEqual(first_timeline.buckets[0].minute, 20)
+        self.assertEqual(first_timeline.buckets[0].minute, 21)
         self.assertEqual(
             first_timeline.buckets[0].home.groups["passing"]["total_pass"].total,
             10,
         )
 
         replaced_timeline = store.update(
-            make_payload("match-1", 24, "t2", home_passes="14")
+            make_payload("match-1", 23, "t2", home_passes="14")
         )
         self.assertEqual(len(replaced_timeline.buckets), 1)
-        self.assertEqual(replaced_timeline.buckets[0].minute, 20)
+        self.assertEqual(replaced_timeline.buckets[0].minute, 21)
         self.assertEqual(replaced_timeline.buckets[0].timestamp, "t2")
         self.assertEqual(
             replaced_timeline.buckets[0].home.groups["passing"]["total_pass"].total,
@@ -166,28 +166,28 @@ class StatsProcessingServiceTests(unittest.TestCase):
         )
 
         new_bucket_timeline = store.update(
-            make_payload("match-1", 25, "t3", home_passes="20")
+            make_payload("match-1", 24, "t3", home_passes="20")
         )
         self.assertEqual(
             [bucket.minute for bucket in new_bucket_timeline.buckets],
-            [20, 25],
+            [21, 24],
         )
 
     def test_does_not_update_timeline_without_valid_minute(self):
-        store = MatchStatsTimelineStore(interval_minutes=5)
+        store = MatchStatsTimelineStore(interval_minutes=3)
 
         timeline = store.update(make_payload("match-1", None, "t1"))
 
         self.assertEqual(timeline.buckets, [])
 
     def test_keeps_timelines_independent_by_match_id(self):
-        store = MatchStatsTimelineStore(interval_minutes=5)
+        store = MatchStatsTimelineStore(interval_minutes=3)
 
         store.update(make_payload("match-1", 6, "m1"))
         store.update(make_payload("match-2", 12, "m2"))
 
-        self.assertEqual([bucket.minute for bucket in store.get("match-1").buckets], [5])
-        self.assertEqual([bucket.minute for bucket in store.get("match-2").buckets], [10])
+        self.assertEqual([bucket.minute for bucket in store.get("match-1").buckets], [6])
+        self.assertEqual([bucket.minute for bucket in store.get("match-2").buckets], [12])
 
     def test_process_game_persists_bucket_timeline_in_state_for_snapshots(self):
         cache = GameStateCache()
@@ -223,14 +223,14 @@ class StatsProcessingServiceTests(unittest.TestCase):
 
         self.assertIsNotNone(state_timeline)
         self.assertIsNotNone(snapshot_payload)
-        self.assertEqual([bucket.minute for bucket in state_timeline.buckets], [5, 10])
+        self.assertEqual([bucket.minute for bucket in state_timeline.buckets], [6, 9])
         self.assertEqual(
             [bucket.minute for bucket in snapshot_payload.timeline.buckets],
-            [5, 10],
+            [6, 9],
         )
         self.assertEqual(
             [bucket["minute"] for bucket in snapshot_payload.model_dump()["timeline"]["buckets"]],
-            [5, 10],
+            [6, 9],
         )
 
     def test_process_game_emits_grouped_stats_update_without_raw_team_stats(self):

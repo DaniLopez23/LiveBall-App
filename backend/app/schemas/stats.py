@@ -159,7 +159,7 @@ class StatsTimeBucket(BaseModel):
 
 class MatchStatsTimeline(BaseModel):
     matchId: str
-    intervalMinutes: int = 5
+    intervalMinutes: int = 3
     buckets: List[StatsTimeBucket] = Field(default_factory=list)
 
 

@@ -32,6 +32,8 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
             exported_events = cache.get_exported_events(game_id)
             stats_update = cache.get_match_stats_update(game_id)
             stats_data = stats_update.model_dump() if stats_update else {}
+            momentum_payload = cache.get_momentum_payload(game_id)
+            momentum_data = momentum_payload.model_dump() if momentum_payload else {}
 
             pass_networks_data = {}
             for (g_id, team_id), network_svc in cache.pass_networks.items():
@@ -50,6 +52,7 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                 "last_event_id": exported_events[-1].get("id") if exported_events else None,
                 "events": exported_events,
                 "stats": stats_data,
+                "momentum": momentum_data,
                 "pass_networks": pass_networks_data,
             })
             logger.info(
