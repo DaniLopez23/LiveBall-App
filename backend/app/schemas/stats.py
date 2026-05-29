@@ -2,6 +2,8 @@ from typing import Dict, List, Literal, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from app.schemas.momentum import MatchMomentumPayload, MatchMomentumPoint
+
 
 class TeamStat(BaseModel):
     type: str
@@ -155,6 +157,7 @@ class StatsTimeBucket(BaseModel):
     timestamp: str
     home: TeamGroupedStats
     away: TeamGroupedStats
+    momentum: Optional[MatchMomentumPoint] = None
 
 
 class MatchStatsTimeline(BaseModel):
@@ -167,3 +170,4 @@ class MatchStatsUpdateData(BaseModel):
     current: MatchStatsPayload
     comparison: MatchStatsComparisonPayload
     timeline: MatchStatsTimeline
+    momentum: Optional[MatchMomentumPayload] = None

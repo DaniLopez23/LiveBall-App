@@ -60,11 +60,9 @@ class ProcessEventsService:
             )
 
         try:
-            messages.extend(
-                self._momentum_service.update(
-                    game,
-                    events_changed=event_scan.has_event_changes,
-                )
+            self._momentum_service.update(
+                game,
+                events_changed=event_scan.has_event_changes,
             )
         except Exception:
             logger.exception("(MOMENTUM) Unexpected error while updating xT momentum")

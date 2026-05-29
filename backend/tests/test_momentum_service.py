@@ -3,7 +3,13 @@ import unittest
 from app.schemas.events import Event, Qualifier
 from app.schemas.games import ParsedGame
 from app.schemas.teams import TeamInGame
-from app.services.momentum.service import MatchMomentumService, normalize_event_for_momentum
+from app.services.momentum.service import (
+    DefaultXTValueProvider,
+    HeuristicXTProvider,
+    MatchMomentumService,
+    SoccerActionXTProvider,
+    normalize_event_for_momentum,
+)
 from app.state.game_state import GameStateCache
 
 
@@ -23,12 +29,36 @@ class UnavailableXTProvider:
         return None
 
 
+class RecoveringXTProvider:
+    source = "socceraction_xT"
+
+    def __init__(self):
+        self.available = False
+
+    def score_bucket(self, events, home_team_id, away_team_id):
+        if not self.available:
+            return None
+        return 0.4, 0.0
+
+
+class FakeXTModel:
+    xT = [
+        [0.01, 0.02],
+        [0.03, 0.5],
+    ]
+
+
 def make_event(
     event_id: str,
     minute: int,
     team_id: str = "1",
     player_id: str = "10",
     with_end: bool = True,
+    type_id: str = "1",
+    event_name: str = "Pass",
+    outcome: int = 1,
+    x: float = 50,
+    y: float = 50,
 ) -> Event:
     qualifiers = []
     if with_end:
@@ -40,17 +70,17 @@ def make_event(
     return Event(
         id=event_id,
         event_id=event_id,
-        type_id="1",
-        event_name="Pass",
+        type_id=type_id,
+        event_name=event_name,
         event_description="",
         period_id=1,
         min=minute,
         sec=0,
         player_id=player_id,
         team_id=team_id,
-        outcome=1,
-        x=50,
-        y=50,
+        outcome=outcome,
+        x=x,
+        y=y,
         qualifiers=qualifiers,
     )
 
@@ -80,32 +110,40 @@ class MatchMomentumServiceTests(unittest.TestCase):
         self.assertEqual(normalized.end_x, 60)
         self.assertEqual(normalized.qualifiers[140], "60")
 
-    def test_updates_current_three_minute_bucket_without_duplicate_points(self):
+    def test_updates_current_minute_bucket_without_duplicate_points(self):
         cache = GameStateCache()
         provider = FakeXTProvider()
         service = MatchMomentumService(cache=cache, value_provider=provider)
 
         first_messages = service.update(make_game([make_event("e1", 0)]), events_changed=True)
-        self.assertEqual(first_messages[0]["type"], "match_momentum_update")
-        self.assertEqual(first_messages[0]["data"]["intervalMinutes"], 3)
-        self.assertEqual(first_messages[0]["data"]["triggerIntervalMinutes"], 2)
-        self.assertEqual(first_messages[0]["data"]["points"][0]["minute"], 0)
-        self.assertEqual(first_messages[0]["data"]["points"][0]["homeValue"], 0.1)
+        first_payload = cache.get_momentum_payload("game-1")
+
+        self.assertEqual(first_messages, [])
+        self.assertIsNotNone(first_payload)
+        self.assertEqual(first_payload.intervalMinutes, 1)
+        self.assertEqual(first_payload.triggerIntervalMinutes, 1)
+        self.assertEqual(first_payload.windowMinutes, 3)
+        self.assertEqual(first_payload.points[0].minute, 0)
+        self.assertEqual(first_payload.points[0].homeValue, 0.1)
 
         updated_messages = service.update(
             make_game([make_event("e1", 0), make_event("e2", 1, team_id="2")]),
             events_changed=True,
         )
-        points = updated_messages[0]["data"]["points"]
+        updated_payload = cache.get_momentum_payload("game-1")
+        points = updated_payload.model_dump()["points"]
 
-        self.assertEqual(len(points), 1)
+        self.assertEqual(updated_messages, [])
+        self.assertEqual(len(points), 2)
         self.assertEqual(points[0]["minute"], 0)
         self.assertEqual(points[0]["homeValue"], 0.1)
-        self.assertEqual(points[0]["awayValue"], 0.2)
-        self.assertEqual(points[0]["awayMomentum"], -0.2)
-        self.assertEqual(points[0]["netMomentum"], -0.1)
+        self.assertEqual(points[0]["awayValue"], 0.0)
+        self.assertEqual(points[1]["minute"], 1)
+        self.assertEqual(points[1]["awayValue"], 0.2)
+        self.assertEqual(points[1]["awayMomentum"], -0.2)
+        self.assertEqual(points[1]["netMomentum"], -0.1)
 
-    def test_adds_new_three_minute_bucket_when_trigger_advances(self):
+    def test_adds_new_minute_bucket_when_match_minute_advances(self):
         cache = GameStateCache()
         service = MatchMomentumService(cache=cache, value_provider=FakeXTProvider())
 
@@ -115,9 +153,10 @@ class MatchMomentumServiceTests(unittest.TestCase):
             events_changed=True,
         )
 
-        points = messages[0]["data"]["points"]
-        self.assertEqual([point["minute"] for point in points], [0, 3])
-        self.assertEqual(points[1]["awayValue"], 0.2)
+        points = cache.get_momentum_payload("game-1").model_dump()["points"]
+        self.assertEqual(messages, [])
+        self.assertEqual([point["minute"] for point in points], [0, 1, 2, 3])
+        self.assertEqual(points[3]["awayValue"], 0.2)
 
     def test_keeps_momentum_event_cache_deduplicated(self):
         cache = GameStateCache()
@@ -137,22 +176,123 @@ class MatchMomentumServiceTests(unittest.TestCase):
 
         self.assertEqual(
             [point.minute for point in cache.get_momentum_payload("game-1").points],
-            [0, 3],
+            [0, 1, 2, 3],
         )
         self.assertEqual(
             [point.minute for point in cache.get_momentum_payload("game-2").points],
-            [0, 3, 6],
+            [0, 1, 2, 3, 4, 5, 6],
         )
 
-    def test_returns_no_message_when_xt_provider_is_unavailable(self):
+    def test_default_provider_falls_back_when_socceraction_is_unavailable(self):
+        cache = GameStateCache()
         service = MatchMomentumService(
-            cache=GameStateCache(),
+            cache=cache,
+            value_provider=DefaultXTValueProvider(primary=UnavailableXTProvider()),
+        )
+
+        service.update(make_game([make_event("e1", 0)]), events_changed=True)
+
+        payload = cache.get_momentum_payload("game-1")
+        self.assertIsNotNone(payload)
+        self.assertEqual(payload.source, "heuristic_xT")
+        self.assertGreater(payload.points[0].homeValue, 0)
+
+    def test_socceraction_provider_scores_shots_without_end_coordinates(self):
+        provider = SoccerActionXTProvider()
+        provider._model = FakeXTModel()
+        shot = normalize_event_for_momentum(
+            "1",
+            make_event(
+                "shot-1",
+                12,
+                with_end=False,
+                type_id="16",
+                event_name="Goal",
+                x=80,
+                y=40,
+            ),
+        )
+
+        home_value, away_value = provider.score_bucket([shot], "1", "2")
+
+        self.assertGreater(home_value, 0)
+        self.assertEqual(away_value, 0)
+
+    def test_heuristic_provider_scores_missed_shots(self):
+        provider = HeuristicXTProvider()
+        shot = normalize_event_for_momentum(
+            "1",
+            make_event(
+                "shot-1",
+                12,
+                with_end=False,
+                type_id="13",
+                event_name="Miss",
+                outcome=0,
+                x=88,
+                y=48,
+            ),
+        )
+
+        home_value, away_value = provider.score_bucket([shot], "1", "2")
+
+        self.assertGreater(home_value, 0)
+        self.assertEqual(away_value, 0)
+
+    def test_uses_rolling_window_for_minute_points(self):
+        cache = GameStateCache()
+        service = MatchMomentumService(cache=cache, value_provider=FakeXTProvider())
+
+        service.update(
+            make_game(
+                [
+                    make_event("e1", 0),
+                    make_event("e2", 1, team_id="2"),
+                    make_event("e3", 3, team_id="2"),
+                ]
+            ),
+            events_changed=True,
+        )
+
+        points = cache.get_momentum_payload("game-1").model_dump()["points"]
+        self.assertEqual(points[1]["homeValue"], 0.1)
+        self.assertEqual(points[1]["awayValue"], 0.2)
+        self.assertEqual(points[3]["homeValue"], 0.0)
+        self.assertEqual(points[3]["awayValue"], 0.4)
+
+    def test_default_provider_retries_primary_after_fallback(self):
+        cache = GameStateCache()
+        primary = RecoveringXTProvider()
+        service = MatchMomentumService(
+            cache=cache,
+            value_provider=DefaultXTValueProvider(primary=primary),
+        )
+
+        service.update(make_game([make_event("e1", 0)]), events_changed=True)
+        self.assertEqual(cache.get_momentum_payload("game-1").source, "heuristic_xT")
+
+        primary.available = True
+        service.refresh_payload(
+            make_game([make_event("e1", 0)]),
+            force=True,
+            refresh_all_buckets=True,
+        )
+
+        payload = cache.get_momentum_payload("game-1")
+        self.assertEqual(payload.source, "socceraction_xT")
+        self.assertEqual(payload.points[0].homeValue, 0.4)
+
+    def test_returns_no_message_when_xt_provider_is_unavailable(self):
+        cache = GameStateCache()
+        service = MatchMomentumService(
+            cache=cache,
             value_provider=UnavailableXTProvider(),
         )
 
         messages = service.update(make_game([make_event("e1", 0)]), events_changed=True)
 
         self.assertEqual(messages, [])
+        self.assertIsNone(cache.get_momentum_payload("game-1"))
 
 
 if __name__ == "__main__":

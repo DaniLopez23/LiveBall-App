@@ -65,6 +65,7 @@ export interface StatsTimeBucket {
 	timestamp: string;
 	home: TeamGroupedStats;
 	away: TeamGroupedStats;
+	momentum?: MatchMomentumPoint | null;
 }
 
 export interface MatchStatsTimeline {
@@ -73,8 +74,34 @@ export interface MatchStatsTimeline {
 	buckets: StatsTimeBucket[];
 }
 
+export interface MomentumTeam {
+	id: string;
+	name: string;
+}
+
+export interface MatchMomentumPoint {
+	minute: number;
+	homeValue: number;
+	awayValue: number;
+	homeMomentum: number;
+	awayMomentum: number;
+	netMomentum: number;
+}
+
+export interface MatchMomentumPayload {
+	matchId: string;
+	source: string;
+	intervalMinutes: number;
+	triggerIntervalMinutes: number;
+	windowMinutes: number;
+	homeTeam: MomentumTeam;
+	awayTeam: MomentumTeam;
+	points: MatchMomentumPoint[];
+}
+
 export interface MatchStatsUpdateData {
 	current: MatchStatsPayload;
 	comparison: MatchStatsComparisonPayload;
 	timeline: MatchStatsTimeline;
+	momentum?: MatchMomentumPayload | null;
 }

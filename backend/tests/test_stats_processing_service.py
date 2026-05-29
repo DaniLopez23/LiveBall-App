@@ -1,6 +1,7 @@
 import unittest
 import xml.etree.ElementTree as ET
 
+from app.schemas.momentum import MatchMomentumPayload, MatchMomentumPoint, MomentumTeam
 from app.schemas.stats import ParsedMatchStats, TeamMatchStats, TeamStat
 from app.services.stats.processing_service import (
     MatchStatsTimelineStore,
@@ -143,22 +144,22 @@ class StatsProcessingServiceTests(unittest.TestCase):
         self.assertEqual(grouped.derived.duelSuccess, 60.0)
         self.assertIsNone(grouped.derived.aerialSuccess)
 
-    def test_creates_floor_buckets_and_replaces_same_bucket_snapshot(self):
-        store = MatchStatsTimelineStore(interval_minutes=3)
+    def test_creates_minute_buckets_and_replaces_same_minute_snapshot(self):
+        store = MatchStatsTimelineStore()
 
         first_timeline = store.update(make_payload("match-1", 22, "t1", home_passes="10"))
         self.assertEqual(len(first_timeline.buckets), 1)
-        self.assertEqual(first_timeline.buckets[0].minute, 21)
+        self.assertEqual(first_timeline.buckets[0].minute, 22)
         self.assertEqual(
             first_timeline.buckets[0].home.groups["passing"]["total_pass"].total,
             10,
         )
 
         replaced_timeline = store.update(
-            make_payload("match-1", 23, "t2", home_passes="14")
+            make_payload("match-1", 22, "t2", home_passes="14")
         )
         self.assertEqual(len(replaced_timeline.buckets), 1)
-        self.assertEqual(replaced_timeline.buckets[0].minute, 21)
+        self.assertEqual(replaced_timeline.buckets[0].minute, 22)
         self.assertEqual(replaced_timeline.buckets[0].timestamp, "t2")
         self.assertEqual(
             replaced_timeline.buckets[0].home.groups["passing"]["total_pass"].total,
@@ -166,22 +167,22 @@ class StatsProcessingServiceTests(unittest.TestCase):
         )
 
         new_bucket_timeline = store.update(
-            make_payload("match-1", 24, "t3", home_passes="20")
+            make_payload("match-1", 23, "t3", home_passes="20")
         )
         self.assertEqual(
             [bucket.minute for bucket in new_bucket_timeline.buckets],
-            [21, 24],
+            [22, 23],
         )
 
     def test_does_not_update_timeline_without_valid_minute(self):
-        store = MatchStatsTimelineStore(interval_minutes=3)
+        store = MatchStatsTimelineStore()
 
         timeline = store.update(make_payload("match-1", None, "t1"))
 
         self.assertEqual(timeline.buckets, [])
 
     def test_keeps_timelines_independent_by_match_id(self):
-        store = MatchStatsTimelineStore(interval_minutes=3)
+        store = MatchStatsTimelineStore()
 
         store.update(make_payload("match-1", 6, "m1"))
         store.update(make_payload("match-2", 12, "m2"))
@@ -223,14 +224,14 @@ class StatsProcessingServiceTests(unittest.TestCase):
 
         self.assertIsNotNone(state_timeline)
         self.assertIsNotNone(snapshot_payload)
-        self.assertEqual([bucket.minute for bucket in state_timeline.buckets], [6, 9])
+        self.assertEqual([bucket.minute for bucket in state_timeline.buckets], [6, 11])
         self.assertEqual(
             [bucket.minute for bucket in snapshot_payload.timeline.buckets],
-            [6, 9],
+            [6, 11],
         )
         self.assertEqual(
             [bucket["minute"] for bucket in snapshot_payload.model_dump()["timeline"]["buckets"]],
-            [6, 9],
+            [6, 11],
         )
 
     def test_process_game_emits_grouped_stats_update_without_raw_team_stats(self):
@@ -251,7 +252,97 @@ class StatsProcessingServiceTests(unittest.TestCase):
         self.assertEqual(messages[0]["type"], "match_stats_update")
         self.assertIn("current", messages[0]["data"])
         self.assertIn("timeline", messages[0]["data"])
+        self.assertEqual(messages[0]["data"]["timeline"]["intervalMinutes"], 1)
+        self.assertEqual(
+            [bucket["minute"] for bucket in messages[0]["data"]["timeline"]["buckets"]],
+            [5],
+        )
         self.assertNotIn("teams", messages[0]["data"]["current"])
+
+    def test_process_game_includes_cached_momentum_in_stats_update(self):
+        cache = GameStateCache()
+        cache.store_momentum_payload(
+            "match-1",
+            MatchMomentumPayload(
+                matchId="match-1",
+                intervalMinutes=1,
+                triggerIntervalMinutes=1,
+                windowMinutes=3,
+                homeTeam=MomentumTeam(id="1", name="Home"),
+                awayTeam=MomentumTeam(id="2", name="Away"),
+                points=[
+                    MatchMomentumPoint(
+                        minute=2,
+                        homeValue=0.2,
+                        awayValue=0.1,
+                        homeMomentum=0.2,
+                        awayMomentum=-0.1,
+                        netMomentum=0.1,
+                    )
+                ],
+            ),
+        )
+        service = ProcessStatsService(cache=cache)
+
+        messages = service.process_game(
+            ParsedMatchStats(
+                game_id="match-1",
+                feed_timestamp="t1",
+                match_minute=2,
+                teams=[
+                    make_team("1", "Home", {"total_pass": "12"}, "Home"),
+                    make_team("2", "Away", {"total_pass": "7"}, "Away"),
+                ],
+            )
+        )
+
+        self.assertEqual(messages[0]["type"], "match_stats_update")
+        self.assertEqual(messages[0]["data"]["momentum"]["points"][0]["netMomentum"], 0.1)
+        self.assertEqual(
+            messages[0]["data"]["timeline"]["buckets"][0]["momentum"]["netMomentum"],
+            0.1,
+        )
+        self.assertIsNotNone(cache.get_match_stats_update("match-1").momentum)
+
+    def test_process_game_stores_full_timeline_but_emits_only_current_bucket(self):
+        cache = GameStateCache()
+        service = ProcessStatsService(cache=cache)
+
+        first_messages = service.process_game(
+            ParsedMatchStats(
+                game_id="match-1",
+                feed_timestamp="t1",
+                match_minute=5,
+                teams=[
+                    make_team("1", "Home", {"total_pass": "12"}, "Home"),
+                    make_team("2", "Away", {"total_pass": "7"}, "Away"),
+                ],
+            )
+        )
+        second_messages = service.process_game(
+            ParsedMatchStats(
+                game_id="match-1",
+                feed_timestamp="t2",
+                match_minute=6,
+                teams=[
+                    make_team("1", "Home", {"total_pass": "18"}, "Home"),
+                    make_team("2", "Away", {"total_pass": "9"}, "Away"),
+                ],
+            )
+        )
+
+        self.assertEqual(
+            [bucket["minute"] for bucket in first_messages[0]["data"]["timeline"]["buckets"]],
+            [5],
+        )
+        self.assertEqual(
+            [bucket["minute"] for bucket in second_messages[0]["data"]["timeline"]["buckets"]],
+            [6],
+        )
+        self.assertEqual(
+            [bucket.minute for bucket in cache.get_match_stats_update("match-1").timeline.buckets],
+            [5, 6],
+        )
 
 
 if __name__ == "__main__":

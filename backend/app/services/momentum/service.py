@@ -16,9 +16,12 @@ from app.state.game_state import GameStateCache
 logger = logging.getLogger(__name__)
 
 DEFAULT_XT_MODEL_PATH = (
-    Path(__file__).resolve().parents[2] / "data" / "models" / "xthreat_model.json"
+    Path(__file__).resolve().parents[3] / "data" / "models" / "xthreat_model.json"
 )
 MOMENTUM_SOURCE = "socceraction_xT"
+FALLBACK_MOMENTUM_SOURCE = "heuristic_xT"
+MOMENTUM_DECIMALS = 6
+SHOT_TYPE_IDS = {"13", "14", "15", "16"}
 
 
 class XTValueProvider(Protocol):
@@ -82,11 +85,14 @@ class SoccerActionXTProvider:
     Calculates xT with socceraction when the package and model are available.
     """
 
+    source = MOMENTUM_SOURCE
+
     def __init__(self, model_path: str | Path | None = None) -> None:
         configured_path = model_path or os.getenv("XTHREAT_MODEL_PATH")
         self.model_path = Path(configured_path) if configured_path else DEFAULT_XT_MODEL_PATH
         self._model = None
         self._warned_unavailable = False
+        self.last_failure_reason: Optional[str] = None
 
     def score_bucket(
         self,
@@ -101,16 +107,26 @@ class SoccerActionXTProvider:
         if model is None:
             return None
 
+        rows = [self._to_opta_row(event) for event in events if self._can_value(event)]
+        home_shot_value, away_shot_value = self._score_shots(
+            model,
+            events,
+            home_team_id,
+            away_team_id,
+        )
+        if not rows:
+            return (
+                round(home_shot_value, MOMENTUM_DECIMALS),
+                round(away_shot_value, MOMENTUM_DECIMALS),
+            )
+
         try:
             import pandas as pd
             from socceraction.spadl import opta as opta_spadl
         except ImportError as exc:
-            self._warn_once("socceraction is not available for xT momentum: %s", exc)
+            self.last_failure_reason = f"socceraction import failed: {exc}"
+            self._warn_once("%s", self.last_failure_reason)
             return None
-
-        rows = [self._to_opta_row(event) for event in events if self._can_value(event)]
-        if not rows:
-            return 0.0, 0.0
 
         try:
             opta_events = pd.DataFrame(rows)
@@ -127,11 +143,15 @@ class SoccerActionXTProvider:
             valued_actions["xT_value"] = valued_actions["xT_value"].clip(lower=0).fillna(0)
 
             by_team = valued_actions.groupby("team_id")["xT_value"].sum()
-            home_value = float(by_team.get(int(home_team_id), 0.0))
-            away_value = float(by_team.get(int(away_team_id), 0.0))
-            return round(home_value, 4), round(away_value, 4)
+            home_value = float(by_team.get(int(home_team_id), 0.0)) + home_shot_value
+            away_value = float(by_team.get(int(away_team_id), 0.0)) + away_shot_value
+            return (
+                round(home_value, MOMENTUM_DECIMALS),
+                round(away_value, MOMENTUM_DECIMALS),
+            )
         except Exception as exc:
-            logger.warning("Could not calculate socceraction xT momentum: %s", exc)
+            self.last_failure_reason = f"socceraction xT calculation failed: {exc}"
+            logger.warning(self.last_failure_reason)
             return None
 
     def _load_model(self):
@@ -139,19 +159,25 @@ class SoccerActionXTProvider:
             return self._model
 
         if not self.model_path.exists():
-            self._warn_once("xT model not found at %s; skipping momentum", self.model_path)
+            self.last_failure_reason = f"xT model not found at {self.model_path}"
+            self._warn_once("%s", self.last_failure_reason)
             return None
 
         try:
             from socceraction import xthreat
 
             self._model = xthreat.load_model(str(self.model_path))
+            self.last_failure_reason = None
             return self._model
         except ImportError as exc:
-            self._warn_once("socceraction is not available for xT momentum: %s", exc)
+            self.last_failure_reason = f"socceraction import failed: {exc}"
+            self._warn_once("%s", self.last_failure_reason)
             return None
         except Exception as exc:
-            logger.warning("Could not load xT model from %s: %s", self.model_path, exc)
+            self.last_failure_reason = (
+                f"could not load xT model from {self.model_path}: {exc}"
+            )
+            logger.warning(self.last_failure_reason)
             return None
 
     def _warn_once(self, message: str, *args: object) -> None:
@@ -196,77 +222,230 @@ class SoccerActionXTProvider:
             "qualifiers": event.qualifiers,
         }
 
+    def _score_shots(
+        self,
+        model: Any,
+        events: list[MomentumEvent],
+        home_team_id: str,
+        away_team_id: str,
+    ) -> tuple[float, float]:
+        home_value = 0.0
+        away_value = 0.0
+
+        for event in events:
+            if event.type_id not in SHOT_TYPE_IDS:
+                continue
+
+            value = self._shot_threat(model, event, home_team_id)
+            if value <= 0:
+                continue
+
+            if event.team_id == home_team_id:
+                home_value += value
+            elif event.team_id == away_team_id:
+                away_value += value
+
+        return home_value, away_value
+
+    @staticmethod
+    def _shot_threat(
+        model: Any,
+        event: MomentumEvent,
+        home_team_id: str,
+    ) -> float:
+        if event.start_x is None or event.start_y is None or event.team_id is None:
+            return 0.0
+
+        grid = getattr(model, "xT", None)
+        if grid is None:
+            return 0.0
+
+        try:
+            height = len(grid)
+            width = len(grid[0]) if height else 0
+        except TypeError:
+            return 0.0
+
+        if height == 0 or width == 0:
+            return 0.0
+
+        x = min(max(event.start_x, 0.0), 99.999)
+        y = min(max(event.start_y, 0.0), 99.999)
+        if event.team_id != home_team_id:
+            x = 100.0 - x
+            y = 100.0 - y
+
+        column = min(width - 1, max(0, int((x / 100.0) * width)))
+        y_index = min(height - 1, max(0, int((y / 100.0) * height)))
+        row = height - 1 - y_index
+        return float(grid[row][column])
+
+
+class HeuristicXTProvider:
+    """
+    Deterministic xT-like fallback used when socceraction or its model is absent.
+    """
+
+    source = FALLBACK_MOMENTUM_SOURCE
+
+    def score_bucket(
+        self,
+        events: list[MomentumEvent],
+        home_team_id: str,
+        away_team_id: str,
+    ) -> tuple[float, float]:
+        home_value = 0.0
+        away_value = 0.0
+
+        for event in events:
+            value = self._event_value(event)
+            if value <= 0:
+                continue
+
+            if event.team_id == home_team_id:
+                home_value += value
+            elif event.team_id == away_team_id:
+                away_value += value
+
+        return (
+            round(home_value, MOMENTUM_DECIMALS),
+            round(away_value, MOMENTUM_DECIMALS),
+        )
+
+    def _event_value(self, event: MomentumEvent) -> float:
+        if (
+            event.type_id in SHOT_TYPE_IDS
+            and event.start_x is not None
+            and event.start_y is not None
+        ):
+            return self._threat(event.start_x, event.start_y)
+
+        if event.outcome not in (None, 1, True):
+            return 0.0
+
+        if None in (event.start_x, event.start_y, event.end_x, event.end_y):
+            return 0.0
+
+        start_threat = self._threat(event.start_x, event.start_y)
+        end_threat = self._threat(event.end_x, event.end_y)
+        return max(0.0, end_threat - start_threat)
+
+    @staticmethod
+    def _threat(x: float, y: float) -> float:
+        bounded_x = min(max(x, 0.0), 100.0) / 100.0
+        bounded_y = min(max(y, 0.0), 100.0)
+        centrality = 1 - abs(bounded_y - 50.0) / 50.0
+        return (bounded_x ** 2.2) * (0.04 + 0.16 * centrality)
+
+
+class DefaultXTValueProvider:
+    """
+    Uses socceraction when available and falls back to a local xT heuristic.
+    """
+
+    def __init__(
+        self,
+        primary: Optional[XTValueProvider] = None,
+        fallback: Optional[XTValueProvider] = None,
+    ) -> None:
+        self.primary = primary or SoccerActionXTProvider()
+        self.fallback = fallback or HeuristicXTProvider()
+        self.source = getattr(self.primary, "source", MOMENTUM_SOURCE)
+        self._warned_fallback = False
+
+    def score_bucket(
+        self,
+        events: list[MomentumEvent],
+        home_team_id: str,
+        away_team_id: str,
+    ) -> tuple[float, float] | None:
+        primary_values = self.primary.score_bucket(events, home_team_id, away_team_id)
+        if primary_values is not None:
+            self.source = getattr(self.primary, "source", MOMENTUM_SOURCE)
+            return primary_values
+
+        if not self._warned_fallback:
+            reason = getattr(self.primary, "last_failure_reason", None)
+            detail = f": {reason}" if reason else ""
+            logger.warning(
+                "Falling back to heuristic xT momentum because socceraction xT is unavailable%s",
+                detail,
+            )
+            self._warned_fallback = True
+
+        fallback_values = self.fallback.score_bucket(events, home_team_id, away_team_id)
+        self.source = getattr(self.fallback, "source", FALLBACK_MOMENTUM_SOURCE)
+        return fallback_values
+
 
 class MatchMomentumService:
     """
     Maintains xT momentum points per match.
 
-    Calculation buckets are 3 minutes wide. The trigger bucket is 2 minutes wide:
-    new trigger buckets recalculate the current open 3-minute bucket and add any
-    missing closed buckets. Later events in the current 3-minute bucket replace
-    that bucket's point; previous buckets stay closed once the match advances.
+    F24 events keep the cache warm, but websocket delivery is done through the
+    stats payload so clients receive momentum with every ``match_stats_update``.
     """
 
     def __init__(
         self,
         cache: GameStateCache,
         value_provider: Optional[XTValueProvider] = None,
-        interval_minutes: int = 3,
-        trigger_interval_minutes: int = 2,
+        interval_minutes: int = 1,
+        trigger_interval_minutes: int = 1,
+        window_minutes: int = 3,
     ) -> None:
         self._cache = cache
-        self._value_provider = value_provider or SoccerActionXTProvider()
+        self._value_provider = value_provider or DefaultXTValueProvider()
         self.interval_minutes = interval_minutes
         self.trigger_interval_minutes = trigger_interval_minutes
+        self.window_minutes = max(1, window_minutes)
 
     def update(self, game: ParsedGame, events_changed: bool) -> List[Dict[str, Any]]:
+        self.refresh_payload(game, force=events_changed)
+        return []
+
+    def refresh_payload(
+        self,
+        game: ParsedGame,
+        force: bool = False,
+        refresh_all_buckets: bool = False,
+        until_minute: Optional[int] = None,
+    ) -> Optional[MatchMomentumPayload]:
         normalized_events = [
             normalize_event_for_momentum(game.game_id, event)
             for event in game.events
         ]
         cache_changed = self._cache.upsert_momentum_events(game.game_id, normalized_events)
-        if not cache_changed and not events_changed:
-            return []
+        existing_payload = self._cache.get_momentum_payload(game.game_id)
+        if not cache_changed and not force:
+            return existing_payload
 
-        current_minute = self._latest_minute(
+        latest_event_minute = self._latest_minute(
             self._cache.get_momentum_events(game.game_id)
         )
+        current_minute = self._target_minute(latest_event_minute, until_minute)
         if current_minute is None:
-            return []
+            return existing_payload
 
-        trigger_bucket = self._bucket_minute(current_minute, self.trigger_interval_minutes)
-        last_trigger_bucket = self._cache.get_momentum_trigger_bucket(game.game_id)
         current_bucket = self._bucket_minute(current_minute, self.interval_minutes)
-        existing_payload = self._cache.get_momentum_payload(game.game_id)
-        existing_current_point = self._find_point(existing_payload, current_bucket)
-
-        should_recalculate = (
-            last_trigger_bucket is None
-            or trigger_bucket > last_trigger_bucket
-            or ((cache_changed or events_changed) and existing_current_point is not None)
+        payload = self._build_payload(
+            game,
+            current_bucket,
+            existing_payload,
+            refresh_all_buckets=refresh_all_buckets,
         )
-        if not should_recalculate:
-            return []
-
-        payload = self._build_payload(game, current_bucket, existing_payload)
         if payload is None:
-            return []
+            return existing_payload
 
         self._cache.store_momentum_payload(game.game_id, payload)
-        self._cache.store_momentum_trigger_bucket(game.game_id, trigger_bucket)
-        return [
-            {
-                "type": "match_momentum_update",
-                "game_id": game.game_id,
-                "data": payload.model_dump(),
-            }
-        ]
+        return payload
 
     def _build_payload(
         self,
         game: ParsedGame,
         current_bucket: int,
         existing_payload: Optional[MatchMomentumPayload],
+        refresh_all_buckets: bool = False,
     ) -> Optional[MatchMomentumPayload]:
         cached_events = self._cache.get_momentum_events(game.game_id)
         points_by_minute = {
@@ -276,7 +455,11 @@ class MatchMomentumService:
 
         for bucket_start in range(0, current_bucket + 1, self.interval_minutes):
             is_current_bucket = bucket_start == current_bucket
-            if bucket_start in points_by_minute and not is_current_bucket:
+            if (
+                bucket_start in points_by_minute
+                and not is_current_bucket
+                and not refresh_all_buckets
+            ):
                 continue
 
             point = self._calculate_bucket_point(
@@ -291,9 +474,10 @@ class MatchMomentumService:
 
         return MatchMomentumPayload(
             matchId=game.game_id,
-            source=MOMENTUM_SOURCE,
+            source=getattr(self._value_provider, "source", MOMENTUM_SOURCE),
             intervalMinutes=self.interval_minutes,
             triggerIntervalMinutes=self.trigger_interval_minutes,
+            windowMinutes=self.window_minutes,
             homeTeam=MomentumTeam(
                 id=game.home_team.team_id,
                 name=game.home_team.team_name,
@@ -336,13 +520,14 @@ class MatchMomentumService:
             awayValue=away_value,
             homeMomentum=home_value,
             awayMomentum=away_momentum,
-            netMomentum=round(home_value + away_momentum, 4),
+            netMomentum=round(home_value + away_momentum, MOMENTUM_DECIMALS),
         )
 
     def _event_in_bucket(self, event: MomentumEvent, bucket_start: int) -> bool:
         if event.minute is None:
             return False
-        return bucket_start <= event.minute < bucket_start + self.interval_minutes
+        window_start = max(0, bucket_start - self.window_minutes + 1)
+        return window_start <= event.minute <= bucket_start
 
     @staticmethod
     def _latest_minute(events: Iterable[MomentumEvent]) -> Optional[int]:
@@ -350,13 +535,16 @@ class MatchMomentumService:
         return max(minutes) if minutes else None
 
     @staticmethod
-    def _find_point(
-        payload: Optional[MatchMomentumPayload],
-        minute: int,
-    ) -> Optional[MatchMomentumPoint]:
-        if payload is None:
-            return None
-        return next((point for point in payload.points if point.minute == minute), None)
+    def _target_minute(
+        latest_event_minute: Optional[int],
+        until_minute: Optional[int],
+    ) -> Optional[int]:
+        minutes = [
+            minute
+            for minute in (latest_event_minute, until_minute)
+            if minute is not None
+        ]
+        return max(minutes) if minutes else None
 
     @staticmethod
     def _bucket_minute(minute: int, interval_minutes: int) -> int:

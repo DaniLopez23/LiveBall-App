@@ -40,6 +40,7 @@ class MatchMomentumPayload(BaseModel):
     source: str = "socceraction_xT"
     intervalMinutes: int
     triggerIntervalMinutes: int
+    windowMinutes: int
     homeTeam: MomentumTeam
     awayTeam: MomentumTeam
     points: List[MatchMomentumPoint] = Field(default_factory=list)

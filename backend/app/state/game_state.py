@@ -53,7 +53,6 @@ class GameStateCache:
         self._pass_network_statistics: Dict[Tuple[str, str], Dict[str, Any]] = {}
         self._momentum_events: Dict[str, Dict[str, MomentumEvent]] = {}
         self._momentum_payloads: Dict[str, MatchMomentumPayload] = {}
-        self._momentum_trigger_buckets: Dict[str, int] = {}
 
     # ------------------------------------------------------------------ #
     # Game helpers                                                         #
@@ -269,11 +268,3 @@ class GameStateCache:
     ) -> None:
         """Stores the latest xT momentum payload for *game_id*."""
         self._momentum_payloads[game_id] = payload
-
-    def get_momentum_trigger_bucket(self, game_id: str) -> Optional[int]:
-        """Returns the latest 2-minute trigger bucket processed for *game_id*."""
-        return self._momentum_trigger_buckets.get(game_id)
-
-    def store_momentum_trigger_bucket(self, game_id: str, bucket: int) -> None:
-        """Stores the latest 2-minute trigger bucket processed for *game_id*."""
-        self._momentum_trigger_buckets[game_id] = bucket

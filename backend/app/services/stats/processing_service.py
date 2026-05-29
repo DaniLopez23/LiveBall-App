@@ -2,6 +2,7 @@ import logging
 import xml.etree.ElementTree as ET
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
+from app.schemas.momentum import MatchMomentumPayload, MatchMomentumPoint
 from app.schemas.stats import (
     DerivedStats,
     MatchStatsComparisonPayload,
@@ -16,6 +17,7 @@ from app.schemas.stats import (
     TeamGroupedStats,
     TeamMatchStats,
 )
+from app.services.momentum import MatchMomentumService
 from app.services.players.service import PlayersService
 from app.services.stats.player_enricher import StatsPlayerEnricher
 from app.state.game_state import GameStateCache
@@ -314,14 +316,14 @@ def build_match_stats_comparison(
 
 class MatchStatsTimelineStore:
     """
-    Keeps one 3-minute cumulative snapshot timeline per match.
+    Keeps one 1-minute cumulative snapshot timeline per match.
 
     Bucket strategy is floor-based:
-    minutes 0-2 -> bucket 0, 3-5 -> bucket 3, 6-8 -> bucket 6, etc.
+    minute 0 -> bucket 0, minute 1 -> bucket 1, minute 2 -> bucket 2, etc.
     A new XML reading in an existing bucket replaces that bucket snapshot.
     """
 
-    def __init__(self, interval_minutes: int = 3) -> None:
+    def __init__(self, interval_minutes: int = 1) -> None:
         self.interval_minutes = interval_minutes
         self._timelines: Dict[str, MatchStatsTimeline] = {}
 
@@ -342,9 +344,11 @@ class MatchStatsTimelineStore:
         self,
         current: MatchStatsPayload,
         existing_timeline: Optional[MatchStatsTimeline] = None,
+        momentum: Optional[MatchMomentumPayload] = None,
     ) -> MatchStatsTimeline:
         timeline = existing_timeline or self.get(current.matchId)
         if current.minute is None:
+            timeline = self._with_momentum(timeline, momentum)
             self._timelines[current.matchId] = timeline
             return timeline
 
@@ -354,16 +358,31 @@ class MatchStatsTimelineStore:
             timestamp=current.timestamp,
             home=current.home.model_copy(deep=True),
             away=current.away.model_copy(deep=True),
+            momentum=self._momentum_point(momentum, bucket_minute),
         )
 
         replaced = False
         buckets = []
         for existing_bucket in timeline.buckets:
             if existing_bucket.minute == bucket_minute:
+                if bucket.momentum is None and existing_bucket.momentum is not None:
+                    bucket = bucket.model_copy(
+                        update={"momentum": existing_bucket.momentum}
+                    )
                 buckets.append(bucket)
                 replaced = True
             else:
-                buckets.append(existing_bucket)
+                buckets.append(
+                    existing_bucket.model_copy(
+                        update={
+                            "momentum": self._momentum_point(
+                                momentum,
+                                existing_bucket.minute,
+                            )
+                            or existing_bucket.momentum
+                        }
+                    )
+                )
 
         if not replaced:
             buckets.append(bucket)
@@ -376,6 +395,37 @@ class MatchStatsTimelineStore:
         self._timelines[current.matchId] = timeline
         return timeline
 
+    def _with_momentum(
+        self,
+        timeline: MatchStatsTimeline,
+        momentum: Optional[MatchMomentumPayload],
+    ) -> MatchStatsTimeline:
+        if momentum is None:
+            return timeline
+
+        return MatchStatsTimeline(
+            matchId=timeline.matchId,
+            intervalMinutes=timeline.intervalMinutes,
+            buckets=[
+                bucket.model_copy(
+                    update={
+                        "momentum": self._momentum_point(momentum, bucket.minute)
+                        or bucket.momentum
+                    }
+                )
+                for bucket in timeline.buckets
+            ],
+        )
+
+    @staticmethod
+    def _momentum_point(
+        momentum: Optional[MatchMomentumPayload],
+        minute: int,
+    ) -> Optional[MatchMomentumPoint]:
+        if momentum is None:
+            return None
+        return next((point for point in momentum.points if point.minute == minute), None)
+
 
 class ProcessStatsService:
     """Detects changes in grouped F9 stats payloads and emits update messages."""
@@ -385,11 +435,13 @@ class ProcessStatsService:
         cache: Optional[GameStateCache] = None,
         players_service: Optional[PlayersService] = None,
         timeline_store: Optional[MatchStatsTimelineStore] = None,
+        momentum_service: Optional[MatchMomentumService] = None,
     ) -> None:
         self._cache = cache or GameStateCache()
         self._players_service = players_service or PlayersService()
         self._player_enricher = StatsPlayerEnricher(self._players_service)
         self._timeline_store = timeline_store or MatchStatsTimelineStore()
+        self._momentum_service = momentum_service or MatchMomentumService(self._cache)
 
     def process_game(self, parsed_stats: ParsedMatchStats) -> List[Dict[str, Any]]:
         self._player_enricher.enrich(parsed_stats)
@@ -397,29 +449,48 @@ class ProcessStatsService:
 
         current = build_match_stats_payload(parsed_stats)
         comparison = build_match_stats_comparison(current)
+        momentum = self._momentum_for_stats_update(game_id, current.minute)
         timeline = self._timeline_store.update(
             current,
             existing_timeline=self._cache.get_match_stats_timeline(game_id),
+            momentum=momentum,
         )
         update_data = MatchStatsUpdateData(
             current=current,
             comparison=comparison,
             timeline=timeline,
+            momentum=momentum,
         )
         current_snapshot = update_data.model_dump()
 
         if not self._cache.has_stats(game_id):
             self._store_stats_update(parsed_stats, update_data, current_snapshot)
             logger.debug("(STATS) New grouped stats detected: %s", game_id)
-            return [self._message(game_id, update_data)]
+            return [self._message(game_id, self._current_update(update_data))]
 
         previous = self._cache.get_stats_snapshot(game_id)
         if previous != current_snapshot:
             self._store_stats_update(parsed_stats, update_data, current_snapshot)
             logger.debug("(STATS) Grouped stats updated: %s", game_id)
-            return [self._message(game_id, update_data)]
+            return [self._message(game_id, self._current_update(update_data))]
 
         return []
+
+    def _momentum_for_stats_update(
+        self,
+        game_id: str,
+        stats_minute: Optional[int],
+    ) -> Optional[MatchMomentumPayload]:
+        game = self._cache.games.get(game_id)
+        if game is None:
+            return self._cache.get_momentum_payload(game_id)
+
+        return self._momentum_service.refresh_payload(
+            game,
+            force=True,
+            refresh_all_buckets=True,
+            until_minute=stats_minute,
+        )
 
     def _store_stats_update(
         self,
@@ -429,6 +500,60 @@ class ProcessStatsService:
     ) -> None:
         self._cache.store_stats(parsed_stats, snapshot)
         self._cache.store_match_stats_update(parsed_stats.game_id, update_data)
+
+    def _current_update(self, update_data: MatchStatsUpdateData) -> MatchStatsUpdateData:
+        current_minute = update_data.current.minute
+        if current_minute is None:
+            return MatchStatsUpdateData(
+                current=update_data.current,
+                comparison=update_data.comparison,
+                timeline=MatchStatsTimeline(
+                    matchId=update_data.timeline.matchId,
+                    intervalMinutes=update_data.timeline.intervalMinutes,
+                    buckets=[],
+                ),
+                momentum=self._momentum_slice(update_data.momentum, None),
+            )
+
+        bucket_minute = self._timeline_store.bucket_minute(current_minute)
+        current_bucket = next(
+            (
+                bucket
+                for bucket in update_data.timeline.buckets
+                if bucket.minute == bucket_minute
+            ),
+            None,
+        )
+        return MatchStatsUpdateData(
+            current=update_data.current,
+            comparison=update_data.comparison,
+            timeline=MatchStatsTimeline(
+                matchId=update_data.timeline.matchId,
+                intervalMinutes=update_data.timeline.intervalMinutes,
+                buckets=[current_bucket] if current_bucket else [],
+            ),
+            momentum=self._momentum_slice(update_data.momentum, bucket_minute),
+        )
+
+    @staticmethod
+    def _momentum_slice(
+        momentum: Optional[MatchMomentumPayload],
+        minute: Optional[int],
+    ) -> Optional[MatchMomentumPayload]:
+        if momentum is None:
+            return None
+
+        window_minutes = max(1, getattr(momentum, "windowMinutes", 1))
+        points = (
+            [
+                point
+                for point in momentum.points
+                if minute - window_minutes + 1 <= point.minute <= minute
+            ]
+            if minute is not None
+            else []
+        )
+        return momentum.model_copy(update={"points": points})
 
     @staticmethod
     def _message(
