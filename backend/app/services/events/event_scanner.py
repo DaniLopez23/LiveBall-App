@@ -23,7 +23,7 @@ class EventScanner:
     Single-pass event scanner.
 
     Responsibilities:
-    - normalize away-team coordinates
+    - normalize away-team field coordinates for the event campogram
     - update match state
     - register every event by (team_id, event_id)
     - emit frontend payloads for exportable new/updated events
@@ -199,8 +199,18 @@ class EventScanner:
             event.x = abs(event.x - 100)
         if event.y is not None:
             event.y = abs(event.y - 100)
+
+        field_coordinate_qualifiers = {
+            "140",  # Pass end x
+            "141",  # Pass end y
+            "146",  # Blocked shot x
+            "147",  # Blocked shot y / sideline out y
+            "153",  # Sideline out x when qualifier 276 is present
+            "230",  # GK x
+            "231",  # GK y
+        }
         for qualifier in event.qualifiers:
-            if qualifier.qualifier_id not in ("140", "141"):
+            if qualifier.qualifier_id not in field_coordinate_qualifiers:
                 continue
             try:
                 qualifier.value = str(abs(float(qualifier.value) - 100))

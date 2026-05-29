@@ -32,20 +32,26 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const perp  = angle + Math.PI / 2;
   const squareHalf = SQUARE_HALF * markerScale;
+  const arrowLen = ARROW_LEN * markerScale;
+  const crossSize = CROSS_SIZE * markerScale;
+  const postBar = POST_BAR * markerScale;
+  const ballRadius = BALL_R * markerScale;
+  const lineStrokeWidth = 0.7 * markerScale;
+  const markerStrokeWidth = 0.8 * markerScale;
 
   // Line starts at the edge of the square
   const lineX1 = x1 + squareHalf * Math.cos(angle);
   const lineY1 = y1 + squareHalf * Math.sin(angle);
 
   // Arrowhead vertices (tip at x2, y2)
-  const ax1 = x2 - ARROW_LEN * Math.cos(angle - ARROW_ANGLE);
-  const ay1 = y2 - ARROW_LEN * Math.sin(angle - ARROW_ANGLE);
-  const ax2 = x2 - ARROW_LEN * Math.cos(angle + ARROW_ANGLE);
-  const ay2 = y2 - ARROW_LEN * Math.sin(angle + ARROW_ANGLE);
+  const ax1 = x2 - arrowLen * Math.cos(angle - ARROW_ANGLE);
+  const ay1 = y2 - arrowLen * Math.sin(angle - ARROW_ANGLE);
+  const ax2 = x2 - arrowLen * Math.cos(angle + ARROW_ANGLE);
+  const ay2 = y2 - arrowLen * Math.sin(angle + ARROW_ANGLE);
 
   // Line ends just before the arrowhead base when an arrow is drawn
   const hasArrow = outcome === "Attempt Saved" || outcome === "Post";
-  const lineEndOffset = hasArrow ? ARROW_LEN * 0.7 : 0;
+  const lineEndOffset = hasArrow ? arrowLen * 0.7 : 0;
   const lineX2 = x2 - lineEndOffset * Math.cos(angle);
   const lineY2 = y2 - lineEndOffset * Math.sin(angle);
 
@@ -54,10 +60,10 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
   const crossA2 = angle - Math.PI / 4;
 
   // ⊣ bar endpoints (for Post) — perpendicular line at the arrow tip
-  const bx1 = x2 - POST_BAR * Math.cos(perp);
-  const by1 = y2 - POST_BAR * Math.sin(perp);
-  const bx2 = x2 + POST_BAR * Math.cos(perp);
-  const by2 = y2 + POST_BAR * Math.sin(perp);
+  const bx1 = x2 - postBar * Math.cos(perp);
+  const by1 = y2 - postBar * Math.sin(perp);
+  const bx2 = x2 + postBar * Math.cos(perp);
+  const by2 = y2 + postBar * Math.sin(perp);
 
   const label = markerLabel ?? String(sequence);
   const fontSize = getMarkerFontSize(label, 4.05) * markerScale;
@@ -72,7 +78,7 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
         x1={lineX1} y1={lineY1}
         x2={lineX2} y2={lineY2}
         stroke={color}
-          strokeWidth={0.7}
+        strokeWidth={lineStrokeWidth}
         strokeOpacity={0.8}
       />
 
@@ -106,18 +112,18 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
 
       {/* ── Miss: rotated × ───────────────────────────────────────── */}
       {outcome === "Miss" && (
-        <g stroke={color} strokeWidth={0.8} strokeLinecap="round" strokeOpacity={0.95}>
+        <g stroke={color} strokeWidth={markerStrokeWidth} strokeLinecap="round" strokeOpacity={0.95}>
           <line
-            x1={x2 - CROSS_SIZE * Math.cos(crossA1)}
-            y1={y2 - CROSS_SIZE * Math.sin(crossA1)}
-            x2={x2 + CROSS_SIZE * Math.cos(crossA1)}
-            y2={y2 + CROSS_SIZE * Math.sin(crossA1)}
+            x1={x2 - crossSize * Math.cos(crossA1)}
+            y1={y2 - crossSize * Math.sin(crossA1)}
+            x2={x2 + crossSize * Math.cos(crossA1)}
+            y2={y2 + crossSize * Math.sin(crossA1)}
           />
           <line
-            x1={x2 - CROSS_SIZE * Math.cos(crossA2)}
-            y1={y2 - CROSS_SIZE * Math.sin(crossA2)}
-            x2={x2 + CROSS_SIZE * Math.cos(crossA2)}
-            y2={y2 + CROSS_SIZE * Math.sin(crossA2)}
+            x1={x2 - crossSize * Math.cos(crossA2)}
+            y1={y2 - crossSize * Math.sin(crossA2)}
+            x2={x2 + crossSize * Math.cos(crossA2)}
+            y2={y2 + crossSize * Math.sin(crossA2)}
           />
         </g>
       )}
@@ -143,7 +149,7 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
             x1={bx1} y1={by1}
             x2={bx2} y2={by2}
             stroke={color}
-            strokeWidth={1.0}
+            strokeWidth={1.0 * markerScale}
             strokeLinecap="round"
             strokeOpacity={0.95}
           />
@@ -155,30 +161,30 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
         <g>
           <defs>
             <clipPath id={clipId}>
-              <circle cx={x2} cy={y2} r={BALL_R} />
+              <circle cx={x2} cy={y2} r={ballRadius} />
             </clipPath>
           </defs>
           {/* White ball body */}
-          <circle cx={x2} cy={y2} r={BALL_R} fill="white" />
+          <circle cx={x2} cy={y2} r={ballRadius} fill="white" />
           {/* Dark pentagon patches clipped to the ball */}
           <g clipPath={`url(#${clipId})`} fill="#1a1a1a">
             {/* Central patch */}
-            <circle cx={x2} cy={y2} r={BALL_R * 0.42} />
+            <circle cx={x2} cy={y2} r={ballRadius * 0.42} />
             {/* Five surrounding patches at 72° intervals */}
             {[0, 72, 144, 216, 288].map((deg, i) => {
               const rad = (deg * Math.PI) / 180;
               return (
                 <circle
                   key={i}
-                  cx={x2 + BALL_R * 0.75 * Math.cos(rad)}
-                  cy={y2 + BALL_R * 0.75 * Math.sin(rad)}
-                  r={BALL_R * 0.35}
+                  cx={x2 + ballRadius * 0.75 * Math.cos(rad)}
+                  cy={y2 + ballRadius * 0.75 * Math.sin(rad)}
+                  r={ballRadius * 0.35}
                 />
               );
             })}
           </g>
           {/* Team-colored border */}
-          <circle cx={x2} cy={y2} r={BALL_R} fill="none" stroke={color} strokeWidth={0.5} />
+          <circle cx={x2} cy={y2} r={ballRadius} fill="none" stroke={color} strokeWidth={0.5 * markerScale} />
         </g>
       )}
     </g>

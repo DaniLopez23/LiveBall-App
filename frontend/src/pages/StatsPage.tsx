@@ -31,7 +31,7 @@ import {
 	getOutcomeLabel,
 	getTeamName,
 } from "@/components/pitch/eventsPitch/eventDisplay";
-import ShotFigure from "@/components/pitch/figures/ShotFigure";
+import MapShotPitch, { GoalShotMap } from "@/components/pitch/MapShotPitch";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import useStatsStore from "@/store/statsStore";
@@ -329,17 +329,6 @@ function getTeamSideFromGame(
 	return null;
 }
 
-function getTeamSideFromIds(
-	teamId: string | null | undefined,
-	homeTeamId: string,
-	awayTeamId: string,
-): TeamSide | null {
-	if (!teamId) return null;
-	if (teamId === homeTeamId) return "home";
-	if (teamId === awayTeamId) return "away";
-	return null;
-}
-
 function sortEventsByTime<T extends Event>(events: T[]): T[] {
 	return [...events].sort((a, b) => {
 		const aValue = (a.period_id ?? 0) * 10_000 + (a.min ?? 0) * 60 + (a.sec ?? 0);
@@ -568,70 +557,16 @@ function getShotTags(shot: ShotEvent): string[] {
 	return tags.length > 0 ? tags : [shot.regular_play ? "Juego abierto" : "Sin detalle"];
 }
 
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(max, Math.max(min, value));
-}
-
-function getShotFigureOutcome(
-	shot: ShotEvent,
-): "Miss" | "Post" | "Attempt Saved" | "Goal" {
-	if (shot.type_id === "16" || shot.outcome === "Goal") return "Goal";
-	if (shot.type_id === "15" || shot.outcome === "Attempt Saved") {
-		return "Attempt Saved";
-	}
-	if (shot.type_id === "14" || shot.outcome === "Post") return "Post";
-	return "Miss";
-}
-
-function getNormalizedShotCoordinate(
-	shot: ShotEvent,
-	x: number,
-	y: number,
-): { x: number; y: number } {
-	const mirrored = (shot.x ?? 50) <= 50;
-	const normalizedX = mirrored ? 100 - x : x;
-	const normalizedY = mirrored ? 100 - y : y;
-
-	return {
-		x: clamp(normalizedX, 50, 100),
-		y: clamp(normalizedY, 0, 100),
-	};
-}
-
-function getShotEndCoordinate(shot: ShotEvent): { x: number; y: number } {
-	if (shot.blocked_x != null && shot.blocked_y != null) {
-		return getNormalizedShotCoordinate(shot, shot.blocked_x, shot.blocked_y);
+function formatShotGrassDestination(shot: ShotEvent): string {
+	if (shot.blocked_by_defender && shot.blocked_x != null && shot.blocked_y != null) {
+		return `${shot.blocked_x.toFixed(1)} / ${shot.blocked_y.toFixed(1)}`;
 	}
 
-	if (shot.gk_x != null && shot.gk_y != null) {
-		return getNormalizedShotCoordinate(shot, shot.gk_x, shot.gk_y);
+	if (shot.out_on_sideline && shot.sideline_out_x != null && shot.sideline_out_y != null) {
+		return `${shot.sideline_out_x.toFixed(1)} / ${shot.sideline_out_y.toFixed(1)}`;
 	}
 
-	const goalX = (shot.x ?? 50) > 50 ? 100 : 0;
-	return getNormalizedShotCoordinate(
-		shot,
-		goalX,
-		shot.goal_mouth_y ?? shot.y ?? 50,
-	);
-}
-
-function getHalfPitchPoint(coordinate: { x: number; y: number }) {
-	const field = { x: 5, y: 5, width: 145, height: 190 };
-	const progressToGoal = clamp((coordinate.x - 50) / 50, 0, 1);
-
-	return {
-		x: field.x + progressToGoal * field.width,
-		y: field.y + (coordinate.y / 100) * field.height,
-	};
-}
-
-function getShotMapPoints(shot: ShotEvent) {
-	const start = getHalfPitchPoint(
-		getNormalizedShotCoordinate(shot, shot.x ?? 50, shot.y ?? 50),
-	);
-	const end = getHalfPitchPoint(getShotEndCoordinate(shot));
-
-	return { start, end };
+	return "-";
 }
 
 function StatsSummaryBars({
@@ -795,102 +730,39 @@ function ShotMapPanel({
 			</header>
 
 			<div className="p-3">
-				<div className="h-[18rem] overflow-hidden rounded-md border bg-emerald-900">
-					{shots.length > 0 ? (
-						<svg
-							viewBox="0 0 155 200"
-							role="img"
-							aria-label="Mapa de tiros a media cancha"
-							className="h-full w-full"
-						>
-							<rect x="0" y="0" width="155" height="200" className="fill-emerald-800" />
-							<rect x="5" y="5" width="145" height="190" className="fill-emerald-700/40" />
-							<g
-								fill="none"
-								stroke="rgba(255,255,255,0.78)"
-								strokeWidth="1"
-							>
-								<rect x="5" y="5" width="145" height="190" />
-								<line x1="5" y1="5" x2="5" y2="195" />
-								<path d="M 5 74.9 A 25.1 25.1 0 0 1 5 125.1" />
-								<circle cx="5" cy="100" r="1.2" fill="rgba(255,255,255,0.78)" />
-								<rect x="103.9" y="43" width="46.1" height="114" />
-								<rect x="134.9" y="71.5" width="15.1" height="57" />
-								<circle cx="115.2" cy="100" r="1.2" fill="rgba(255,255,255,0.78)" />
-								<path d="M 103.9 82.9 A 25.1 25.1 0 0 0 103.9 117.1" />
-								<rect x="150" y="88.5" width="3" height="23" />
-							</g>
-
-							{shots.map((shot, index) => {
-								const { start, end } = getShotMapPoints(shot);
-								const isSelected = selectedShotId === shot.id;
-								const side = getTeamSideFromIds(shot.team_id, homeTeamId, awayTeamId);
-								const color = side ? TEAM_COLORS[side] : "#f8fafc";
-								const outcomeLabel = getOutcomeLabel(shot.type_id, shot.outcome);
-
-								return (
-									<g
-										key={shot.id}
-										role="button"
-										tabIndex={0}
-										aria-label={`${outcomeLabel}, ${formatPlayerLabel(shot)}, ${formatEventTime(
-											shot.min,
-											shot.sec,
-										)}`}
-										className="cursor-pointer focus:outline-none"
-										onClick={() => onSelectShot(shot.id)}
-										onKeyDown={(keyboardEvent) => {
-											if (
-												keyboardEvent.key === "Enter" ||
-												keyboardEvent.key === " "
-											) {
-												keyboardEvent.preventDefault();
-												onSelectShot(shot.id);
-											}
-										}}
-									>
-										<title>
-											{index + 1}. {outcomeLabel} · {formatPlayerLabel(shot)}
-										</title>
-										{isSelected ? (
-											<line
-												x1={start.x}
-												y1={start.y}
-												x2={end.x}
-												y2={end.y}
-												stroke="#f8fafc"
-												strokeWidth="2.2"
-												strokeOpacity="0.75"
-											/>
-										) : null}
-										<ShotFigure
-											x1={start.x}
-											y1={start.y}
-											x2={end.x}
-											y2={end.y}
-											sequence={index + 1}
-											markerLabel={shot.player?.dorsal ?? String(index + 1)}
-											markerScale={0.72}
-											outcome={getShotFigureOutcome(shot)}
-											color={color}
-										/>
-										<circle
-											cx={start.x}
-											cy={start.y}
-											r={isSelected ? 8 : 6.5}
-											fill="transparent"
-											stroke={isSelected ? "#f8fafc" : "transparent"}
-											strokeWidth="1.2"
-										/>
-									</g>
-								);
-							})}
-						</svg>
-					) : (
-						<div className="flex h-full items-center justify-center px-4 text-center text-sm text-emerald-50/80">
-							Sin tiros registrados
-						</div>
-					)}
+				<div className="grid gap-3">
+					<div className="aspect-[1.46/1] overflow-hidden rounded-md border bg-emerald-900">
+						{shots.length > 0 ? (
+							<MapShotPitch
+								shots={shots}
+								selectedShotId={selectedShotId}
+								onSelectShot={onSelectShot}
+								homeTeamId={homeTeamId}
+								awayTeamId={awayTeamId}
+								teamColors={TEAM_COLORS}
+							/>
+						) : (
+							<div className="flex h-full items-center justify-center px-4 text-center text-sm text-emerald-50/80">
+								Sin tiros registrados
+							</div>
+						)}
+					</div>
+					<div className="aspect-[2.35/1] overflow-hidden rounded-md border bg-emerald-950">
+						{shots.length > 0 ? (
+							<GoalShotMap
+								shots={shots}
+								selectedShotId={selectedShotId}
+								onSelectShot={onSelectShot}
+								homeTeamId={homeTeamId}
+								awayTeamId={awayTeamId}
+								teamColors={TEAM_COLORS}
+							/>
+						) : (
+							<div className="flex h-full items-center justify-center px-4 text-center text-sm text-emerald-50/80">
+								Sin tiros registrados
+							</div>
+						)}
+					</div>
 				</div>
 
 				{selectedShot ? (
@@ -917,15 +789,15 @@ function ShotMapPanel({
 								</span>
 							</div>
 							<div>
-								<span className="block text-muted-foreground">Zona</span>
-								<span className="font-semibold text-foreground">
-									{selectedShot.shot_zone ?? "-"}
-								</span>
-							</div>
-							<div>
 								<span className="block text-muted-foreground">Origen</span>
 								<span className="font-semibold tabular-nums text-foreground">
 									{selectedShot.x?.toFixed(1) ?? "-"} / {selectedShot.y?.toFixed(1) ?? "-"}
+								</span>
+							</div>
+							<div>
+								<span className="block text-muted-foreground">Destino césped</span>
+								<span className="font-semibold tabular-nums text-foreground">
+									{formatShotGrassDestination(selectedShot)}
 								</span>
 							</div>
 							<div>
@@ -1006,7 +878,11 @@ export default function StatsPage() {
 		DEFAULT_TIMELINE_METRIC;
 	const selectedShot =
 		shotEvents.find((shot) => shot.id === selectedShotId) ?? shotEvents[0] ?? null;
-	const eventMarkers = getStatsEventMarkers(events);
+	const eventMarkers = getStatsEventMarkers(
+		events,
+		current.home.teamId,
+		current.away.teamId,
+	);
 
 	return (
 		<div className="mx-auto flex w-full max-w-[112rem] flex-col gap-3 p-3 lg:p-4">

@@ -50,8 +50,6 @@ _PASS_BOOL_QUALIFIERS: Dict[str, str] = {
 _SHOT_VALUE_QUALIFIERS: Dict[str, str] = {
     "102": "goal_mouth_y",  # Y coordinate where ball crossed goal line
     "103": "goal_mouth_z",  # Z (height) coordinate where ball crossed goal line
-    "146": "blocked_x",     # X coordinate where shot was blocked
-    "147": "blocked_y",     # Y coordinate where shot was blocked
     "230": "gk_x",          # GK X position when goal / post
     "231": "gk_y",          # GK Y position when goal / post
 }
@@ -69,9 +67,12 @@ _SHOT_BOOL_QUALIFIERS: Dict[str, str] = {
     "28":  "own_goal",
     "29":  "assisted",
     "72":  "left_footed",
+    "82":  "blocked_by_defender",
     "113": "strong",
     "114": "weak",
+    "153": "not_past_goal_line",
     "214": "big_chance",
+    "276": "out_on_sideline",
     "328": "first_touch",
 }
 
@@ -190,6 +191,36 @@ def flatten_event(event: Event, match_state: Optional[str] = None) -> Dict[str, 
         base["outcome"] = _SHOT_OUTCOME_MAP[event.type_id]
         base.update(_extract_value_qualifiers(qual_lookup, _SHOT_VALUE_QUALIFIERS))
         base.update(_extract_bool_qualifiers(qual_lookup, _SHOT_BOOL_QUALIFIERS))
+
+        # Opta qualifier 147 is context-sensitive for shots. For a blocked
+        # Attempt Saved (type 15 + qualifier 82), 146/147 are the block point
+        # on the pitch. With qualifier 276, 147/153 are the touchline exit
+        # point. Keep these separate so goal-mouth 102/103 are never mixed
+        # with grass coordinates.
+        is_blocked_by_defender = event.type_id == "15" and "82" in qual_lookup
+        is_out_on_sideline = "276" in qual_lookup
+        base["blocked_by_defender"] = is_blocked_by_defender
+        base["out_on_sideline"] = is_out_on_sideline
+        base["blocked_x"] = (
+            _coerce_float(qual_lookup.get("146"))
+            if is_blocked_by_defender and "146" in qual_lookup
+            else None
+        )
+        base["blocked_y"] = (
+            _coerce_float(qual_lookup.get("147"))
+            if is_blocked_by_defender and "147" in qual_lookup
+            else None
+        )
+        base["sideline_out_x"] = (
+            _coerce_float(qual_lookup.get("153"))
+            if is_out_on_sideline and "153" in qual_lookup
+            else None
+        )
+        base["sideline_out_y"] = (
+            _coerce_float(qual_lookup.get("147"))
+            if is_out_on_sideline and "147" in qual_lookup
+            else None
+        )
 
         for q_id, field in _SHOT_STRING_QUALIFIERS.items():
             base[field] = qual_lookup.get(q_id)

@@ -1,12 +1,14 @@
 import { ReferenceLine } from "recharts";
 
 import type { Event } from "@/types/event";
+import type { TeamSide } from "@/types/stats";
 
 export interface StatsEventMarker {
 	id: string;
 	minute: number;
 	kind: "shot" | "goal";
 	teamId: string | null;
+	teamSide: TeamSide | null;
 }
 
 interface StatsEventMarkersProps {
@@ -15,6 +17,7 @@ interface StatsEventMarkersProps {
 
 interface MarkerLabelProps {
 	kind: StatsEventMarker["kind"];
+	color: string;
 	viewBox?: {
 		x?: number;
 		y?: number;
@@ -23,8 +26,33 @@ interface MarkerLabelProps {
 
 const SHOT_TYPE_IDS = new Set(["13", "14", "15"]);
 const GOAL_TYPE_ID = "16";
+const BOOT_ICON_SRC = "/bota-de-futbol.png";
+const EVENT_TEAM_COLORS: Record<TeamSide, string> = {
+	home: "#3b82f6",
+	away: "#f43f5e",
+};
+const UNKNOWN_TEAM_COLOR = "#64748b";
 
-export function getStatsEventMarkers(events: Event[]): StatsEventMarker[] {
+function getEventTeamSide(
+	teamId: string | null | undefined,
+	homeTeamId?: string | null,
+	awayTeamId?: string | null,
+): TeamSide | null {
+	if (!teamId) return null;
+	if (teamId === homeTeamId) return "home";
+	if (teamId === awayTeamId) return "away";
+	return null;
+}
+
+function getEventColor(event: StatsEventMarker): string {
+	return event.teamSide ? EVENT_TEAM_COLORS[event.teamSide] : UNKNOWN_TEAM_COLOR;
+}
+
+export function getStatsEventMarkers(
+	events: Event[],
+	homeTeamId?: string | null,
+	awayTeamId?: string | null,
+): StatsEventMarker[] {
 	return events
 		.filter((event) => {
 			return (
@@ -38,6 +66,7 @@ export function getStatsEventMarkers(events: Event[]): StatsEventMarker[] {
 			minute: event.min ?? 0,
 			kind: event.type_id === GOAL_TYPE_ID ? "goal" : "shot",
 			teamId: event.team_id ?? null,
+			teamSide: getEventTeamSide(event.team_id, homeTeamId, awayTeamId),
 		}))
 		.sort((a, b) => a.minute - b.minute || (a.kind === "shot" ? -1 : 1));
 }
@@ -54,15 +83,18 @@ function BallIcon() {
 
 function BootIcon() {
 	return (
-		<g fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round">
-			<path d="M4.2 5.3c2.6 1.2 4.7 1.8 7.6 1.9l.7 2.5c-2.5.7-6 .5-8.8-.5l.5-3.9Z" strokeWidth={1.35} />
-			<path d="M3.6 9.1c1.7 2 5.5 3.1 9.2 2.6.6-.1.8.8.2 1.1-3.9 1.7-8.8.5-10.8-2.1l1.4-1.6Z" strokeWidth={1.35} />
-			<path d="M6.4 7.1 6 8.6M8.5 7.6 8 9.2M10.6 7.8l-.3 1.5" strokeWidth={1} />
-		</g>
+		<image
+			href={BOOT_ICON_SRC}
+			x={3}
+			y={3}
+			width={10}
+			height={10}
+			preserveAspectRatio="xMidYMid meet"
+		/>
 	);
 }
 
-function MarkerLabel({ kind, viewBox }: MarkerLabelProps) {
+function MarkerLabel({ kind, color, viewBox }: MarkerLabelProps) {
 	const x = viewBox?.x;
 	const y = viewBox?.y;
 	if (x == null || y == null) return null;
@@ -72,13 +104,14 @@ function MarkerLabel({ kind, viewBox }: MarkerLabelProps) {
 	return (
 		<g
 			transform={`translate(${x - 8}, ${Math.max(2, y - 22)})`}
-			className={isGoal ? "text-amber-500" : "text-foreground"}
+			style={{ color }}
 		>
 			<circle
 				cx={8}
 				cy={8}
 				r={8}
-				className="fill-background stroke-border"
+				fill="#ffffff"
+				stroke={color}
 				strokeWidth={1.5}
 			/>
 			{isGoal ? <BallIcon /> : <BootIcon />}
@@ -89,17 +122,24 @@ function MarkerLabel({ kind, viewBox }: MarkerLabelProps) {
 export default function StatsEventMarkers({ events }: StatsEventMarkersProps) {
 	return (
 		<>
-			{events.map((event) => (
-				<ReferenceLine
-					key={`${event.kind}-${event.id}`}
-					x={event.minute}
-					stroke={event.kind === "goal" ? "#f59e0b" : "hsl(var(--foreground))"}
-					strokeDasharray="4 4"
-					strokeOpacity={event.kind === "goal" ? 0.9 : 0.45}
-					strokeWidth={1.5}
-					label={(props) => <MarkerLabel {...props} kind={event.kind} />}
-				/>
-			))}
+			{events.map((event) => {
+				const color = getEventColor(event);
+
+				return (
+					<ReferenceLine
+						key={`${event.kind}-${event.id}`}
+						x={event.minute}
+						stroke={color}
+						strokeDasharray="4 4"
+						strokeOpacity={0.9}
+						strokeWidth={event.kind === "goal" ? 2 : 1.75}
+						ifOverflow="extendDomain"
+						label={(props) => (
+							<MarkerLabel {...props} kind={event.kind} color={color} />
+						)}
+					/>
+				);
+			})}
 		</>
 	);
 }

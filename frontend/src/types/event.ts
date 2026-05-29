@@ -69,8 +69,13 @@ export interface ShotEvent extends EventBase {
 	outcome?: "Miss" | "Post" | "Attempt Saved" | "Goal" | null;
 	goal_mouth_y?: number | null;
 	goal_mouth_z?: number | null;
+	blocked_by_defender?: boolean;
 	blocked_x?: number | null;
 	blocked_y?: number | null;
+	out_on_sideline?: boolean;
+	sideline_out_x?: number | null;
+	sideline_out_y?: number | null;
+	not_past_goal_line?: boolean;
 	gk_x?: number | null;
 	gk_y?: number | null;
 	penalty?: boolean;
