@@ -1,5 +1,5 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { Home, BarChart3, Network, Zap, HelpCircle, User, ChevronLeft, ChevronRight } from "lucide-react";
+import { Home, BarChart3, Network, Zap, HelpCircle, User, ChevronLeft, ChevronRight, LayoutDashboard } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 
 const menuItems = [
   { id: "home", label: "Inicio", icon: Home, path: "/" },
+  { id: "dashboard", label: "Resumen", icon: LayoutDashboard, path: "/dashboard" },
   { id: "estadisticas", label: "Estadísticas", icon: BarChart3, path: "/stats" },
   { id: "redes-pases", label: "Redes de Pases", icon: Network, path: "/pass-networks" },
   { id: "eventos", label: "Eventos", icon: Zap, path: "/events" },
