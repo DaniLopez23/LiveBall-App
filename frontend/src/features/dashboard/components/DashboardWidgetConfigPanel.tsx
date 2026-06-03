@@ -31,7 +31,6 @@ export function DashboardWidgetConfigPanel({
 }: DashboardWidgetConfigPanelProps) {
 	const definition = widget ? widgetRegistry[widget.type] : null;
 	const ConfigComponent = definition?.configComponent;
-	const FilterComponent = definition?.filterComponent;
 
 	if (!open) {
 		return null;
@@ -43,7 +42,7 @@ export function DashboardWidgetConfigPanel({
 				<div className="min-w-0">
 					<h2 className="text-base font-semibold">Configurar widget</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Ajusta tipo, titulo, configuracion y filtros por defecto.
+						Ajusta tipo, titulo y configuracion.
 					</p>
 				</div>
 				<Button
@@ -57,7 +56,7 @@ export function DashboardWidgetConfigPanel({
 				</Button>
 			</div>
 
-			{widget && definition && ConfigComponent && FilterComponent ? (
+			{widget && definition && ConfigComponent ? (
 				<div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-4">
 					<div className="grid gap-3">
 						<SectionTitle>Widget</SectionTitle>
@@ -90,14 +89,6 @@ export function DashboardWidgetConfigPanel({
 						/>
 					</div>
 
-					<div className="grid gap-3">
-						<SectionTitle>Filtros por defecto</SectionTitle>
-						<FilterComponent
-							key={`${widget.id}-${widget.type}-filters`}
-							value={widget.filters}
-							onChange={(filters) => onUpdateWidget(widget.id, { filters })}
-						/>
-					</div>
 				</div>
 			) : (
 				<div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">

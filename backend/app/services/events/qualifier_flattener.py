@@ -169,7 +169,7 @@ def _extract_bool_qualifiers(
 # Public API
 # ---------------------------------------------------------------------------
 
-_MATCH_STATE_TYPES: Set[str] = {"30", "32", "34"}
+_MATCH_STATE_TYPES: Set[str] = {"30", "32"}
 
 
 def flatten_event(event: Event, match_state: Optional[str] = None) -> Dict[str, Any]:

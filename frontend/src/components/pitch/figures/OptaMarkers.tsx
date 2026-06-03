@@ -10,6 +10,7 @@ import DefensiveFigure from "./DefensiveFigure";
 import TakeOnFigure from "./TakeOnFigure";
 import useOptaPitchConfigStore, {
   type Orientation,
+  transformOptaToSvgPure,
   VB_LONG,
   VB_SHORT,
 } from "@/store/optaPitchConfigStore";
@@ -43,10 +44,14 @@ export interface OptaMarkersProps {
   eventColors?: Record<string, string>;
   /** Mode-specific marker presentation; lets each event view style markers differently. */
   presentationMode?: MarkerPresentationMode;
+  /** Optional orientation override. Must match the pitch it is rendered inside. */
+  orientation?: Orientation;
   /** When true, events animate in/out as the visible live window changes. */
   animated?: boolean;
   /** Show connector figures (carry/link) between consecutive events. */
   showConnectors?: boolean;
+  /** Multiplies marker size while keeping coordinates untouched. */
+  markerScaleMultiplier?: number;
 }
 
 /**
@@ -320,14 +325,21 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   teamColors = {},
   eventColors = {},
   presentationMode = "all",
+  orientation: orientationProp,
   animated = false,
   showConnectors = true,
+  markerScaleMultiplier = 1,
 }) => {
-  const orientation = useOptaPitchConfigStore((s) => s.orientation);
-  const transformOptaToSvg = useOptaPitchConfigStore((s) => s.transformOptaToSvg);
+  const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
+  const orientation = orientationProp ?? storeOrientation;
+  const transformOptaToSvg = React.useCallback(
+    (optaX: number, optaY: number) => transformOptaToSvgPure(optaX, optaY, orientation),
+    [orientation],
+  );
   const [hoveredEventId, setHoveredEventId] = React.useState<string | null>(null);
   const viewBoxWidth = orientation === "vertical" ? VB_SHORT : VB_LONG;
   const viewBoxHeight = orientation === "vertical" ? VB_LONG : VB_SHORT;
+  const safeMarkerScaleMultiplier = clamp(markerScaleMultiplier, 0.75, 1.8);
 
   const wrap = (key: string, content: React.ReactNode, skipEnterFade = false) =>
     animated ? (
@@ -513,8 +525,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         isLive: false,
         isActive: false,
         opacity: 1,
-        markerScale: 1,
-        hitRadius: 7,
+        markerScale: safeMarkerScaleMultiplier,
+        hitRadius: 7 * safeMarkerScaleMultiplier,
       };
     }
 
@@ -524,8 +536,8 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
       isLive: true,
       isActive,
       opacity: isActive ? 1 : 0.42,
-      markerScale: isActive ? 1.18 : 1,
-      hitRadius: isActive ? 12 : 8,
+      markerScale: (isActive ? 1.18 : 1) * safeMarkerScaleMultiplier,
+      hitRadius: (isActive ? 12 : 8) * safeMarkerScaleMultiplier,
     };
   };
 

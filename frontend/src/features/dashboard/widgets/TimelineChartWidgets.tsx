@@ -106,8 +106,8 @@ const CHART_TYPE_OPTIONS = [
 function getMaxMinute(timeline: MatchStatsTimeline | null | undefined) {
 	return timeline?.buckets.reduce(
 		(maxMinute, bucket) => Math.max(maxMinute, bucket.minute),
-		90,
-	) ?? 90;
+		0,
+	) ?? 0;
 }
 
 function getTimelineMetricValue(

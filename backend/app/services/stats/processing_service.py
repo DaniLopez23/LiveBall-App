@@ -465,15 +465,33 @@ class ProcessStatsService:
 
         if not self._cache.has_stats(game_id):
             self._store_stats_update(parsed_stats, update_data, current_snapshot)
-            logger.debug("(STATS) New grouped stats detected: %s", game_id)
+            logger.info(
+                "STATS game=%s processed status=new minute=%s buckets=%d",
+                game_id,
+                current.minute,
+                len(timeline.buckets),
+            )
+            # logger.debug("(STATS) snapshot=%s", current_snapshot)
             return [self._message(game_id, self._current_update(update_data))]
 
         previous = self._cache.get_stats_snapshot(game_id)
         if previous != current_snapshot:
             self._store_stats_update(parsed_stats, update_data, current_snapshot)
-            logger.debug("(STATS) Grouped stats updated: %s", game_id)
+            logger.info(
+                "STATS game=%s processed status=updated minute=%s buckets=%d",
+                game_id,
+                current.minute,
+                len(timeline.buckets),
+            )
+            # logger.debug("(STATS) snapshot=%s", current_snapshot)
             return [self._message(game_id, self._current_update(update_data))]
 
+        logger.info(
+            "STATS game=%s processed status=unchanged minute=%s buckets=%d",
+            game_id,
+            current.minute,
+            len(timeline.buckets),
+        )
         return []
 
     def _momentum_for_stats_update(

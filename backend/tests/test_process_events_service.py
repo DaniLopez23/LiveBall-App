@@ -1,8 +1,10 @@
 import unittest
+from unittest.mock import patch
 
 from app.schemas.events import Event, Qualifier
 from app.schemas.games import ParsedGame, ParsedGamesRoot
 from app.schemas.teams import TeamInGame
+from app.services.events.constants import MATCH_STATE_FIRST_PERIOD_ACTIVE
 from app.services.events.processing_service import ProcessEventsService
 from app.state.game_state import GameStateCache
 
@@ -23,6 +25,7 @@ def make_event(
     team_id: str = "1",
     outcome: int | None = 1,
     minute: int = 1,
+    period_id: int = 1,
     qualifiers: list[Qualifier] | None = None,
 ) -> Event:
     event_qualifiers = qualifiers if qualifiers is not None else []
@@ -38,7 +41,7 @@ def make_event(
         type_id=type_id,
         event_name=f"type {type_id}",
         event_description="",
-        period_id=1,
+        period_id=period_id,
         min=minute,
         sec=0,
         player_id=player_id,
@@ -247,6 +250,39 @@ class ProcessEventsServiceTests(unittest.TestCase):
 
         self.assertFalse(any(message["type"] == "new_events" for message in messages))
         self.assertEqual(self.cache.get_exported_events("game-1"), [])
+
+    def test_accumulated_feed_does_not_relog_old_match_status_events(self):
+        events = [
+            make_event("setup-home", "34", team_id="1", period_id=16, minute=0),
+            make_event("setup-away", "34", team_id="2", period_id=16, minute=0),
+            make_event("start-1", "32", team_id="1", period_id=1, minute=0),
+            make_event("start-2", "32", team_id="2", period_id=1, minute=0),
+        ]
+
+        with patch("app.services.events.event_scanner.logger.info") as log_info:
+            self.service.process_game(make_root(events))
+
+        match_status_logs = [
+            call
+            for call in log_info.call_args_list
+            if call.args and str(call.args[0]).startswith("MATCH_STATUS")
+        ]
+        self.assertEqual(len(match_status_logs), 1)
+        self.assertEqual(match_status_logs[0].args[2], MATCH_STATE_FIRST_PERIOD_ACTIVE)
+        self.assertEqual(
+            self.cache.get_match_state("game-1"),
+            MATCH_STATE_FIRST_PERIOD_ACTIVE,
+        )
+
+        with patch("app.services.events.event_scanner.logger.info") as log_info:
+            self.service.process_game(make_root(events))
+
+        self.assertFalse(
+            any(
+                call.args and str(call.args[0]).startswith("MATCH_STATUS")
+                for call in log_info.call_args_list
+            )
+        )
 
 
 if __name__ == "__main__":

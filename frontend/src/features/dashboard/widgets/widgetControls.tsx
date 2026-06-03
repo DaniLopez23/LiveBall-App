@@ -97,9 +97,10 @@ export function MinuteRangeField({
 	onChange,
 	maxMinute,
 }: MinuteRangeFieldProps) {
-	const sliderMax = Math.max(1, Math.floor(maxMinute));
-	const start = Math.min(sliderMax, Math.max(0, value[0]));
-	const end = Math.min(sliderMax, Math.max(start, value[1]));
+	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
+	const sliderMax = Math.max(1, boundedMaxMinute);
+	const start = Math.min(boundedMaxMinute, Math.max(0, value[0]));
+	const end = Math.min(boundedMaxMinute, Math.max(start, value[1]));
 
 	return (
 		<Field label={label}>
@@ -111,14 +112,14 @@ export function MinuteRangeField({
 					min={0}
 					max={sliderMax}
 					step={1}
+					disabled={boundedMaxMinute === 0}
 					value={[start, end]}
 					onValueChange={(nextValue) => {
 						const first = nextValue[0] ?? 0;
 						const second = nextValue[1] ?? first;
-						onChange([
-							Math.min(first, second),
-							Math.max(first, second),
-						] as [number, number]);
+						const nextStart = Math.min(boundedMaxMinute, Math.max(0, first));
+						const nextEnd = Math.min(boundedMaxMinute, Math.max(0, second));
+						onChange([Math.min(nextStart, nextEnd), Math.max(nextStart, nextEnd)]);
 					}}
 					className="flex-1"
 				/>

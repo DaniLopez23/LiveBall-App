@@ -119,7 +119,7 @@ class PlayersService:
             teams = self._read_and_parse_f40()
             self.cache.store_teams(teams)
             self._build_player_lookup(teams)
-            logger.info(
+            logger.debug(
                 "PlayersService loaded %d teams from F40 (%s)",
                 len(teams),
                 self.f40_xml_path,

@@ -31,7 +31,7 @@ class XmlReaderService:
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 content = f.read()
-            # logger.debug("XML file read successfully: %s", file_path)
+            logger.debug("XML file read successfully: %s", file_path)
             return content
         except OSError as e:
             logger.error("Failed to read XML file '%s': %s", file_path, e)
@@ -47,10 +47,10 @@ class XmlReaderService:
 
         if current_hash != previous_hash:
             self._last_hashes[file_path] = current_hash
-            # logger.debug("Content change detected for: %s", file_path)
+            logger.debug("Content change detected for: %s", file_path)
             return True
         else:
-            # logger.debug("No content change detected for: %s", file_path)
+            logger.debug("No content change detected for: %s", file_path)
             pass
         
         return False
@@ -77,9 +77,9 @@ class XmlReaderService:
 
         if self.has_changed(file_path, content):
             self._last_file_signatures[file_path] = file_signature
-            logger.info("Change detected in XML file: %s", file_path)
+            logger.debug("Change detected in XML file: %s", file_path)
             return content
 
         self._last_file_signatures[file_path] = file_signature
-        # logger.debug("No changes detected for: %s", file_path)
+        logger.debug("No changes detected for: %s", file_path)
         return None

@@ -8,7 +8,6 @@ from app.services.events.constants import (
     MATCH_STATE_FIRST_PERIOD_ACTIVE,
     MATCH_STATE_FIRST_PERIOD_FINISHED,
     MATCH_STATE_MATCH_FINISHED,
-    MATCH_STATE_PRE_MATCH,
     MATCH_STATE_SECOND_PERIOD_ACTIVE,
 )
 from app.services.events.event_exporter import EventExporter
@@ -41,6 +40,7 @@ class EventScanner:
     def scan(self, game: ParsedGame) -> EventScanResult:
         new_events_flat: List[Dict[str, Any]] = []
         updated_events_flat: List[Dict[str, Any]] = []
+        deleted_events_flat: List[Dict[str, Any]] = []
         pass_candidates_by_team: DefaultDict[str, Dict[str, Event]] = defaultdict(dict)
         pending_successful_passes: Dict[str, Event] = {}
         has_event_changes = False
@@ -48,13 +48,22 @@ class EventScanner:
         game_id = game.game_id
         away_team_id = game.away_team.team_id
         current_match_state = self._cache.get_match_state(game_id)
+        previous_event_keys = self._cache.get_event_keys(game_id)
+        current_event_keys: set[tuple[str, str]] = set()
 
         for event in game.events:
-            current_match_state = self._update_match_state(
-                game_id,
-                event,
-                current_match_state,
-            )
+            team_key, event_key = self._event_cache_key(event)
+            current_event_keys.add((team_key, event_key))
+            previous_type = self._cache.get_event_type(game_id, team_key, event_key)
+            event_changed = previous_type is None or previous_type != event.type_id
+
+            if event_changed:
+                current_match_state = self._update_match_state(
+                    game_id,
+                    event,
+                    current_match_state,
+                )
+
             self._normalize_away_coordinates(event, away_team_id)
             self._resolve_pending_pass(
                 game_id,
@@ -62,9 +71,6 @@ class EventScanner:
                 pending_successful_passes,
                 pass_candidates_by_team,
             )
-
-            team_key, event_key = self._event_cache_key(event)
-            previous_type = self._cache.get_event_type(game_id, team_key, event_key)
 
             if previous_type is None:
                 self._cache.store_event_type(game_id, team_key, event_key, event.type_id)
@@ -91,8 +97,21 @@ class EventScanner:
                 else:
                     pending_successful_passes[event.team_id] = event
 
+        deleted_events_flat = self._delete_missing_events(
+            game_id,
+            previous_event_keys,
+            current_event_keys,
+        )
+        if deleted_events_flat:
+            has_event_changes = True
+
         return EventScanResult(
-            messages=self._build_event_messages(game.game_id, new_events_flat, updated_events_flat),
+            messages=self._build_event_messages(
+                game.game_id,
+                new_events_flat,
+                updated_events_flat,
+                deleted_events_flat,
+            ),
             pass_candidates_by_team={
                 team_id: list(events_by_id.values())
                 for team_id, events_by_id in pass_candidates_by_team.items()
@@ -105,6 +124,27 @@ class EventScanner:
         team_key = event.team_id or "__match__"
         event_key = event.event_id or event.id
         return team_key, event_key
+
+    def _delete_missing_events(
+        self,
+        game_id: str,
+        previous_event_keys: set[tuple[str, str]],
+        current_event_keys: set[tuple[str, str]],
+    ) -> List[Dict[str, Any]]:
+        deleted_events: List[Dict[str, Any]] = []
+
+        for team_key, event_key in sorted(previous_event_keys - current_event_keys):
+            payload = self._cache.remove_event(game_id, team_key, event_key)
+            deleted_event = {
+                "team_id": None if team_key == "__match__" else team_key,
+                "event_id": event_key,
+            }
+            if payload:
+                deleted_event["id"] = payload.get("id") or event_key
+                deleted_event["type_id"] = payload.get("type_id")
+            deleted_events.append(deleted_event)
+
+        return deleted_events
 
     @staticmethod
     def _is_successful_pass_event(event: Event) -> bool:
@@ -163,7 +203,16 @@ class EventScanner:
         next_state = self._next_match_state(event, current_state)
         if next_state and next_state != current_state:
             self._cache.store_match_state(game_id, next_state)
-            logger.debug("(MATCH_STATE) Game %s -> %s", game_id, next_state)
+            logger.info(
+                "MATCH_STATUS game=%s status=%s detail=%s event=%s minute=%s period=%s",
+                game_id,
+                next_state,
+                self._match_state_detail(next_state),
+                event.event_id or event.id,
+                event.min,
+                event.period_id,
+            )
+            # logger.debug("(MATCH_STATUS) raw_event=%s", event.model_dump())
             return next_state
         return current_state
 
@@ -172,15 +221,11 @@ class EventScanner:
         type_id = event.type_id
         period_id = event.period_id
 
-        if type_id == "34" and period_id == 16:
-            if current_state in (None, MATCH_STATE_PRE_MATCH):
-                return MATCH_STATE_PRE_MATCH
-            if current_state == MATCH_STATE_FIRST_PERIOD_ACTIVE:
-                return MATCH_STATE_FIRST_PERIOD_FINISHED
-            return None
-
         if type_id == "32" and period_id == 1:
             return MATCH_STATE_FIRST_PERIOD_ACTIVE
+
+        if type_id == "30" and period_id == 1:
+            return MATCH_STATE_FIRST_PERIOD_FINISHED
 
         if type_id == "32" and period_id == 2:
             return MATCH_STATE_SECOND_PERIOD_ACTIVE
@@ -189,6 +234,15 @@ class EventScanner:
             return MATCH_STATE_MATCH_FINISHED
 
         return None
+
+    @staticmethod
+    def _match_state_detail(state: str) -> str:
+        return {
+            MATCH_STATE_FIRST_PERIOD_ACTIVE: "first_half_started",
+            MATCH_STATE_FIRST_PERIOD_FINISHED: "first_half_finished",
+            MATCH_STATE_SECOND_PERIOD_ACTIVE: "second_half_started",
+            MATCH_STATE_MATCH_FINISHED: "match_finished",
+        }.get(state, "unknown")
 
     @staticmethod
     def _normalize_away_coordinates(event: Event, away_team_id: str) -> None:
@@ -222,11 +276,13 @@ class EventScanner:
         game_id: str,
         new_events_flat: List[Dict[str, Any]],
         updated_events_flat: List[Dict[str, Any]],
+        deleted_events_flat: List[Dict[str, Any]],
     ) -> List[Dict[str, Any]]:
         messages: List[Dict[str, Any]] = []
 
         if new_events_flat:
-            logger.debug("(EVENTS) Game %s - %d new event(s)", game_id, len(new_events_flat))
+            logger.info("EVENTS game=%s new=%d", game_id, len(new_events_flat))
+            logger.debug("(EVENTS) new_event_ids=%s", [event.get("id") for event in new_events_flat])
             messages.append(
                 {
                     "type": "new_events",
@@ -236,16 +292,24 @@ class EventScanner:
             )
 
         if updated_events_flat:
-            logger.debug(
-                "(EVENTS) Game %s - %d updated event(s)",
-                game_id,
-                len(updated_events_flat),
-            )
+            logger.info("EVENTS game=%s updated=%d", game_id, len(updated_events_flat))
+            logger.debug("(EVENTS) updated_event_ids=%s", [event.get("id") for event in updated_events_flat])
             messages.append(
                 {
                     "type": "updated_events",
                     "game_id": game_id,
                     "events": updated_events_flat,
+                }
+            )
+
+        if deleted_events_flat:
+            logger.info("EVENTS game=%s deleted=%d", game_id, len(deleted_events_flat))
+            logger.debug("(EVENTS) deleted_events=%s", deleted_events_flat)
+            messages.append(
+                {
+                    "type": "deleted_events",
+                    "game_id": game_id,
+                    "events": deleted_events_flat,
                 }
             )
 

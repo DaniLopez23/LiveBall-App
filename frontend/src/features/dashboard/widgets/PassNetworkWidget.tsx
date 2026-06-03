@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Pause, Play } from "lucide-react";
 
 import PassNetworkFilters from "@/components/pitch/passNetworkPitch/PassNetworkFilters";
 import PassNetworkPitch from "@/components/pitch/passNetworkPitch/PassNetworkPitch";
@@ -8,6 +9,7 @@ import {
 	type NodePositionMode,
 } from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider-14";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
@@ -29,16 +31,19 @@ import {
 
 export type PassNetworkConfig = {
 	showStats: boolean;
+	showMoment: boolean;
 };
 
 export type PassNetworkWidgetFilters = {
 	minPasses: number;
 	minuteRange: [number, number];
 	nodePositionMode: NodePositionMode;
+	momentMinute?: number;
 };
 
 export const DEFAULT_PASS_NETWORK_CONFIG: PassNetworkConfig = {
 	showStats: true,
+	showMoment: false,
 };
 
 export const DEFAULT_PASS_NETWORK_WIDGET_FILTERS: PassNetworkWidgetFilters = {
@@ -48,6 +53,10 @@ export const DEFAULT_PASS_NETWORK_WIDGET_FILTERS: PassNetworkWidgetFilters = {
 const HOME_COLOR = "#3b82f6";
 const AWAY_COLOR = "#f43f5e";
 const PLAYBACK_TICK_MS = 650;
+
+function getMaxEventMinute(events: Event[]) {
+	return events.reduce((maxMinute, event) => Math.max(maxMinute, event.min ?? 0), 0);
+}
 
 const sumMinuteStats = (
 	stats: MinutePositionStat[],
@@ -170,6 +179,28 @@ const clampMinute = (
 	[minMinute, maxMinute]: [number, number],
 ): number => Math.min(maxMinute, Math.max(minMinute, minute));
 
+function normalizePassNetworkFilters(
+	filters: PassNetworkWidgetFilters,
+	maxMinute: number,
+): PassNetworkWidgetFilters {
+	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
+	const startMinute = Math.min(boundedMaxMinute, Math.max(0, filters.minuteRange[0]));
+	const endMinute = Math.min(
+		boundedMaxMinute,
+		Math.max(startMinute, filters.minuteRange[1]),
+	);
+	const momentMinute =
+		filters.momentMinute == null
+			? undefined
+			: clampMinute(filters.momentMinute, [startMinute, endMinute]);
+
+	return {
+		...filters,
+		minuteRange: [startMinute, endMinute],
+		momentMinute,
+	};
+}
+
 function getScoreAtMinute(
 	events: Event[],
 	homeTeamId: string | undefined,
@@ -203,20 +234,109 @@ function getScoreAtMinute(
 export function PassNetworkWidget({
 	config,
 	filters,
+	onFiltersChange,
 }: WidgetComponentProps<PassNetworkConfig, PassNetworkWidgetFilters>) {
 	const game = useGameStore((state) => state.game);
+	const events = useEventsStore((state) => state.events);
 	const byTeamId = usePassNetworksStore((state) => state.byTeamId);
+	const maxMinute = getMaxEventMinute(events);
+	const normalizedFilters = normalizePassNetworkFilters(filters, maxMinute);
+	const [isPlaying, setIsPlaying] = useState(false);
+	const [rangeStart, rangeEnd] = normalizedFilters.minuteRange;
+	const momentMinute = normalizedFilters.momentMinute ?? rangeEnd;
+	const shouldUseMoment = config.showMoment || normalizedFilters.momentMinute != null;
+	const effectiveFilters = shouldUseMoment
+		? {
+				...normalizedFilters,
+				minuteRange: [rangeStart, momentMinute] as [number, number],
+			}
+		: normalizedFilters;
 	const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
 	const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
-	const filteredHomeNetwork = filterNetworkByFilters(homeNetwork, filters);
-	const filteredAwayNetwork = filterNetworkByFilters(awayNetwork, filters);
+	const filteredHomeNetwork = filterNetworkByFilters(homeNetwork, effectiveFilters);
+	const filteredAwayNetwork = filterNetworkByFilters(awayNetwork, effectiveFilters);
 	const homeNodes = filteredHomeNetwork?.nodes ?? [];
 	const homeEdges = filteredHomeNetwork?.edges ?? [];
 	const awayNodes = filteredAwayNetwork?.nodes ?? [];
 	const awayEdges = filteredAwayNetwork?.edges ?? [];
+	const sliderMax = Math.max(1, maxMinute);
+
+	const setMomentMinute = (minute: number) => {
+		onFiltersChange?.({
+			...normalizedFilters,
+			momentMinute: clampMinute(minute, normalizedFilters.minuteRange),
+		});
+	};
+
+	useEffect(() => {
+		if (!isPlaying) return;
+		if (rangeStart >= rangeEnd) {
+			setIsPlaying(false);
+			return;
+		}
+
+		const intervalId = window.setInterval(() => {
+			const nextMinute = momentMinute >= rangeEnd ? rangeStart : momentMinute + 1;
+			setMomentMinute(nextMinute);
+
+			if (nextMinute >= rangeEnd) {
+				setIsPlaying(false);
+			}
+		}, PLAYBACK_TICK_MS);
+
+		return () => window.clearInterval(intervalId);
+	}, [isPlaying, momentMinute, rangeEnd, rangeStart]);
 
 	return (
 		<div className="grid h-full min-h-0 gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+			{config.showMoment ? (
+				<div className="rounded-md border bg-background p-3 lg:col-span-2">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+						<div className="flex shrink-0 items-center gap-2">
+							<button
+								type="button"
+								onClick={() => {
+									if (momentMinute >= rangeEnd) {
+										setMomentMinute(rangeStart);
+									}
+									setIsPlaying(true);
+								}}
+								disabled={rangeStart >= rangeEnd}
+								className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-foreground transition-colors hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50"
+							>
+								<Play className="size-4" />
+								<span className="sr-only">Play</span>
+							</button>
+							<button
+								type="button"
+								onClick={() => setIsPlaying(false)}
+								disabled={!isPlaying}
+								className="inline-flex size-8 items-center justify-center rounded-md border bg-background text-foreground transition-colors hover:bg-muted/60 disabled:pointer-events-none disabled:opacity-50"
+							>
+								<Pause className="size-4" />
+								<span className="sr-only">Pause</span>
+							</button>
+						</div>
+						<div className="min-w-0 flex-1">
+							<Slider
+								min={0}
+								max={sliderMax}
+								step={1}
+								disabled={maxMinute === 0}
+								value={[momentMinute]}
+								onValueChange={(value) => {
+									setIsPlaying(false);
+									setMomentMinute(value[0] ?? rangeStart);
+								}}
+							/>
+						</div>
+						<div className="shrink-0 text-xs font-semibold tabular-nums text-muted-foreground">
+							Min {momentMinute}'
+						</div>
+					</div>
+				</div>
+			) : null}
+
 			<div className="flex min-h-0 flex-col gap-2">
 				<div className="flex items-center justify-between gap-2">
 					<p className="truncate text-xs font-semibold" style={{ color: HOME_COLOR }}>
@@ -263,7 +383,7 @@ export function PassNetworkWidget({
 			{config.showStats ? (
 				<div className="min-h-52 overflow-hidden rounded-md border bg-background p-3 lg:col-span-2">
 					<PassNetworkStats
-						filters={filters}
+						filters={effectiveFilters}
 						homeNetwork={homeNetwork}
 						awayNetwork={awayNetwork}
 						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
@@ -290,6 +410,12 @@ export function PassNetworkWidgetConfig({
 				checked={value.showStats}
 				onChange={(showStats) => onChange({ ...value, showStats })}
 			/>
+			<SwitchField
+				label="Mostrar momento"
+				description="Muestra controles simples de play/pause y minuto actual en el widget."
+				checked={value.showMoment}
+				onChange={(showMoment) => onChange({ ...value, showMoment })}
+			/>
 		</div>
 	);
 }
@@ -301,12 +427,10 @@ export function PassNetworkWidgetFilters({
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
 	const [isPlaying, setIsPlaying] = useState(false);
-	const [currentMinute, setCurrentMinute] = useState(value.minuteRange[1]);
-	const [rangeStart, rangeEnd] = value.minuteRange;
-	const lastEventMinute = useMemo(() => {
-		if (events.length === 0) return 90;
-		return Math.max(0, Math.floor(events[events.length - 1]?.min ?? 0));
-	}, [events]);
+	const lastEventMinute = useMemo(() => getMaxEventMinute(events), [events]);
+	const normalizedFilters = normalizePassNetworkFilters(value, lastEventMinute);
+	const currentMinute = normalizedFilters.momentMinute ?? normalizedFilters.minuteRange[1];
+	const [rangeStart, rangeEnd] = normalizedFilters.minuteRange;
 	const scoreAtMinute = useMemo(
 		() =>
 			getScoreAtMinute(
@@ -319,49 +443,57 @@ export function PassNetworkWidgetFilters({
 	);
 
 	useEffect(() => {
-		setCurrentMinute((minute) => clampMinute(minute, value.minuteRange));
-	}, [value.minuteRange]);
-
-	useEffect(() => {
 		if (!isPlaying) return;
 
 		const intervalId = window.setInterval(() => {
-			setCurrentMinute((minute) => {
-				const normalizedMinute = clampMinute(minute, [rangeStart, rangeEnd]);
+			const normalizedMinute = clampMinute(currentMinute, [rangeStart, rangeEnd]);
 
-				if (normalizedMinute >= rangeEnd) {
-					setIsPlaying(false);
-					return rangeEnd;
-				}
+			if (normalizedMinute >= rangeEnd) {
+				setIsPlaying(false);
+				onChange({ ...normalizedFilters, momentMinute: rangeEnd });
+				return;
+			}
 
-				return Math.min(rangeEnd, normalizedMinute + 1);
-			});
+			onChange({ ...normalizedFilters, momentMinute: Math.min(rangeEnd, normalizedMinute + 1) });
 		}, PLAYBACK_TICK_MS);
 
 		return () => window.clearInterval(intervalId);
-	}, [isPlaying, rangeEnd, rangeStart]);
+	}, [currentMinute, isPlaying, normalizedFilters, onChange, rangeEnd, rangeStart]);
 
 	return (
 		<PassNetworkFilters
-			filters={value}
-			onChange={onChange}
+			filters={normalizedFilters}
+			onChange={(nextFilters) =>
+				onChange(
+					normalizePassNetworkFilters(
+						{
+							...normalizedFilters,
+							...nextFilters,
+						},
+						lastEventMinute,
+					),
+				)
+			}
 			currentMinute={currentMinute}
 			isPlaying={isPlaying}
 			onPlay={() => {
 				if (rangeStart === rangeEnd) return;
-				setCurrentMinute((minute) =>
-					minute >= rangeEnd || minute < rangeStart ? rangeStart : minute,
-				);
+				if (currentMinute >= rangeEnd || currentMinute < rangeStart) {
+					onChange({ ...normalizedFilters, momentMinute: rangeStart });
+				}
 				setIsPlaying(true);
 			}}
 			onPause={() => setIsPlaying(false)}
 			onResetPlayback={() => {
 				setIsPlaying(false);
-				setCurrentMinute(rangeStart);
+				onChange({ ...normalizedFilters, momentMinute: rangeStart });
 			}}
 			onCurrentMinuteChange={(minute) => {
 				setIsPlaying(false);
-				setCurrentMinute(clampMinute(minute, value.minuteRange));
+				onChange({
+					...normalizedFilters,
+					momentMinute: clampMinute(minute, normalizedFilters.minuteRange),
+				});
 			}}
 			homeScoreAtMinute={scoreAtMinute.home}
 			awayScoreAtMinute={scoreAtMinute.away}

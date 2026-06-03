@@ -3,13 +3,19 @@ import type {
 	DashboardWidget,
 	DashboardWidgetType,
 } from "@/features/dashboard/types/dashboard.types";
-import { addWidgetToLayouts, emptyDashboardLayouts } from "@/features/dashboard/utils/dashboardLayout";
+import {
+	addWidgetToLayouts,
+	emptyDashboardLayouts,
+} from "@/features/dashboard/utils/dashboardLayout";
 import {
 	getWidgetDefinition,
 	widgetDefinitions,
 } from "@/features/dashboard/widgets/widgetRegistry";
 
-function cloneValue<T>(value: T): T {
+export const BASE_TEMPLATE_NAME = "Resumen del partido";
+export const OFFENSIVE_TEMPLATE_NAME = "Analisis ofensivo";
+
+export function cloneValue<T>(value: T): T {
 	if (typeof structuredClone === "function") {
 		return structuredClone(value);
 	}
@@ -47,7 +53,7 @@ export function createDashboardWidget(
 }
 
 export function createDashboardTemplate(
-	name = "Resumen del partido",
+	name = BASE_TEMPLATE_NAME,
 	description = "Plantilla base con widgets de analisis en directo.",
 ): DashboardTemplate {
 	const createdAt = nowIso();
@@ -62,6 +68,61 @@ export function createDashboardTemplate(
 		id: createDashboardId("template"),
 		name,
 		description,
+		layouts,
+		widgets,
+		createdAt,
+		updatedAt: createdAt,
+	};
+}
+
+export function createOffensiveDashboardTemplate(): DashboardTemplate {
+	const createdAt = nowIso();
+	let layouts = emptyDashboardLayouts();
+	const widgets = [
+		createDashboardWidget("event-map", {
+			title: "Mapa de disparos",
+			config: {
+				mode: "all",
+			},
+			filters: {
+				lastCount: 10,
+				team: "both",
+				sequenceEndReasons: ["shot", "foul", "out", "opponent"],
+				sequencePassCountMode: "any",
+				sequencePassCount: 3,
+				selectedEventType: "shot",
+				selectedOutcomes: [],
+				selectedSubtypes: [],
+				minuteRange: [0, 90],
+				selectedSequenceId: null,
+			},
+		}),
+		createDashboardWidget("pass-network", {
+			title: "Red de pases ofensiva",
+		}),
+		createDashboardWidget("momentum-chart", {
+			title: "Momentum ofensivo",
+			config: {
+				title: "Amenaza ofensiva",
+				chartType: "area",
+				showCumulative: false,
+				showKeyEvents: true,
+			},
+		}),
+	];
+
+	for (const widget of widgets) {
+		layouts = addWidgetToLayouts(
+			layouts,
+			widget.id,
+			getWidgetDefinition(widget.type).defaultLayout,
+		);
+	}
+
+	return {
+		id: createDashboardId("template"),
+		name: OFFENSIVE_TEMPLATE_NAME,
+		description: "Lectura centrada en finalizacion, circulacion ofensiva y amenaza.",
 		layouts,
 		widgets,
 		createdAt,
@@ -108,5 +169,5 @@ export function duplicateDashboardTemplate(template: DashboardTemplate): Dashboa
 }
 
 export function createInitialDashboardTemplates() {
-	return [createDashboardTemplate()];
+	return [createDashboardTemplate(), createOffensiveDashboardTemplate()];
 }

@@ -60,13 +60,16 @@ export interface WidgetComponentProps<
 	config: TConfig;
 	filters: TFilters;
 	mode: DashboardMode;
+	onFiltersChange?: (filters: TFilters) => void;
 }
 
 export interface WidgetPanelProps<
 	TValue extends Record<string, unknown> = Record<string, unknown>,
+	TConfig extends Record<string, unknown> = Record<string, unknown>,
 > {
 	value: TValue;
 	onChange: (value: TValue) => void;
+	config?: TConfig;
 }
 
 export interface WidgetDefinition<
@@ -82,5 +85,5 @@ export interface WidgetDefinition<
 	defaultLayout: Omit<DashboardLayoutItem, "i">;
 	component: ComponentType<WidgetComponentProps<TConfig, TFilters>>;
 	configComponent: ComponentType<WidgetPanelProps<TConfig>>;
-	filterComponent: ComponentType<WidgetPanelProps<TFilters>>;
+	filterComponent: ComponentType<WidgetPanelProps<TFilters, TConfig>>;
 }

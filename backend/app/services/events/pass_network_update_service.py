@@ -35,6 +35,7 @@ class PassNetworkUpdateService:
             if not team_events:
                 continue
 
+            existing_service = self._cache.get_pass_network(game.game_id, team_id)
             service = self._cache.get_or_create_pass_network(game.game_id, team_id)
             changed_nodes, changed_edges, changed_bucket_indices = (
                 service.add_passes_incremental(
@@ -46,12 +47,27 @@ class PassNetworkUpdateService:
             if not changed_nodes and not changed_edges:
                 continue
 
-            logger.debug(
-                "(PASS_NETWORK) Game %s team %s - pass network updated (%d nodes, %d edges)",
+            action = "created" if existing_service is None else "updated"
+            logger.info(
+                "PASS_NETWORK game=%s team=%s %s passes=%d nodes=%d edges=%d buckets=%d",
                 game.game_id,
                 team_id,
+                action,
+                len(team_events),
                 len(changed_nodes),
                 len(changed_edges),
+                len(changed_bucket_indices),
+            )
+            logger.debug(
+                "(PASS_NETWORK) game=%s team=%s node_ids=%s edges=%s buckets=%s",
+                game.game_id,
+                team_id,
+                [node.get("player_id") for node in changed_nodes],
+                [
+                    (edge.get("from_player_id"), edge.get("to_player_id"))
+                    for edge in changed_edges
+                ],
+                changed_bucket_indices,
             )
 
             statistics = self._get_statistics_delta(

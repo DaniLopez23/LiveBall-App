@@ -40,7 +40,7 @@ class EventExporter:
             else None
         )
 
-        if event.type_id in {"30", "32", "34"}:
+        if event.type_id in {"30", "32"}:
             payload = flatten_event(event, match_state=match_state or "")
         else:
             payload = flatten_event(event)

@@ -1,6 +1,5 @@
 """
-Monitors a directory (recursively) for XML files and triggers processing
-whenever a file's content has changed since the last poll.
+Monitors XML files and triggers processing whenever their content changes.
 """
 
 import asyncio
@@ -16,6 +15,20 @@ from app.services.xml.f9_parser import XmlParseStatsService
 from app.services.xml.reader import XmlReaderService
 
 logger = logging.getLogger(__name__)
+
+
+def _feed_name(watcher_name: str) -> str:
+    if watcher_name.startswith("f24"):
+        return "f24"
+    if watcher_name.startswith("f9"):
+        return "f9"
+    return watcher_name
+
+
+def _game_id(parsed_root: Any) -> str:
+    game = getattr(parsed_root, "game", None)
+    value = getattr(game or parsed_root, "game_id", None)
+    return str(value or "unknown")
 
 
 async def _run_xml_watcher(
@@ -34,10 +47,11 @@ async def _run_xml_watcher(
 
     reader = XmlReaderService()
     xml_file = Path(file_path)
+    feed_name = _feed_name(watcher_name)
 
     logger.info(
-        "(%s) started – monitoring '%s' every %ds",
-        watcher_name,
+        "WORKER %s started file=%s interval=%ss",
+        feed_name,
         xml_file,
         poll_interval,
     )
@@ -51,10 +65,16 @@ async def _run_xml_watcher(
 
             parsed_root = parser.parse_xml_string(content)
             if parsed_root is None:
-                logger.warning("Failed to parse '%s', skipping.", xml_file)
+                logger.warning("WORKER %s failed to parse file=%s", feed_name, xml_file)
                 await asyncio.sleep(poll_interval + 5)
                 continue
 
+            logger.info(
+                "WORKER %s received new data game=%s file=%s",
+                feed_name,
+                _game_id(parsed_root),
+                xml_file.name,
+            )
             messages = process_service.process_game(parsed_root)
             if messages and on_new_data is not None:
                 result = on_new_data(messages)
@@ -62,9 +82,10 @@ async def _run_xml_watcher(
                     await result
 
         except Exception:
-            logger.exception("Unexpected error in XML file watcher")
+            logger.exception("WORKER %s unexpected error", feed_name)
 
         await asyncio.sleep(poll_interval)
+
 
 async def f24_events_xml_watcher(
     poll_interval: int = 3,
@@ -94,7 +115,7 @@ async def f9_stats_xml_watcher(
     file_path: str = "data",
     process_service: Optional[ProcessStatsService] = None,
 ) -> None:
-    """Watches an F9 stats XML file and emits booking/goal updates by team."""
+    """Watches an F9 stats XML file and emits parsed stats updates."""
     if process_service is None:
         process_service = ProcessStatsService()
 
@@ -106,4 +127,3 @@ async def f9_stats_xml_watcher(
         process_service=process_service,
         watcher_name="f9_stats_xml_watcher",
     )
-

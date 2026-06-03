@@ -1,16 +1,29 @@
 import { useEffect, useMemo, useState } from "react";
 
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { AddWidgetDialog } from "@/features/dashboard/components/AddWidgetDialog";
 import { DashboardGrid } from "@/features/dashboard/components/DashboardGrid";
 import { DashboardTemplateManagerDialog } from "@/features/dashboard/components/DashboardTemplateManagerDialog";
 import { DashboardTopBar } from "@/features/dashboard/components/DashboardTopBar";
 import { DashboardWidgetConfigPanel } from "@/features/dashboard/components/DashboardWidgetConfigPanel";
 import useDashboardStore from "@/features/dashboard/store/dashboardStore";
+import { cn } from "@/lib/utils";
 
 export default function DashboardSummaryPage() {
 	const templates = useDashboardStore((state) => state.templates);
 	const activeTemplateId = useDashboardStore((state) => state.activeTemplateId);
+	const draftTemplate = useDashboardStore((state) => state.draftTemplate);
 	const mode = useDashboardStore((state) => state.mode);
+	const hasUnsavedChanges = useDashboardStore((state) => state.hasUnsavedChanges);
 	const selectedWidgetId = useDashboardStore((state) => state.selectedWidgetId);
 	const ensureDefaultTemplate = useDashboardStore((state) => state.ensureDefaultTemplate);
 	const setMode = useDashboardStore((state) => state.setMode);
@@ -21,9 +34,11 @@ export default function DashboardSummaryPage() {
 	const updateTemplateDescription = useDashboardStore(
 		(state) => state.updateTemplateDescription,
 	);
-	const duplicateTemplate = useDashboardStore((state) => state.duplicateTemplate);
 	const deleteTemplate = useDashboardStore((state) => state.deleteTemplate);
 	const saveActiveTemplate = useDashboardStore((state) => state.saveActiveTemplate);
+	const discardActiveTemplateChanges = useDashboardStore(
+		(state) => state.discardActiveTemplateChanges,
+	);
 	const addWidget = useDashboardStore((state) => state.addWidget);
 	const updateWidget = useDashboardStore((state) => state.updateWidget);
 	const updateWidgetType = useDashboardStore((state) => state.updateWidgetType);
@@ -33,26 +48,44 @@ export default function DashboardSummaryPage() {
 	);
 	const [isTemplateManagerOpen, setIsTemplateManagerOpen] = useState(false);
 	const [isAddWidgetOpen, setIsAddWidgetOpen] = useState(false);
+	const [isExitEditDialogOpen, setIsExitEditDialogOpen] = useState(false);
 
 	useEffect(() => {
 		ensureDefaultTemplate();
 	}, [ensureDefaultTemplate]);
 
-	const activeTemplate = useMemo(
+	const savedActiveTemplate = useMemo(
 		() => templates.find((template) => template.id === activeTemplateId) ?? null,
 		[activeTemplateId, templates],
 	);
+	const activeTemplate = mode === "edit" && draftTemplate ? draftTemplate : savedActiveTemplate;
 	const selectedWidget =
 		activeTemplate?.widgets.find((widget) => widget.id === selectedWidgetId) ?? null;
+	const handleModeChange = (nextMode: typeof mode) => {
+		if (mode === "edit" && nextMode === "view" && hasUnsavedChanges) {
+			setIsExitEditDialogOpen(true);
+			return;
+		}
+
+		setMode(nextMode);
+	};
 
 	return (
-		<div className="flex min-h-full flex-col bg-muted/20">
+		<div
+			className={cn(
+				"flex min-h-full flex-col transition-colors",
+				mode === "edit"
+					? "bg-amber-50/45 dark:bg-amber-950/10"
+					: "bg-muted/20",
+			)}
+		>
 			<DashboardTopBar
 				mode={mode}
 				templates={templates}
 				activeTemplate={activeTemplate}
 				activeTemplateId={activeTemplateId}
-				onModeChange={setMode}
+				hasUnsavedChanges={hasUnsavedChanges}
+				onModeChange={handleModeChange}
 				onTemplateChange={setActiveTemplate}
 				onOpenTemplateManager={() => setIsTemplateManagerOpen(true)}
 				onOpenAddWidget={() => setIsAddWidgetOpen(true)}
@@ -65,6 +98,7 @@ export default function DashboardSummaryPage() {
 					mode={mode}
 					selectedWidgetId={selectedWidgetId}
 					onSelectWidget={selectWidget}
+					onUpdateWidget={updateWidget}
 					onLayoutsChange={updateActiveTemplateLayouts}
 					onOpenAddWidget={() => setIsAddWidgetOpen(true)}
 				/>
@@ -79,7 +113,6 @@ export default function DashboardSummaryPage() {
 				onSelectTemplate={setActiveTemplate}
 				onRenameTemplate={renameTemplate}
 				onUpdateDescription={updateTemplateDescription}
-				onDuplicateTemplate={duplicateTemplate}
 				onDeleteTemplate={deleteTemplate}
 			/>
 
@@ -101,6 +134,38 @@ export default function DashboardSummaryPage() {
 				onUpdateWidgetType={updateWidgetType}
 				onRemoveWidget={removeWidget}
 			/>
+
+			<AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
+				<AlertDialogContent>
+					<AlertDialogHeader>
+						<AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
+						<AlertDialogDescription>
+							Has hecho cambios en esta plantilla. Puedes guardarlos o salir sin
+							guardar para volver a la version anterior.
+						</AlertDialogDescription>
+					</AlertDialogHeader>
+					<AlertDialogFooter>
+						<AlertDialogCancel>Seguir editando</AlertDialogCancel>
+						<AlertDialogAction
+							className="bg-destructive text-white hover:bg-destructive/90"
+							onClick={() => {
+								discardActiveTemplateChanges();
+								setIsExitEditDialogOpen(false);
+							}}
+						>
+							Salir sin guardar
+						</AlertDialogAction>
+						<AlertDialogAction
+							onClick={() => {
+								saveActiveTemplate();
+								setIsExitEditDialogOpen(false);
+							}}
+						>
+							Guardar cambios
+						</AlertDialogAction>
+					</AlertDialogFooter>
+				</AlertDialogContent>
+			</AlertDialog>
 		</div>
 	);
 }

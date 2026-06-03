@@ -93,6 +93,33 @@ class GameStateCache:
             self._event_states[game_id] = {}
         self._event_states[game_id][(team_id, event_id)] = type_id
 
+    def get_event_keys(self, game_id: str) -> set[Tuple[str, str]]:
+        """Returns the cached event keys for *game_id*."""
+        return set(self._event_states.get(game_id, {}))
+
+    def remove_event(
+        self,
+        game_id: str,
+        team_id: str,
+        event_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Removes one event from cache and returns its exported payload if present."""
+        event_key = (team_id, event_id)
+        event_states = self._event_states.get(game_id)
+        if event_states is not None:
+            event_states.pop(event_key, None)
+            if not event_states:
+                self._event_states.pop(game_id, None)
+
+        exported_events = self._exported_events.get(game_id)
+        if exported_events is None:
+            return None
+
+        payload = exported_events.pop(event_key, None)
+        if not exported_events:
+            self._exported_events.pop(game_id, None)
+        return payload
+
     def store_exported_event(
         self,
         game_id: str,

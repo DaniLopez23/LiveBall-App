@@ -17,16 +17,16 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
     client_id = await manager.connect(websocket, game_id)
 
     try:
-        # Mensaje de bienvenida
-        await websocket.send_json({
-            "type": "connection",
-            "status": "connected",
-            "client_id": client_id,
-            "game_id": game_id,
-            "message": f"Conectado al room {game_id}",
-        })
+        await websocket.send_json(
+            {
+                "type": "connection",
+                "status": "connected",
+                "client_id": client_id,
+                "game_id": game_id,
+                "message": f"Conectado al room {game_id}",
+            }
+        )
 
-        # Enviar snapshot del estado actual si ya existe el partido en caché
         game = cache.games.get(game_id)
         if game:
             exported_events = cache.get_exported_events(game_id)
@@ -51,18 +51,25 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                         "statistics": cache.get_pass_network_statistics(g_id, team_id),
                     }
 
-            await websocket.send_json({
-                "type": "match_state_snapshot",
-                "game_id": game_id,
-                "game": game.model_dump(exclude={"events"}),
-                "total_events": len(exported_events),
-                "last_event_id": exported_events[-1].get("id") if exported_events else None,
-                "events": exported_events,
-                "stats": stats_data,
-                "pass_networks": pass_networks_data,
-            })
+            await websocket.send_json(
+                {
+                    "type": "match_state_snapshot",
+                    "game_id": game_id,
+                    "game": game.model_dump(exclude={"events"}),
+                    "total_events": len(exported_events),
+                    "last_event_id": exported_events[-1].get("id") if exported_events else None,
+                    "events": exported_events,
+                    "stats": stats_data,
+                    "pass_networks": pass_networks_data,
+                }
+            )
             logger.info(
-                f" (WEBSOCKET) Snapshot de {game_id} enviado a {client_id}: {len(exported_events)} eventos, "
+                "WEBSOCKET snapshot sent game=%s client=%s events=%d stats=%s pass_networks=%d",
+                game_id,
+                client_id,
+                len(exported_events),
+                "yes" if stats_update else "no",
+                len(pass_networks_data),
             )
 
         while True:
@@ -72,8 +79,7 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
 
     except WebSocketDisconnect:
         manager.disconnect(game_id, client_id)
-        logger.info(f"🔌 WebSocket cerrado para {client_id}")
 
-    except Exception as e:
-        logger.error(f"❌ Error en WebSocket {client_id}: {e}")
+    except Exception:
+        logger.exception("WEBSOCKET error game=%s client=%s", game_id, client_id)
         manager.disconnect(game_id, client_id)

@@ -9,7 +9,7 @@ import logging
 from dotenv import load_dotenv
 
 from app.api.v1.api import api_router
-from app.core.logging import setup_logging
+from app.core.logging import get_log_level, setup_logging
 from app.websockets.event_broadcaster import broadcast_message
 from app.state.game_state import GameStateCache
 from app.services.events.processing_service import ProcessEventsService
@@ -17,12 +17,15 @@ from app.services.stats.processing_service import ProcessStatsService
 from app.websockets.websocket_manager import ConnectionManager
 from app.workers.xml_file_watcher import f24_events_xml_watcher, f9_stats_xml_watcher
 
-load_dotenv()
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+BASE_DIR = BACKEND_DIR.parent
+
+load_dotenv(BACKEND_DIR / ".env")
+load_dotenv(BACKEND_DIR / ".env.dev")
 setup_logging()
 
 logger = logging.getLogger(__name__)
 
-BASE_DIR = Path(__file__).parent.parent.parent
 BASE_DIR_SIMULATED_DATA = BASE_DIR / "simulated-real-time-data"  # F24 feed
 
 SIMULATED_F24_EVENTS_FILE_NAME = "f24-simulated-data.xml"  # Nombre del archivo XML simulado dentro de simulated-data/
@@ -31,7 +34,7 @@ SIMULATED_F9_STATS_FILE_NAME = "f9-simulated-data.xml"  # Nombre del archivo XML
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
-    logger.info("⚙️ Iniciando servidor...")
+    logger.info("APP starting log_level=%s", get_log_level())
 
     cache = GameStateCache()
     process_events_service = ProcessEventsService(cache=cache)
@@ -46,7 +49,7 @@ async def lifespan(app: FastAPI):
 
     async def on_new_data(messages):
         for msg in messages:
-            logger.info("📦 %s – game %s", msg.get("type"), msg.get("game_id"))
+            logger.debug("(BROADCAST) message=%s game=%s", msg.get("type"), msg.get("game_id"))
             await broadcast_message(msg, ws_manager)
 
     events_task = asyncio.create_task(
@@ -65,12 +68,12 @@ async def lifespan(app: FastAPI):
             process_service=process_stats_service,
         )
     )
-    logger.info("✅ Monitoreo de archivos XML iniciado (f24 y f9)")
+    logger.info("APP xml watchers scheduled feeds=f24,f9")
 
     yield
 
     # Shutdown
-    logger.info("🛑 Servidor apagándose...")
+    logger.info("APP shutting down")
     tasks = [events_task, stats_task]
     for task in tasks:
         task.cancel()
@@ -106,4 +109,4 @@ app.add_middleware(
 app.include_router(api_router, prefix="/api/v1")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level=get_log_level().lower())

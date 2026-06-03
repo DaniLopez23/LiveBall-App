@@ -13,6 +13,8 @@ import type { EventsMode } from "./EventsPitchFilters";
 import type { Game } from "@/types/game";
 
 const LIVE_EVENT_STEP_MS = 2200;
+const SEQUENCE_EVENT_STEP_MS = 850;
+const SEQUENCE_RESTART_DELAY_MS = 1300;
 
 interface EventsPitchProps {
   events: OptaEvent[];
@@ -32,6 +34,8 @@ interface EventsPitchProps {
   noDataMessage?: string;
   /** When provided, shows a loading overlay over the pitch. */
   loadingMessage?: string;
+  /** Optional marker scale multiplier for compact embeds such as dashboard widgets. */
+  markerScaleMultiplier?: number;
   game?: Game | null;
 }
 
@@ -45,16 +49,19 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   showHeader = true,
   noDataMessage,
   loadingMessage,
+  markerScaleMultiplier,
   game,
 }) => {
-  const animated = mode === "live";
+  const animated = mode === "live" || mode === "sequences";
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [liveEvents, setLiveEvents] = useState<OptaEvent[]>(events);
+  const [sequenceEventCount, setSequenceEventCount] = useState(events.length);
   const liveQueueRef = useRef<OptaEvent[]>([]);
   const liveTimerRef = useRef<number | null>(null);
   const latestLiveSourceRef = useRef<OptaEvent[]>(events);
   const isLiveInitializedRef = useRef(false);
+  const sequenceEventsKey = events.map((event) => event.id).join("|");
 
   const clearLiveTimer = useCallback(() => {
     if (liveTimerRef.current == null) return;
@@ -141,6 +148,30 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   useEffect(() => clearLiveTimer, [clearLiveTimer]);
 
   useEffect(() => {
+    if (mode !== "sequences") {
+      setSequenceEventCount(events.length);
+      return;
+    }
+
+    setSequenceEventCount(events.length > 0 ? 1 : 0);
+  }, [events.length, mode, sequenceEventsKey]);
+
+  useEffect(() => {
+    if (mode !== "sequences" || events.length <= 1) return;
+
+    const timeoutId = window.setTimeout(
+      () => {
+        setSequenceEventCount((currentCount) =>
+          currentCount >= events.length ? 1 : Math.min(events.length, currentCount + 1),
+        );
+      },
+      sequenceEventCount >= events.length ? SEQUENCE_RESTART_DELAY_MS : SEQUENCE_EVENT_STEP_MS,
+    );
+
+    return () => window.clearTimeout(timeoutId);
+  }, [events.length, mode, sequenceEventCount, sequenceEventsKey]);
+
+  useEffect(() => {
     if (!isFullscreenOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
@@ -153,7 +184,12 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [isFullscreenOpen]);
 
-  const displayedEvents = mode === "live" ? liveEvents : events;
+  const displayedEvents =
+    mode === "live"
+      ? liveEvents
+      : mode === "sequences"
+        ? events.slice(0, sequenceEventCount)
+        : events;
   const boardMode = mode ?? "all";
 
   return (
@@ -179,6 +215,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           eventColors={eventColors}
           orientation={orientation}
           fieldColor={fieldColor}
+          markerScaleMultiplier={markerScaleMultiplier}
         />
         {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
         {!loadingMessage && noDataMessage ? (
@@ -224,6 +261,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
                 eventColors={eventColors}
                 orientation={orientation}
                 fieldColor={fieldColor}
+                markerScaleMultiplier={markerScaleMultiplier}
               />
               {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
               {!loadingMessage && noDataMessage ? (

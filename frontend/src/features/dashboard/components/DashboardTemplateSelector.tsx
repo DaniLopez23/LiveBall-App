@@ -17,12 +17,14 @@ import type { DashboardTemplate } from "@/features/dashboard/types/dashboard.typ
 interface DashboardTemplateSelectorProps {
 	templates: DashboardTemplate[];
 	activeTemplateId: string | null;
+	disabled?: boolean;
 	onTemplateChange: (templateId: string) => void;
 }
 
 export function DashboardTemplateSelector({
 	templates,
 	activeTemplateId,
+	disabled = false,
 	onTemplateChange,
 }: DashboardTemplateSelectorProps) {
 	const anchor = useComboboxAnchor();
@@ -40,6 +42,7 @@ export function DashboardTemplateSelector({
 	return (
 		<Combobox
 			value={activeTemplateId ?? ""}
+			disabled={disabled}
 			onValueChange={(value) => {
 				if (typeof value === "string" && value) {
 					onTemplateChange(value);
@@ -47,7 +50,12 @@ export function DashboardTemplateSelector({
 			}}
 		>
 			<div ref={anchor} className="w-full min-w-0 sm:w-72">
-				<ComboboxTrigger className="flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50">
+				<ComboboxTrigger
+					className={cn(
+						"flex h-9 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50",
+						disabled && "cursor-not-allowed opacity-60",
+					)}
+				>
 					<span className="min-w-0 flex-1 truncate text-left">
 						{activeTemplate?.name ?? "Seleccionar plantilla"}
 					</span>
@@ -69,7 +77,14 @@ export function DashboardTemplateSelector({
 					<ComboboxEmpty>No hay plantillas.</ComboboxEmpty>
 					{filteredTemplates.map((template) => (
 						<ComboboxItem key={template.id} value={template.id}>
-							<span className="min-w-0 flex-1 truncate">{template.name}</span>
+							<span className="min-w-0 flex-1">
+								<span className="block truncate font-medium">{template.name}</span>
+								{template.description ? (
+									<span className="block truncate text-xs text-muted-foreground">
+										{template.description}
+									</span>
+								) : null}
+							</span>
 							<Check
 								className={cn(
 									"ml-auto size-4",

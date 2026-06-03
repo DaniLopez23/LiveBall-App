@@ -28,6 +28,7 @@ interface DashboardGridProps {
 	mode: DashboardMode;
 	selectedWidgetId: string | null;
 	onSelectWidget: (widgetId: string | null) => void;
+	onUpdateWidget: (widgetId: string, patch: Partial<DashboardTemplate["widgets"][number]>) => void;
 	onLayoutsChange: (layouts: DashboardLayouts) => void;
 	onOpenAddWidget: () => void;
 }
@@ -38,7 +39,21 @@ function coerceLayouts(layouts: Partial<Record<string, unknown>>): DashboardLayo
 	for (const breakpoint of Object.keys(nextLayouts) as Array<keyof DashboardLayouts>) {
 		const items = layouts[breakpoint];
 		nextLayouts[breakpoint] = Array.isArray(items)
-			? items.map((item) => ({ ...(item as DashboardLayouts[typeof breakpoint][number]) }))
+			? items.map((item) => {
+					const layoutItem = item as DashboardLayouts[typeof breakpoint][number];
+
+					return {
+						i: layoutItem.i,
+						x: layoutItem.x,
+						y: layoutItem.y,
+						w: layoutItem.w,
+						h: layoutItem.h,
+						minW: layoutItem.minW,
+						minH: layoutItem.minH,
+						maxW: layoutItem.maxW,
+						maxH: layoutItem.maxH,
+					};
+				})
 			: [];
 	}
 
@@ -70,6 +85,7 @@ export function DashboardGrid({
 	mode,
 	selectedWidgetId,
 	onSelectWidget,
+	onUpdateWidget,
 	onLayoutsChange,
 	onOpenAddWidget,
 }: DashboardGridProps) {
@@ -143,6 +159,7 @@ export function DashboardGrid({
 								mode={mode}
 								selected={selectedWidgetId === widget.id}
 								onSelect={onSelectWidget}
+								onUpdateWidget={onUpdateWidget}
 							/>
 						</div>
 					))}
