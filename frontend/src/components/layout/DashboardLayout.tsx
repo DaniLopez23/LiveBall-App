@@ -1,9 +1,10 @@
-import { Outlet } from "react-router-dom";
+import { Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 import { AppSidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { Button } from "@/components/ui/button";
 import { ChevronRight } from "lucide-react";
+import useMatchSelectionStore from "@/store/matchSelectionStore";
 
 function MobileTrigger() {
   const { toggleSidebar } = useSidebar();
@@ -24,13 +25,17 @@ function MobileTrigger() {
 }
 
 export function DashboardLayout() {
+  const location = useLocation();
+  const selectedGameId = useMatchSelectionStore((state) => state.selectedGameId);
+  const showMatchHeader = location.pathname !== "/" && selectedGameId !== null;
+
   return (
     <SidebarProvider>
       <AppSidebar />
       <div className="flex flex-col w-full h-screen">
         {/* Mobile trigger - only visible on small screens */}
         <MobileTrigger />
-        <Header />
+        {showMatchHeader ? <Header /> : null}
         <main className="flex-1 overflow-auto">
           <Outlet />
         </main>

@@ -14,11 +14,57 @@ import type { Game } from "@/types/game";
 
 const LIVE_EVENT_STEP_MS = 2200;
 const SEQUENCE_EVENT_STEP_MS = 850;
-const SEQUENCE_RESTART_DELAY_MS = 1300;
+
+function EventsPitchAttackDirectionFooter({ game }: { game?: Game | null }) {
+  const homeTeamName = game?.home_team.team_name ?? "Local";
+  const awayTeamName = game?.away_team.team_name ?? "Visitante";
+
+  return (
+    <div
+      className="w-full shrink-0 border-t border-border/50 px-3 py-1.5"
+      aria-label="Dirección de ataque de los equipos"
+    >
+      <p className="text-center text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+        DIRECCIÓN DE ATAQUE
+      </p>
+      <div className="mt-1 grid w-full grid-cols-2 gap-3 text-xs font-semibold">
+        <p className="min-w-0 truncate text-blue-600 dark:text-blue-300">
+          {homeTeamName}
+        </p>
+        <p className="min-w-0 truncate text-right text-red-600 dark:text-red-300">
+          {awayTeamName}
+        </p>
+      </div>
+      <svg
+        className="block h-8 w-full"
+        viewBox="0 0 100 16"
+        preserveAspectRatio="none"
+        role="img"
+        aria-label={`${homeTeamName} ataca hacia la derecha. ${awayTeamName} ataca hacia la izquierda.`}
+      >
+        <polygon
+          points="0,4.5 42,4.5 42,2 49,8 42,14 42,11.5 0,11.5"
+          fill="#3b82f6"
+          fillOpacity="0.32"
+        />
+        <polygon
+          points="100,4.5 58,4.5 58,2 51,8 58,14 58,11.5 100,11.5"
+          fill="#ef4444"
+          fillOpacity="0.32"
+        />
+      </svg>
+      <div className="sr-only">
+        <span>
+          {homeTeamName} ataca de izquierda a derecha. {awayTeamName} ataca de derecha a izquierda.
+        </span>
+      </div>
+    </div>
+  );
+}
 
 interface EventsPitchProps {
   events: OptaEvent[];
-  /** 'live' animates incremental updates; other modes show selected events at once. */
+  /** 'live' animates incremental updates; 'sequences' reveals the selected sequence in order. */
   mode?: EventsMode;
   /** Optional map of teamId -> color to distinguish teams visually. */
   teamColors?: Record<string, string>;
@@ -36,6 +82,8 @@ interface EventsPitchProps {
   loadingMessage?: string;
   /** Optional marker scale multiplier for compact embeds such as dashboard widgets. */
   markerScaleMultiplier?: number;
+  /** Event id that should be highlighted inside a selected sequence. */
+  highlightedEventId?: string | null;
   game?: Game | null;
 }
 
@@ -50,6 +98,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   noDataMessage,
   loadingMessage,
   markerScaleMultiplier,
+  highlightedEventId,
   game,
 }) => {
   const animated = mode === "live" || mode === "sequences";
@@ -157,15 +206,15 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   }, [events.length, mode, sequenceEventsKey]);
 
   useEffect(() => {
-    if (mode !== "sequences" || events.length <= 1) return;
+    if (mode !== "sequences" || events.length <= 1 || sequenceEventCount >= events.length) return;
 
     const timeoutId = window.setTimeout(
       () => {
         setSequenceEventCount((currentCount) =>
-          currentCount >= events.length ? 1 : Math.min(events.length, currentCount + 1),
+          Math.min(events.length, currentCount + 1),
         );
       },
-      sequenceEventCount >= events.length ? SEQUENCE_RESTART_DELAY_MS : SEQUENCE_EVENT_STEP_MS,
+      SEQUENCE_EVENT_STEP_MS,
     );
 
     return () => window.clearTimeout(timeoutId);
@@ -216,12 +265,14 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           orientation={orientation}
           fieldColor={fieldColor}
           markerScaleMultiplier={markerScaleMultiplier}
+          highlightedEventId={highlightedEventId}
         />
         {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
         {!loadingMessage && noDataMessage ? (
           <PassNetworkNoDataOverlay message={noDataMessage} />
         ) : null}
       </div>
+      <EventsPitchAttackDirectionFooter game={game} />
 
       {isFullscreenOpen ? (
         <div
@@ -252,21 +303,25 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
                 Salir
               </Button>
             </div>
-            <div className="relative min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-800">
-              <EventsPitchBoard
-                events={displayedEvents}
-                animated={animated}
-                mode={boardMode}
-                teamColors={teamColors}
-                eventColors={eventColors}
-                orientation={orientation}
-                fieldColor={fieldColor}
-                markerScaleMultiplier={markerScaleMultiplier}
-              />
-              {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
-              {!loadingMessage && noDataMessage ? (
-                <PassNetworkNoDataOverlay message={noDataMessage} />
-              ) : null}
+            <div className="flex min-h-0 flex-1 flex-col">
+              <div className="relative min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-800">
+                <EventsPitchBoard
+                  events={displayedEvents}
+                  animated={animated}
+                  mode={boardMode}
+                  teamColors={teamColors}
+                  eventColors={eventColors}
+                  orientation={orientation}
+                  fieldColor={fieldColor}
+                  markerScaleMultiplier={markerScaleMultiplier}
+                  highlightedEventId={highlightedEventId}
+                />
+                {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
+                {!loadingMessage && noDataMessage ? (
+                  <PassNetworkNoDataOverlay message={noDataMessage} />
+                ) : null}
+              </div>
+              <EventsPitchAttackDirectionFooter game={game} />
             </div>
           </div>
         </div>

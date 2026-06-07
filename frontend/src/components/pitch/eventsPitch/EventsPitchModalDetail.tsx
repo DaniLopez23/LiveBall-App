@@ -99,6 +99,7 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 
 		return colorByEventId;
 	}, [contextEvents, event, highlightSelectedEvent, teamColors]);
+	const pitchMode = contextEventsOverride ? "sequences" : "all";
 
 	if (!open || !event) return null;
 
@@ -139,11 +140,12 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 				<div className="min-h-0 flex-1 bg-slate-100 p-4 dark:bg-slate-800">
 					<EventsPitch
 						events={contextEvents}
-						mode="all"
+						mode={pitchMode}
 						teamColors={teamColors}
 						eventColors={eventColors}
 						orientation="horizontal"
 						showHeader={false}
+						highlightedEventId={event.id}
 						game={game}
 					/>
 				</div>

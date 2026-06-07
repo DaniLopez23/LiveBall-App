@@ -21,9 +21,14 @@ interface FieldProps {
 
 export function Field({ label, children, className }: FieldProps) {
 	return (
-		<label className={cn("flex min-w-0 flex-col gap-1.5 text-xs font-medium", className)}>
+		<label
+			className={cn(
+				"grid w-full min-w-0 gap-2 rounded-md border bg-background px-3 py-2.5 text-xs font-medium",
+				className,
+			)}
+		>
 			<span className="text-muted-foreground">{label}</span>
-			{children}
+			<div className="min-w-0">{children}</div>
 		</label>
 	);
 }
@@ -65,7 +70,7 @@ export function SelectField({
 	return (
 		<Field label={label}>
 			<Select value={value} onValueChange={onChange}>
-				<SelectTrigger className="w-full">
+				<SelectTrigger className="w-full min-w-0 [&_[data-slot=select-value]]:truncate">
 					<SelectValue placeholder={placeholder} />
 				</SelectTrigger>
 				<SelectContent>
@@ -215,7 +220,7 @@ export function CheckboxList({ options, value, onChange }: CheckboxListProps) {
 
 export function SectionTitle({ children }: { children: ReactNode }) {
 	return (
-		<p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+		<p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
 			{children}
 		</p>
 	);

@@ -8,6 +8,7 @@ export interface DefensiveFigureProps {
 	markerLabel?: string;
 	markerScale?: number;
 	color?: string;
+	showSequenceLabel?: boolean;
 }
 
 const TRIANGLE_R = 3.55;
@@ -19,6 +20,7 @@ const DefensiveFigure: React.FC<DefensiveFigureProps> = ({
 	markerLabel,
 	markerScale = 1,
 	color = "#ffffff",
+	showSequenceLabel = true,
 }) => {
 	const top = `${x},${y - TRIANGLE_R}`;
 	const right = `${x + TRIANGLE_R * 0.9},${y + TRIANGLE_R * 0.7}`;
@@ -42,12 +44,14 @@ const DefensiveFigure: React.FC<DefensiveFigureProps> = ({
 			>
 				{dorsalLabel}
 			</text>
-			<EventSequenceLabel
-				x={x}
-				y={y + TRIANGLE_R + 1.15}
-				sequence={sequence}
-				fontSize={4.15 * markerScale}
-			/>
+			{showSequenceLabel ? (
+				<EventSequenceLabel
+					x={x}
+					y={y + TRIANGLE_R + 1.15}
+					sequence={sequence}
+					fontSize={4.15 * markerScale}
+				/>
+			) : null}
 		</g>
 	);
 };

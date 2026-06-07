@@ -14,6 +14,7 @@ export interface PassArrowProps {
   color?: string;
   /** When true, plays enter animation (line draws + elements scale in) */
   animated?: boolean;
+  showSequenceLabel?: boolean;
 }
 
 const CIRCLE_R = 3.05;
@@ -32,6 +33,7 @@ const PassArrow: React.FC<PassArrowProps> = ({
   outcome,
   color = "#ffffff",
   animated = false,
+  showSequenceLabel = true,
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const success = outcome === 1;
@@ -153,12 +155,14 @@ const PassArrow: React.FC<PassArrowProps> = ({
         >
           {label}
         </text>
-        <EventSequenceLabel
-          x={x1}
-          y={y1 + circleR + 1.15}
-          sequence={sequence}
-          fontSize={4.15 * markerScale}
-        />
+        {showSequenceLabel ? (
+          <EventSequenceLabel
+            x={x1}
+            y={y1 + circleR + 1.15}
+            sequence={sequence}
+            fontSize={4.15 * markerScale}
+          />
+        ) : null}
       </motion.g>
     </g>
   );

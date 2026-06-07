@@ -8,6 +8,7 @@ export interface FoulFigureProps {
 	markerLabel?: string;
 	markerScale?: number;
 	color?: string;
+	showSequenceLabel?: boolean;
 }
 
 const DIAMOND_R = 3.55;
@@ -19,6 +20,7 @@ const FoulFigure: React.FC<FoulFigureProps> = ({
 	markerLabel,
 	markerScale = 1,
 	color = "#ffffff",
+	showSequenceLabel = true,
 }) => {
 	const diamondR = DIAMOND_R * markerScale;
 	const points = `${x},${y - diamondR} ${x + diamondR},${y} ${x},${y + diamondR} ${x - diamondR},${y}`;
@@ -40,12 +42,14 @@ const FoulFigure: React.FC<FoulFigureProps> = ({
 			>
 				{label}
 			</text>
-			<EventSequenceLabel
-				x={x}
-				y={y + diamondR + 1.15}
-				sequence={sequence}
-				fontSize={4.15 * markerScale}
-			/>
+			{showSequenceLabel ? (
+				<EventSequenceLabel
+					x={x}
+					y={y + diamondR + 1.15}
+					sequence={sequence}
+					fontSize={4.15 * markerScale}
+				/>
+			) : null}
 		</g>
 	);
 };

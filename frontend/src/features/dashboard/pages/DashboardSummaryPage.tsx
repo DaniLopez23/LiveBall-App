@@ -6,7 +6,6 @@ import {
 	AlertDialogCancel,
 	AlertDialogContent,
 	AlertDialogDescription,
-	AlertDialogFooter,
 	AlertDialogHeader,
 	AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -136,7 +135,7 @@ export default function DashboardSummaryPage() {
 			/>
 
 			<AlertDialog open={isExitEditDialogOpen} onOpenChange={setIsExitEditDialogOpen}>
-				<AlertDialogContent>
+				<AlertDialogContent className="max-w-xl">
 					<AlertDialogHeader>
 						<AlertDialogTitle>Cambios sin guardar</AlertDialogTitle>
 						<AlertDialogDescription>
@@ -144,10 +143,12 @@ export default function DashboardSummaryPage() {
 							guardar para volver a la version anterior.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
-					<AlertDialogFooter>
-						<AlertDialogCancel>Seguir editando</AlertDialogCancel>
+					<div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]">
+						<AlertDialogCancel className="h-auto min-h-10 w-full min-w-0 justify-center whitespace-normal px-3 text-center leading-tight">
+							Seguir editando
+						</AlertDialogCancel>
 						<AlertDialogAction
-							className="bg-destructive text-white hover:bg-destructive/90"
+							className="h-auto min-h-10 w-full min-w-0 justify-center whitespace-normal bg-destructive px-3 text-center leading-tight text-white hover:bg-destructive/90"
 							onClick={() => {
 								discardActiveTemplateChanges();
 								setIsExitEditDialogOpen(false);
@@ -156,6 +157,7 @@ export default function DashboardSummaryPage() {
 							Salir sin guardar
 						</AlertDialogAction>
 						<AlertDialogAction
+							className="h-auto min-h-10 w-full min-w-0 justify-center whitespace-normal px-3 text-center leading-tight"
 							onClick={() => {
 								saveActiveTemplate();
 								setIsExitEditDialogOpen(false);
@@ -163,7 +165,7 @@ export default function DashboardSummaryPage() {
 						>
 							Guardar cambios
 						</AlertDialogAction>
-					</AlertDialogFooter>
+					</div>
 				</AlertDialogContent>
 			</AlertDialog>
 		</div>

@@ -21,6 +21,15 @@ import {
 	type PassNetworkWidgetFilters as PassNetworkWidgetFiltersState,
 } from "@/features/dashboard/widgets/PassNetworkWidget";
 import {
+	DEFAULT_SHOT_MAP_CONFIG,
+	DEFAULT_SHOT_MAP_FILTERS,
+	ShotMapWidget,
+	ShotMapWidgetConfig,
+	ShotMapWidgetFilters,
+	type ShotMapConfig,
+	type ShotMapFilters,
+} from "@/features/dashboard/widgets/ShotMapWidget";
+import {
 	DEFAULT_MATCH_STATS_CONFIG,
 	DEFAULT_MATCH_STATS_FILTERS,
 	MatchStatsWidget,
@@ -69,6 +78,19 @@ const passNetworkDefinition = {
 	filterComponent: PassNetworkWidgetFilters,
 } satisfies WidgetDefinition<PassNetworkConfig, PassNetworkWidgetFiltersState>;
 
+const shotMapDefinition = {
+	type: "shot-map",
+	label: "Mapa de tiros",
+	description: "Mapa de tiros filtrable por equipo, jugador, resultado y minuto.",
+	defaultTitle: "Mapa de tiros",
+	defaultConfig: DEFAULT_SHOT_MAP_CONFIG,
+	defaultFilters: DEFAULT_SHOT_MAP_FILTERS,
+	defaultLayout: { x: 0, y: 13, w: 6, h: 6, minW: 4, minH: 4 },
+	component: ShotMapWidget,
+	configComponent: ShotMapWidgetConfig,
+	filterComponent: ShotMapWidgetFilters,
+} satisfies WidgetDefinition<ShotMapConfig, ShotMapFilters>;
+
 const matchStatsDefinition = {
 	type: "match-stats",
 	label: "Estadisticas",
@@ -110,6 +132,7 @@ const momentumDefinition = {
 
 export const widgetDefinitions = [
 	eventMapDefinition,
+	shotMapDefinition,
 	passNetworkDefinition,
 	matchStatsDefinition,
 	statsEvolutionDefinition,

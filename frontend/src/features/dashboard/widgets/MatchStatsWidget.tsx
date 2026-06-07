@@ -266,7 +266,7 @@ export function MatchStatsWidgetFilters({
 	const game = useGameStore((state) => state.game);
 
 	return (
-		<div className="grid gap-3 sm:grid-cols-2">
+		<div className="grid gap-3">
 			<SelectField
 				label="Equipo"
 				value={value.team}

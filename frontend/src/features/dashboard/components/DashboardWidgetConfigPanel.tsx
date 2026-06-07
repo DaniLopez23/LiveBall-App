@@ -6,7 +6,11 @@ import type {
 	DashboardWidget,
 	DashboardWidgetType,
 } from "@/features/dashboard/types/dashboard.types";
-import { SectionTitle, SelectField } from "@/features/dashboard/widgets/widgetControls";
+import {
+	Field,
+	SectionTitle,
+	SelectField,
+} from "@/features/dashboard/widgets/widgetControls";
 import {
 	widgetDefinitions,
 	widgetRegistry,
@@ -57,38 +61,40 @@ export function DashboardWidgetConfigPanel({
 			</div>
 
 			{widget && definition && ConfigComponent ? (
-				<div className="grid min-h-0 flex-1 gap-6 overflow-y-auto p-4">
-					<div className="grid gap-3">
-						<SectionTitle>Widget</SectionTitle>
-						<label className="grid gap-1.5 text-xs font-medium text-muted-foreground">
-							Titulo
-							<Input
-								value={widget.title}
-								onChange={(event) =>
-									onUpdateWidget(widget.id, { title: event.target.value })
+				<div className="min-h-0 flex-1 overflow-y-auto p-4">
+					<div className="grid gap-6">
+						<div className="grid gap-3">
+							<SectionTitle>Widget</SectionTitle>
+							<Field label="Titulo">
+								<Input
+									value={widget.title}
+									onChange={(event) =>
+										onUpdateWidget(widget.id, { title: event.target.value })
+									}
+								/>
+							</Field>
+							<SelectField
+								label="Tipo"
+								value={widget.type}
+								onChange={(type) =>
+									onUpdateWidgetType(widget.id, type as DashboardWidgetType)
 								}
+								options={widgetDefinitions.map((item) => ({
+									value: item.type,
+									label: item.label,
+								}))}
 							/>
-						</label>
-						<SelectField
-							label="Tipo"
-							value={widget.type}
-							onChange={(type) => onUpdateWidgetType(widget.id, type as DashboardWidgetType)}
-							options={widgetDefinitions.map((item) => ({
-								value: item.type,
-								label: item.label,
-							}))}
-						/>
-					</div>
+						</div>
 
-					<div className="grid gap-3">
-						<SectionTitle>Configuracion</SectionTitle>
-						<ConfigComponent
-							key={`${widget.id}-${widget.type}-config`}
-							value={widget.config}
-							onChange={(config) => onUpdateWidget(widget.id, { config })}
-						/>
+						<div className="grid gap-3">
+							<SectionTitle>Configuracion</SectionTitle>
+							<ConfigComponent
+								key={`${widget.id}-${widget.type}-config`}
+								value={widget.config}
+								onChange={(config) => onUpdateWidget(widget.id, { config })}
+							/>
+						</div>
 					</div>
-
 				</div>
 			) : (
 				<div className="flex flex-1 items-center justify-center p-6 text-center text-sm text-muted-foreground">
@@ -101,6 +107,7 @@ export function DashboardWidgetConfigPanel({
 					<Button
 						type="button"
 						variant="destructive"
+						className="w-full justify-center"
 						onClick={() => {
 							onRemoveWidget(widget.id);
 							onOpenChange(false);

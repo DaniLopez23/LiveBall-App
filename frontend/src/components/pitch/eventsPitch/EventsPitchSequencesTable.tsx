@@ -182,7 +182,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
         event={detailEndEvent}
         events={detailSequence?.events ?? []}
         contextEventsOverride={detailSequence?.events}
-        highlightSelectedEvent={false}
         game={game}
         actionLabel={detailEndEvent ? getActionLabel(detailEndEvent.type_id) : ""}
         outcomeLabel={detailOutcomeLabel}

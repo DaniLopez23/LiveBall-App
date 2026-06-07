@@ -48,6 +48,11 @@ const HIT_STROKE_MIN = 12;
 const BOX_PADDING = 4;
 const NODE_WEIGHT_CONTRAST = 0.56;
 const EDGE_WEIGHT_CONTRAST = 0.66;
+const NODE_COLOR_CONTRAST = 1.08;
+const EDGE_COLOR_CONTRAST = 1.18;
+const NODE_COLOR_MIN_STRENGTH = 0.58;
+const EDGE_COLOR_MIN_STRENGTH = 0.42;
+const MUTED_WEIGHT_COLOR = "#94a3b8";
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
@@ -69,16 +74,70 @@ function scaleWeight(
   outMax: number,
   contrast: number,
 ): number {
+  const balancedRatio = getWeightRatio(value, domain, contrast);
+
+  return outMin + balancedRatio * (outMax - outMin);
+}
+
+function getWeightRatio(
+  value: number,
+  domain: WeightDomain,
+  contrast: number,
+  fallbackRatio = 0.5,
+): number {
   const range = domain.max - domain.min;
 
   if (range <= 0) {
-    return outMin + (outMax - outMin) * 0.5;
+    return fallbackRatio;
   }
 
   const ratio = clamp((value - domain.min) / range, 0, 1);
-  const balancedRatio = clamp(0.5 + (ratio - 0.5) * contrast, 0, 1);
+  return clamp(0.5 + (ratio - 0.5) * contrast, 0, 1);
+}
 
-  return outMin + balancedRatio * (outMax - outMin);
+function parseHexColor(color: string): { red: number; green: number; blue: number } | null {
+  const normalized = color.trim();
+  const hex =
+    normalized.length === 4 && normalized.startsWith("#")
+      ? `#${normalized[1]}${normalized[1]}${normalized[2]}${normalized[2]}${normalized[3]}${normalized[3]}`
+      : normalized;
+
+  if (!/^#[0-9a-fA-F]{6}$/.test(hex)) return null;
+
+  return {
+    red: Number.parseInt(hex.slice(1, 3), 16),
+    green: Number.parseInt(hex.slice(3, 5), 16),
+    blue: Number.parseInt(hex.slice(5, 7), 16),
+  };
+}
+
+function toHexChannel(value: number): string {
+  return Math.round(clamp(value, 0, 255)).toString(16).padStart(2, "0");
+}
+
+function mixHexColors(fromColor: string, toColor: string, amount: number): string {
+  const from = parseHexColor(fromColor);
+  const to = parseHexColor(toColor);
+  if (!from || !to) return toColor;
+
+  const ratio = clamp(amount, 0, 1);
+  const red = from.red + (to.red - from.red) * ratio;
+  const green = from.green + (to.green - from.green) * ratio;
+  const blue = from.blue + (to.blue - from.blue) * ratio;
+
+  return `#${toHexChannel(red)}${toHexChannel(green)}${toHexChannel(blue)}`;
+}
+
+function getWeightedColor(
+  baseColor: string,
+  value: number,
+  domain: WeightDomain,
+  minStrength: number,
+  contrast: number,
+): string {
+  const ratio = getWeightRatio(value, domain, contrast, 0.72);
+  const strength = minStrength + (1 - minStrength) * ratio;
+  return mixHexColors(MUTED_WEIGHT_COLOR, baseColor, strength);
 }
 
 function getNodeWeight(node: PassNetworkNode): number {
@@ -385,12 +444,19 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
           STROKE_MAX,
           EDGE_WEIGHT_CONTRAST,
         );
+        const edgeColor = getWeightedColor(
+          color,
+          edge.pass_count,
+          edgeWeightDomain,
+          EDGE_COLOR_MIN_STRENGTH,
+          EDGE_COLOR_CONTRAST,
+        );
         const baseOpacity = scaleWeight(
           edge.pass_count,
           edgeWeightDomain,
-          0.34,
-          0.78,
-          EDGE_WEIGHT_CONTRAST,
+          0.62,
+          0.96,
+          EDGE_COLOR_CONTRAST,
         );
         const key = `${edge.from_player_id}->${edge.to_player_id}`;
         const isHovered = hoveredEdgeId === key;
@@ -449,9 +515,9 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
             />
             <motion.path
               d={pathD}
-              stroke={color}
+              stroke={edgeColor}
               strokeWidth={shouldHighlight ? strokeWidth + 0.55 : strokeWidth}
-              strokeOpacity={shouldHighlight ? 0.95 : baseOpacity}
+              strokeOpacity={shouldHighlight ? 1 : baseOpacity}
               fill="none"
               strokeLinecap="round"
               initial={animated ? { pathLength: 0 } : false}
@@ -468,8 +534,8 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
             />
             <polygon
               points={arrowPoints}
-              fill={color}
-              fillOpacity={shouldHighlight ? 0.98 : clamp(baseOpacity + 0.12, 0.35, 0.9)}
+              fill={edgeColor}
+              fillOpacity={shouldHighlight ? 1 : clamp(baseOpacity + 0.05, 0.62, 0.98)}
               pointerEvents="none"
             />
             <path
@@ -486,50 +552,6 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
         );
       })}
 
-      {edges.map((edge) => {
-        const from = nodeMap.get(edge.from_player_id);
-        const to = nodeMap.get(edge.to_player_id);
-        const key = `${edge.from_player_id}->${edge.to_player_id}`;
-        if (!from || !to || hoveredEdgeId !== key) return null;
-
-        const curvature = getEffectiveEdgeCurvature(
-          from.svgX,
-          from.svgY,
-          to.svgX,
-          to.svgY,
-          getNodeRadius(from.node),
-          getNodeRadius(to.node),
-          hasBidirectional(edge.from_player_id, edge.to_player_id),
-        );
-        const { cpx, cpy } = controlPoint(from.svgX, from.svgY, to.svgX, to.svgY, curvature);
-        const midX = curvature === 0
-          ? (from.svgX + to.svgX) / 2
-          : 0.25 * from.svgX + 0.5 * cpx + 0.25 * to.svgX;
-        const midY = curvature === 0
-          ? (from.svgY + to.svgY) / 2
-          : 0.25 * from.svgY + 0.5 * cpy + 0.25 * to.svgY;
-        const lines: BoxLine[] = [
-          {
-            text: `${truncateText(from.node.player_name, 18)} -> ${truncateText(to.node.player_name, 18)}`,
-            strong: true,
-          },
-          { text: `Pases: ${edge.pass_count}` },
-        ];
-        const box = getTooltipBox(midX, midY, lines, vW, vH);
-
-        return (
-          <FloatingInfoBox
-            key={`edge-tip-${key}`}
-            accentColor={color}
-            lines={lines}
-            x={box.x}
-            y={box.y}
-            width={box.width}
-            height={box.height}
-          />
-        );
-      })}
-
       {nodes.map((node) => {
         const position = nodeMap.get(node.player_id);
         if (!position) return null;
@@ -537,6 +559,20 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
         const { svgX, svgY } = position;
         const radius = getNodeRadius(node);
         const weight = getNodeWeight(node);
+        const nodeFillColor = getWeightedColor(
+          color,
+          weight,
+          nodeWeightDomain,
+          NODE_COLOR_MIN_STRENGTH,
+          NODE_COLOR_CONTRAST,
+        );
+        const nodeFillOpacity = scaleWeight(
+          weight,
+          nodeWeightDomain,
+          0.82,
+          1,
+          NODE_COLOR_CONTRAST,
+        );
         const label = getCompactPlayerName(node.player_name, String(node.player_id));
         const fontSize = clamp((radius * 1.45) / Math.max(label.length * 0.58, 1), 2.8, 5.2);
         const isFocused = hoveredNodeId === node.player_id || selectedNodeId === node.player_id;
@@ -569,8 +605,8 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
               cx={0}
               cy={0}
               r={radius}
-              fill={color}
-              fillOpacity={0.96}
+              fill={nodeFillColor}
+              fillOpacity={isFocused ? 1 : nodeFillOpacity}
               stroke="#ffffff"
               strokeOpacity={isFocused ? 0.95 : 0.62}
               strokeWidth={isFocused ? 1.3 : 0.7}
@@ -590,30 +626,6 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
             </text>
             <title>{`${node.player_name} - peso ${weight}`}</title>
           </motion.g>
-        );
-      })}
-
-      {nodes.map((node) => {
-        const position = nodeMap.get(node.player_id);
-        if (!position || hoveredNodeId !== node.player_id || selectedNodeId === node.player_id) return null;
-
-        const lines: BoxLine[] = [
-          { text: truncateText(node.player_name), strong: true },
-          { text: `Peso: ${getNodeWeight(node)}` },
-          { text: `Dados: ${node.passes_given} | Recibidos: ${node.passes_received}` },
-        ];
-        const box = getTooltipBox(position.svgX, position.svgY - getNodeRadius(node), lines, vW, vH);
-
-        return (
-          <FloatingInfoBox
-            key={`node-tip-${node.player_id}`}
-            accentColor={color}
-            lines={lines}
-            x={box.x}
-            y={box.y}
-            width={box.width}
-            height={box.height}
-          />
         );
       })}
 
@@ -658,6 +670,88 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
           );
         })()
       ) : null}
+
+      <g pointerEvents="none">
+        {edges.map((edge) => {
+          const from = nodeMap.get(edge.from_player_id);
+          const to = nodeMap.get(edge.to_player_id);
+          const key = `${edge.from_player_id}->${edge.to_player_id}`;
+          if (!from || !to || hoveredEdgeId !== key) return null;
+
+          const curvature = getEffectiveEdgeCurvature(
+            from.svgX,
+            from.svgY,
+            to.svgX,
+            to.svgY,
+            getNodeRadius(from.node),
+            getNodeRadius(to.node),
+            hasBidirectional(edge.from_player_id, edge.to_player_id),
+          );
+          const { cpx, cpy } = controlPoint(from.svgX, from.svgY, to.svgX, to.svgY, curvature);
+          const midX = curvature === 0
+            ? (from.svgX + to.svgX) / 2
+            : 0.25 * from.svgX + 0.5 * cpx + 0.25 * to.svgX;
+          const midY = curvature === 0
+            ? (from.svgY + to.svgY) / 2
+            : 0.25 * from.svgY + 0.5 * cpy + 0.25 * to.svgY;
+          const lines: BoxLine[] = [
+            {
+              text: `${truncateText(from.node.player_name, 18)} -> ${truncateText(to.node.player_name, 18)}`,
+              strong: true,
+            },
+            { text: `Pases: ${edge.pass_count}` },
+          ];
+          const box = getTooltipBox(midX, midY, lines, vW, vH);
+
+          return (
+            <FloatingInfoBox
+              key={`edge-tip-${key}`}
+              accentColor={getWeightedColor(
+                color,
+                edge.pass_count,
+                edgeWeightDomain,
+                EDGE_COLOR_MIN_STRENGTH,
+                EDGE_COLOR_CONTRAST,
+              )}
+              lines={lines}
+              x={box.x}
+              y={box.y}
+              width={box.width}
+              height={box.height}
+            />
+          );
+        })}
+
+        {nodes.map((node) => {
+          const position = nodeMap.get(node.player_id);
+          if (!position || hoveredNodeId !== node.player_id || selectedNodeId === node.player_id) return null;
+
+          const lines: BoxLine[] = [
+            { text: truncateText(node.player_name), strong: true },
+            { text: `Peso: ${getNodeWeight(node)}` },
+            { text: `Dados: ${node.passes_given} | Recibidos: ${node.passes_received}` },
+          ];
+          const box = getTooltipBox(position.svgX, position.svgY - getNodeRadius(node), lines, vW, vH);
+
+          return (
+            <FloatingInfoBox
+              key={`node-tip-${node.player_id}`}
+              accentColor={getWeightedColor(
+                color,
+                getNodeWeight(node),
+                nodeWeightDomain,
+                NODE_COLOR_MIN_STRENGTH,
+                NODE_COLOR_CONTRAST,
+              )}
+              lines={lines}
+              x={box.x}
+              y={box.y}
+              width={box.width}
+              height={box.height}
+            />
+          );
+        })}
+      </g>
     </g>
   );
 };

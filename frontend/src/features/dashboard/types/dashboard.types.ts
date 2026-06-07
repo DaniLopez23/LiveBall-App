@@ -6,6 +6,7 @@ export type DashboardBreakpoint = "lg" | "md" | "sm";
 
 export type DashboardWidgetType =
 	| "event-map"
+	| "shot-map"
 	| "pass-network"
 	| "match-stats"
 	| "stats-evolution-chart"

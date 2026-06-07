@@ -9,6 +9,7 @@ export interface TakeOnFigureProps {
   markerScale?: number;
   outcome: number;
   color?: string;
+  showSequenceLabel?: boolean;
 }
 
 const PENTAGON_R = 3.75;
@@ -29,6 +30,7 @@ const TakeOnFigure: React.FC<TakeOnFigureProps> = ({
   markerScale = 1,
   outcome,
   color = "#ffffff",
+  showSequenceLabel = true,
 }) => {
   const pentagonR = PENTAGON_R * markerScale;
   const points = getPentagonPoints(x, y, pentagonR);
@@ -75,12 +77,14 @@ const TakeOnFigure: React.FC<TakeOnFigureProps> = ({
           <line x1={markX + markR} y1={markY - markR} x2={markX - markR} y2={markY + markR} />
         </g>
       )}
-      <EventSequenceLabel
-        x={x}
-        y={y + pentagonR + 1.15}
-        sequence={sequence}
-        fontSize={4.15 * markerScale}
-      />
+      {showSequenceLabel ? (
+        <EventSequenceLabel
+          x={x}
+          y={y + pentagonR + 1.15}
+          sequence={sequence}
+          fontSize={4.15 * markerScale}
+        />
+      ) : null}
     </g>
   );
 };

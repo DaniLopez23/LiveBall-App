@@ -1,10 +1,9 @@
 import { useMemo, useState } from "react";
-import { Check, Search } from "lucide-react";
+import { Search } from "lucide-react";
 
 import {
 	Combobox,
 	ComboboxContent,
-	ComboboxEmpty,
 	ComboboxItem,
 	ComboboxList,
 	ComboboxTrigger,
@@ -74,7 +73,11 @@ export function DashboardTemplateSelector({
 					</div>
 				</div>
 				<ComboboxList>
-					<ComboboxEmpty>No hay plantillas.</ComboboxEmpty>
+					{filteredTemplates.length === 0 ? (
+						<div className="px-3 py-2 text-center text-sm text-muted-foreground">
+							No hay plantillas.
+						</div>
+					) : null}
 					{filteredTemplates.map((template) => (
 						<ComboboxItem key={template.id} value={template.id}>
 							<span className="min-w-0 flex-1">
@@ -85,12 +88,6 @@ export function DashboardTemplateSelector({
 									</span>
 								) : null}
 							</span>
-							<Check
-								className={cn(
-									"ml-auto size-4",
-									template.id === activeTemplateId ? "opacity-100" : "opacity-0",
-								)}
-							/>
 						</ComboboxItem>
 					))}
 				</ComboboxList>

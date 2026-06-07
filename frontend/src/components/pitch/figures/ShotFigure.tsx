@@ -11,6 +11,7 @@ export interface ShotFigureProps {
   markerScale?: number;
   outcome: "Miss" | "Post" | "Attempt Saved" | "Goal";
   color?: string;
+  showSequenceLabel?: boolean;
 }
 
 const SQUARE_HALF  = 3.05;  // half-side of the start square
@@ -28,6 +29,7 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
   markerScale = 1,
   outcome,
   color = "#ffffff",
+  showSequenceLabel = true,
 }) => {
   const angle = Math.atan2(y2 - y1, x2 - x1);
   const perp  = angle + Math.PI / 2;
@@ -103,12 +105,14 @@ const ShotFigure: React.FC<ShotFigureProps> = ({
       >
         {label}
       </text>
-      <EventSequenceLabel
-        x={x1}
-        y={y1 + squareHalf + 1.15}
-        sequence={sequence}
-        fontSize={4.15 * markerScale}
-      />
+      {showSequenceLabel ? (
+        <EventSequenceLabel
+          x={x1}
+          y={y1 + squareHalf + 1.15}
+          sequence={sequence}
+          fontSize={4.15 * markerScale}
+        />
+      ) : null}
 
       {/* ── Miss: rotated × ───────────────────────────────────────── */}
       {outcome === "Miss" && (

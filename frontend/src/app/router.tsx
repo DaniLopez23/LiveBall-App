@@ -1,15 +1,12 @@
 import { createBrowserRouter } from "react-router-dom";
+
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { RequireSelectedMatch } from "@/components/routing/RequireSelectedMatch";
 import DashboardSummaryPage from "@/features/dashboard/pages/DashboardSummaryPage";
 import EventsPage from "@/pages/EventsPage";
+import HomePage from "@/pages/HomePage";
 import PassNetworkPage from "@/pages/PassNetworkPage";
 import StatsPage from "@/pages/StatsPage";
-
-// Pages (uncomment as they are created)
-// import { HomePage }         from "@/components/pages/HomePage";
-// import { EstadisticasPage } from "@/components/pages/EstadisticasPage";
-// import { RedesPasesPage }   from "@/components/pages/RedesPasesPage";
-// import { EventosPage }      from "@/components/pages/EventosPage";
 
 export const router = createBrowserRouter([
   {
@@ -18,25 +15,39 @@ export const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <div className="p-6 text-muted-foreground">Inicio – próximamente</div>,
-        // element: <HomePage />,
+        element: <HomePage />,
       },
       {
         path: "dashboard",
-        element: <DashboardSummaryPage />,
+        element: (
+          <RequireSelectedMatch>
+            <DashboardSummaryPage />
+          </RequireSelectedMatch>
+        ),
       },
       {
         path: "stats",
-        element: <StatsPage />,
-        // element: <EstadisticasPage />,
+        element: (
+          <RequireSelectedMatch>
+            <StatsPage />
+          </RequireSelectedMatch>
+        ),
       },
       {
         path: "pass-networks",
-        element: <PassNetworkPage />,
+        element: (
+          <RequireSelectedMatch>
+            <PassNetworkPage />
+          </RequireSelectedMatch>
+        ),
       },
       {
         path: "events",
-        element: <EventsPage />
+        element: (
+          <RequireSelectedMatch>
+            <EventsPage />
+          </RequireSelectedMatch>
+        ),
       },
     ],
   },

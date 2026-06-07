@@ -42,3 +42,15 @@ python src/main.py
 ## simulated-real-time-data
 
 Carpeta donde se almacenan los archivos simulados de tiempo real generados por el simulador.
+
+## Docker Compose local
+
+Para levantar frontend, backend, simulador y volumen compartido:
+
+```bash
+docker compose up --build
+```
+
+El backend queda en `http://localhost:8000`, el frontend en `http://localhost:5173` y el health check en `http://localhost:8000/health`.
+
+Detalles de variables, rutas XML y volumen compartido: [docs/deployment-local.md](docs/deployment-local.md).

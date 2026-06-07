@@ -9,13 +9,16 @@ export interface WsClientHandlers {
 
 const DEFAULT_WS_BASE_URL = "ws://localhost:8000/api/v1";
 
+const getConfiguredWsBaseUrl = (): string | undefined =>
+	import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL;
+
 const normalizeBaseWsUrl = (rawBase?: string): string => {
-	const base = (rawBase ?? DEFAULT_WS_BASE_URL).trim();
+	const base = rawBase?.trim() || DEFAULT_WS_BASE_URL;
 	return base.endsWith("/") ? base.slice(0, -1) : base;
 };
 
 export const buildGameWsUrl = (gameId: string): string => {
-	const baseWsUrl = normalizeBaseWsUrl(import.meta.env.VITE_WS_BASE_URL);
+	const baseWsUrl = normalizeBaseWsUrl(getConfiguredWsBaseUrl());
 	return `${baseWsUrl}/ws/games/${gameId}`;
 };
 

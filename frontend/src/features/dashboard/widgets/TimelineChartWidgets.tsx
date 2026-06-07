@@ -16,6 +16,7 @@ import StatsEventMarkers, {
 	getStatsEventMarkers,
 	type StatsEventMarker,
 } from "@/components/stats/StatsEventMarkers";
+import StatsMomentumLineChart from "@/components/stats/StatsMomentumLineChart";
 import { formatStatValue } from "@/components/stats/StatsComparisonBars";
 import {
 	ChartContainer,
@@ -118,21 +119,6 @@ function getTimelineMetricValue(
 	return bucket[side].groups[metric.group]?.[metric.key]?.total ?? null;
 }
 
-function getMomentumValue(
-	bucket: StatsTimeBucket,
-	momentum: MatchMomentumPayload | null | undefined,
-	side: TeamSide,
-): number | null {
-	const point = momentum?.points.find((item) => item.minute === bucket.minute);
-	if (point) {
-		return side === "home" ? point.homeMomentum : point.awayMomentum;
-	}
-
-	const bucketMomentum = bucket.momentum;
-	if (!bucketMomentum) return null;
-	return side === "home" ? bucketMomentum.homeMomentum : bucketMomentum.awayMomentum;
-}
-
 function cumulativeData(data: ChartPoint[], series: ChartSeries[]): ChartPoint[] {
 	const totals = series.reduce<Record<string, number>>((acc, item) => {
 		acc[item.key] = 0;
@@ -167,6 +153,36 @@ function filterMarkers(
 		if (filters.team === "both") return true;
 		return marker.teamSide === filters.team;
 	});
+}
+
+function filterTimelineByMinute(
+	timeline: MatchStatsTimeline,
+	filters: TimelineChartFilters,
+): MatchStatsTimeline {
+	const [startMinute, endMinute] = filters.minuteRange;
+
+	return {
+		...timeline,
+		buckets: timeline.buckets.filter(
+			(bucket) => bucket.minute >= startMinute && bucket.minute <= endMinute,
+		),
+	};
+}
+
+function filterMomentumByMinute(
+	momentum: MatchMomentumPayload | null | undefined,
+	filters: TimelineChartFilters,
+): MatchMomentumPayload | null | undefined {
+	if (!momentum) return momentum;
+
+	const [startMinute, endMinute] = filters.minuteRange;
+
+	return {
+		...momentum,
+		points: momentum.points.filter(
+			(point) => point.minute >= startMinute && point.minute <= endMinute,
+		),
+	};
 }
 
 function EmptyChartState({ message }: { message: string }) {
@@ -434,96 +450,29 @@ export function MomentumChartWidget({
 		statsData?.current.away.teamId,
 	);
 	const filteredMarkers = config.showKeyEvents ? filterMarkers(eventMarkers, filters) : [];
-	const { data, series } = useMemo(() => {
-		if (!statsData) return { data: [], series: [] };
-
-		const [startMinute, endMinute] = filters.minuteRange;
-		const nextSeries: ChartSeries[] =
-			filters.team === "both"
-				? [
-						{
-							key: "home",
-							label: statsData.current.home.teamName || game?.home_team.team_name || "Local",
-							color: "#3b82f6",
-						},
-						{
-							key: "away",
-							label:
-								statsData.current.away.teamName || game?.away_team.team_name || "Visitante",
-							color: "#f43f5e",
-						},
-					]
-				: [
-						{
-							key: filters.team,
-							label:
-								filters.team === "home"
-									? statsData.current.home.teamName || game?.home_team.team_name || "Local"
-									: statsData.current.away.teamName ||
-										game?.away_team.team_name ||
-										"Visitante",
-							color: filters.team === "home" ? "#3b82f6" : "#f43f5e",
-						},
-					];
-		const nextData = statsData.timeline.buckets
-			.filter((bucket) => bucket.minute >= startMinute && bucket.minute <= endMinute)
-			.sort((a, b) => a.minute - b.minute)
-			.map((bucket) => {
-				const point: ChartPoint = { minute: bucket.minute };
-
-				for (const item of nextSeries) {
-					point[item.key] = getMomentumValue(
-						bucket,
-						statsData.momentum,
-						item.key as TeamSide,
-					);
-				}
-
-				return point;
-			});
-
-		return {
-			data: config.showCumulative ? cumulativeData(nextData, nextSeries) : nextData,
-			series: nextSeries,
-		};
-	}, [
-		config.showCumulative,
-		filters.minuteRange,
-		filters.team,
-		game?.away_team.team_name,
-		game?.home_team.team_name,
-		statsData,
-	]);
 
 	if (!statsData) {
 		return <EmptyChartState message="Sin timeline de momentum disponible." />;
 	}
 
+	const filteredTimeline = filterTimelineByMinute(statsData.timeline, filters);
+	const filteredMomentum = filterMomentumByMinute(statsData.momentum, filters);
+
 	return (
-		<div className="flex h-full min-h-0 flex-col gap-3">
-			<ChartHeader
+		<div className="h-full min-h-0">
+			<StatsMomentumLineChart
+				timeline={filteredTimeline}
+				momentum={filteredMomentum}
+				homeTeamName={statsData.current.home.teamName || game?.home_team.team_name || "Local"}
+				awayTeamName={
+					statsData.current.away.teamName || game?.away_team.team_name || "Visitante"
+				}
+				events={filteredMarkers}
 				title={config.title}
-				badges={[
-					config.showCumulative ? "Acumulada" : "xT neto",
-					config.showKeyEvents ? "Eventos clave" : "Sin eventos",
-				]}
+				description="xT neto por minuto; cero indica equilibrio"
+				minuteRange={filters.minuteRange}
+				compact
 			/>
-			<div className="min-h-0 flex-1">
-				<SeriesChart
-					data={data}
-					series={series}
-					chartType={config.chartType}
-					formatValue={(value) =>
-						value == null
-							? "-"
-							: value > 0
-								? `+${value.toFixed(3)}`
-								: value.toFixed(3)
-					}
-					markers={filteredMarkers}
-					showZeroLine
-				/>
-			</div>
 		</div>
 	);
 }
@@ -555,6 +504,28 @@ function TimelineChartConfigPanel({
 				description="Transforma cada serie en un acumulado progresivo."
 				checked={value.showCumulative}
 				onChange={(showCumulative) => onChange({ ...value, showCumulative })}
+			/>
+			<SwitchField
+				label="Eventos clave"
+				description="Muestra tiros y goles sobre la linea temporal."
+				checked={value.showKeyEvents}
+				onChange={(showKeyEvents) => onChange({ ...value, showKeyEvents })}
+			/>
+		</div>
+	);
+}
+
+function MomentumChartConfigPanel({
+	value,
+	onChange,
+}: WidgetPanelProps<TimelineChartConfig>) {
+	return (
+		<div className="space-y-4">
+			<SectionTitle>Grafica</SectionTitle>
+			<TextField
+				label="Titulo"
+				value={value.title}
+				onChange={(title) => onChange({ ...value, title })}
 			/>
 			<SwitchField
 				label="Eventos clave"
@@ -608,7 +579,7 @@ export function StatsEvolutionChartWidgetFilters(props: WidgetPanelProps<Timelin
 }
 
 export function MomentumChartWidgetConfig(props: WidgetPanelProps<TimelineChartConfig>) {
-	return <TimelineChartConfigPanel {...props} />;
+	return <MomentumChartConfigPanel {...props} />;
 }
 
 export function MomentumChartWidgetFilters(props: WidgetPanelProps<TimelineChartFilters>) {

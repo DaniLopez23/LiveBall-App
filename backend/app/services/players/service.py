@@ -7,6 +7,7 @@ in ``PlayersStateCache`` for subsequent requests.
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -29,7 +30,8 @@ class PlayersService:
         f40_xml_path: Optional[Path] = None,
     ) -> None:
         self.cache = cache or players_state_cache
-        self.f40_xml_path = Path(f40_xml_path) if f40_xml_path else DEFAULT_F40_FILE
+        configured_path = f40_xml_path or os.getenv("F40_XML_PATH")
+        self.f40_xml_path = Path(configured_path) if configured_path else DEFAULT_F40_FILE
         self._load_lock = threading.Lock()
         self._player_lookup: Dict[tuple[str, str], Dict[str, Any]] = {}
 

@@ -31,6 +31,8 @@ export type MarkerPresentationMode = "live" | "sequences" | "all";
 interface MarkerVisualState {
   isLive: boolean;
   isActive: boolean;
+  isHighlighted: boolean;
+  hideSequenceLabel: boolean;
   opacity: number;
   markerScale: number;
   hitRadius: number;
@@ -52,6 +54,8 @@ export interface OptaMarkersProps {
   showConnectors?: boolean;
   /** Multiplies marker size while keeping coordinates untouched. */
   markerScaleMultiplier?: number;
+  /** Event id that should stand out inside a selected sequence. */
+  highlightedEventId?: string | null;
 }
 
 /**
@@ -161,14 +165,15 @@ function getTooltipBox(
   lines: string[],
   viewBoxWidth: number,
   viewBoxHeight: number,
+  scale = 1,
 ): { x: number; y: number; width: number; height: number } {
-  const fontSize = 4.4;
-  const paddingX = 4.2;
-  const paddingY = 3.4;
-  const lineHeight = 6.2;
-  const gap = 7;
+  const fontSize = 4.4 * scale;
+  const paddingX = 4.2 * scale;
+  const paddingY = 3.4 * scale;
+  const lineHeight = 6.2 * scale;
+  const gap = 7 * scale;
   const longestLine = Math.max(...lines.map((line) => line.length));
-  const width = clamp(longestLine * fontSize * 0.55 + paddingX * 2, 46, 118);
+  const width = clamp(longestLine * fontSize * 0.55 + paddingX * 2, 46 * scale, 118 * scale);
   const height = paddingY * 2 + lines.length * lineHeight;
   const opensRight = anchorX + gap + width <= viewBoxWidth - 2;
   const opensTop = anchorY - gap - height >= 2;
@@ -190,6 +195,7 @@ function EventTooltip({
   lines,
   viewBoxWidth,
   viewBoxHeight,
+  scale = 1,
 }: {
   anchorX: number;
   anchorY: number;
@@ -197,10 +203,13 @@ function EventTooltip({
   lines: string[];
   viewBoxWidth: number;
   viewBoxHeight: number;
+  scale?: number;
 }) {
-  const box = getTooltipBox(anchorX, anchorY, lines, viewBoxWidth, viewBoxHeight);
+  const box = getTooltipBox(anchorX, anchorY, lines, viewBoxWidth, viewBoxHeight, scale);
   const linkX = clamp(anchorX, box.x, box.x + box.width);
   const linkY = clamp(anchorY, box.y, box.y + box.height);
+  const sideBarWidth = 2.6 * scale;
+  const textX = box.x + 5.8 * scale;
 
   return (
     <g pointerEvents="none">
@@ -211,50 +220,57 @@ function EventTooltip({
         y2={linkY}
         stroke="#0f172a"
         strokeOpacity={0.45}
-        strokeWidth={0.6}
+        strokeWidth={0.6 * scale}
       />
       <circle
         cx={anchorX}
         cy={anchorY}
-        r={5.2}
+        r={5.2 * scale}
         fill="none"
         stroke="#0f172a"
         strokeOpacity={0.42}
-        strokeWidth={1.4}
+        strokeWidth={1.4 * scale}
       />
       <circle
         cx={anchorX}
         cy={anchorY}
-        r={4.2}
+        r={4.2 * scale}
         fill="none"
         stroke={color}
         strokeOpacity={0.95}
-        strokeWidth={0.85}
+        strokeWidth={0.85 * scale}
       />
       <rect
         x={box.x}
         y={box.y}
         width={box.width}
         height={box.height}
-        rx={3.5}
+        rx={3.5 * scale}
         fill="#111827"
         fillOpacity={0.95}
         stroke="rgba(255,255,255,0.22)"
-        strokeWidth={0.5}
+        strokeWidth={0.5 * scale}
       />
-      <rect x={box.x} y={box.y} width={2.6} height={box.height} rx={1.3} fill={color} />
+      <rect
+        x={box.x}
+        y={box.y}
+        width={sideBarWidth}
+        height={box.height}
+        rx={1.3 * scale}
+        fill={color}
+      />
       <text
-        x={box.x + 5.8}
-        y={box.y + 7.2}
-        fontSize={4.4}
+        x={textX}
+        y={box.y + 7.2 * scale}
+        fontSize={4.4 * scale}
         fill="#f8fafc"
         style={{ userSelect: "none" }}
       >
         {lines.map((line, index) => (
           <tspan
             key={`${line}-${index}`}
-            x={box.x + 5.8}
-            dy={index === 0 ? 0 : 6.2}
+            x={textX}
+            dy={index === 0 ? 0 : 6.2 * scale}
             fontWeight={index === 0 ? 700 : 500}
             fill={index === 0 ? "#ffffff" : "#d1d5db"}
           >
@@ -329,6 +345,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   animated = false,
   showConnectors = true,
   markerScaleMultiplier = 1,
+  highlightedEventId,
 }) => {
   const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
   const orientation = orientationProp ?? storeOrientation;
@@ -340,6 +357,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   const viewBoxWidth = orientation === "vertical" ? VB_SHORT : VB_LONG;
   const viewBoxHeight = orientation === "vertical" ? VB_LONG : VB_SHORT;
   const safeMarkerScaleMultiplier = clamp(markerScaleMultiplier, 0.75, 1.8);
+  const tooltipScale = clamp(markerScaleMultiplier, 1, 1.45);
 
   const wrap = (key: string, content: React.ReactNode, skipEnterFade = false) =>
     animated ? (
@@ -366,8 +384,17 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         ? `Min ${event.min}${event.sec != null ? `:${String(event.sec).padStart(2, "0")}` : ""}`
         : null;
 
+    const playerDorsal = event.player?.dorsal?.trim();
+    const playerName = event.player?.name?.trim();
+
     if (minute) lines.push(minute);
-    if (event.player?.dorsal) lines.push(`Dorsal ${event.player.dorsal}`);
+    if (playerDorsal && playerName) {
+      lines.push(`Jugador ${playerDorsal} - ${playerName}`);
+    } else if (playerDorsal) {
+      lines.push(`Dorsal ${playerDorsal}`);
+    } else if (playerName) {
+      lines.push(`Jugador ${playerName}`);
+    }
     lines.push(`Inicio X ${formatCoord(event.x)} | Y ${formatCoord(event.y)}`);
 
     if (isPassEvent(event)) {
@@ -406,6 +433,32 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         onMouseLeave={() => setHoveredEventId((current) => (current === event.id ? null : current))}
         cursor="help"
       >
+        {visualState.isHighlighted ? (
+          <g pointerEvents="none">
+            <motion.circle
+              cx={anchorX}
+              cy={anchorY}
+              r={8.5}
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth={1.2}
+              strokeOpacity={0.92}
+              initial={{ opacity: 0.78, r: 8.5 }}
+              animate={{ opacity: [0.78, 0.18, 0.78], r: [8.5, 15.5, 8.5] }}
+              transition={{ duration: 1.65, ease: "easeOut", repeat: Infinity }}
+            />
+            <circle
+              cx={anchorX}
+              cy={anchorY}
+              r={7.4}
+              fill={color}
+              fillOpacity={0.18}
+              stroke="#ffffff"
+              strokeOpacity={0.96}
+              strokeWidth={1.25}
+            />
+          </g>
+        ) : null}
         {visualState.isLive && visualState.isActive ? (
           <motion.circle
             cx={anchorX}
@@ -445,6 +498,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
             lines={getTooltipLines(event, sequence)}
             viewBoxWidth={viewBoxWidth}
             viewBoxHeight={viewBoxHeight}
+            scale={tooltipScale}
           />
         ) : null}
       </g>
@@ -520,13 +574,17 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   );
 
   const getMarkerVisualState = (event: OptaEvent): MarkerVisualState => {
+    const isHighlighted = highlightedEventId === event.id;
+
     if (presentationMode !== "live") {
       return {
         isLive: false,
         isActive: false,
+        isHighlighted,
+        hideSequenceLabel: false,
         opacity: 1,
-        markerScale: safeMarkerScaleMultiplier,
-        hitRadius: 7 * safeMarkerScaleMultiplier,
+        markerScale: (isHighlighted ? 1.46 : 1) * safeMarkerScaleMultiplier,
+        hitRadius: (isHighlighted ? 15 : 7) * safeMarkerScaleMultiplier,
       };
     }
 
@@ -535,9 +593,11 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     return {
       isLive: true,
       isActive,
+      isHighlighted,
+      hideSequenceLabel: isActive,
       opacity: isActive ? 1 : 0.42,
-      markerScale: (isActive ? 1.18 : 1) * safeMarkerScaleMultiplier,
-      hitRadius: (isActive ? 12 : 8) * safeMarkerScaleMultiplier,
+      markerScale: (isActive ? 1.18 : 1) * (isHighlighted ? 1.3 : 1) * safeMarkerScaleMultiplier,
+      hitRadius: (isActive ? 12 : isHighlighted ? 15 : 8) * safeMarkerScaleMultiplier,
     };
   };
 
@@ -579,6 +639,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               outcome={typeof outcome === "number" ? outcome : 0}
               color={color}
               animated={animated}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>
@@ -606,6 +667,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               markerLabel={markerLabel}
               markerScale={visualState.markerScale}
               color={color}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>
@@ -631,6 +693,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               markerScale={visualState.markerScale}
               outcome={typeof outcome === "number" ? outcome : 0}
               color={color}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>
@@ -655,6 +718,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               markerLabel={markerLabel}
               markerScale={visualState.markerScale}
               color={color}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>
@@ -679,6 +743,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               markerLabel={markerLabel}
               markerScale={visualState.markerScale}
               color={color}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>
@@ -710,6 +775,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
               markerScale={visualState.markerScale}
               outcome={event.outcome ?? "Miss"}
               color={color}
+              showSequenceLabel={!visualState.hideSequenceLabel}
             />,
           )}
         </>

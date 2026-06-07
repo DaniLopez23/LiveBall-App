@@ -14,12 +14,15 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { type EventsFilters } from "@/components/pitch/eventsPitch/EventsPitchFilters";
+import {
+  type EventsFilters,
+  type SequenceEndTypeOption,
+} from "@/components/pitch/eventsPitch/EventsPitchFilters";
 import {
   buildEventSequences,
-  EVENT_SEQUENCE_END_REASONS,
   type EventSequence,
 } from "@/components/pitch/eventsPitch/eventSequences";
+import { getActionLabel } from "@/components/pitch/eventsPitch/eventDisplay";
 import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
@@ -36,7 +39,7 @@ const DEFAULT_FILTERS: EventsFilters = {
   mode: "live",
   lastCount: 10,
   team: "both",
-  sequenceEndReasons: EVENT_SEQUENCE_END_REASONS,
+  sequenceEndTypeIds: [],
   sequencePassCountMode: "any",
   sequencePassCount: 3,
   selectedEventType: "all",
@@ -57,6 +60,47 @@ const clampMinuteRange = (
 
 const PITCH_MODE_READY_DELAY_MS = 320;
 
+const getSequenceEndEvent = (sequence: EventSequence): PitchEvent | null =>
+  sequence.events[sequence.events.length - 1] ?? null;
+
+const getSequenceEndTypeOption = (event: PitchEvent): SequenceEndTypeOption => {
+  const typeId: string = event.type_id;
+
+  switch (typeId) {
+    case "1":
+    case "2":
+      return { id: "pass", label: "Pase", typeIds: ["1", "2"] };
+    case "3":
+      return { id: "take-on", label: "Regate", typeIds: ["3"] };
+    case "4":
+      return { id: "foul", label: "Falta", typeIds: ["4"] };
+    case "5":
+      return { id: "out", label: "Fuera del campo", typeIds: ["5"] };
+    case "7":
+      return { id: "tackle", label: "Entradas", typeIds: ["7"] };
+    case "8":
+      return { id: "interception", label: "Intercepciones", typeIds: ["8"] };
+    case "12":
+      return { id: "clearance", label: "Despejes", typeIds: ["12"] };
+    case "13":
+    case "14":
+    case "15":
+    case "16":
+      return { id: "shot", label: "Tiro", typeIds: ["13", "14", "15", "16"] };
+    case "44":
+    case "67":
+      return { id: "duel", label: "Duelo", typeIds: ["44", "67"] };
+    case "49":
+      return { id: "ball-recovery", label: "Recuperación de balón", typeIds: ["49"] };
+    default:
+      return {
+        id: `event-${typeId}`,
+        label: getActionLabel(typeId),
+        typeIds: [typeId],
+      };
+  }
+};
+
 const EventsPage: React.FC = () => {
   const game = useGameStore((state) => state.game);
   const events = useEventsStore((state) => state.events);
@@ -67,6 +111,7 @@ const EventsPage: React.FC = () => {
   const [selectedSequenceId, setSelectedSequenceId] = useState<string | null>(null);
   const [isPitchModePreparing, setIsPitchModePreparing] = useState(false);
   const previousPitchModeRef = useRef<EventsFilters["mode"]>(filters.mode);
+  const previousSequenceEndTypeIdsRef = useRef<string[]>([]);
 
   const teamColors = useMemo(() => {
     if (!game) return {};
@@ -79,6 +124,25 @@ const EventsPage: React.FC = () => {
 
   const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
   const eventSequences = useMemo(() => buildEventSequences(pitchEvents), [pitchEvents]);
+  const sequenceEndTypeOptions = useMemo<SequenceEndTypeOption[]>(() => {
+    const optionsById = new Map<string, SequenceEndTypeOption>();
+
+    for (const sequence of eventSequences) {
+      const endEvent = getSequenceEndEvent(sequence);
+      if (!endEvent?.type_id) continue;
+
+      const option = getSequenceEndTypeOption(endEvent);
+      if (!optionsById.has(option.id)) {
+        optionsById.set(option.id, option);
+      }
+    }
+
+    return Array.from(optionsById.values()).sort(
+      (left, right) =>
+        left.label.localeCompare(right.label, "es", { sensitivity: "base" }) ||
+        left.id.localeCompare(right.id),
+    );
+  }, [eventSequences]);
   const currentMaxMinute = useMemo(
     () =>
       pitchEvents.reduce(
@@ -125,8 +189,44 @@ const EventsPage: React.FC = () => {
     selectionsMatch(nextFilters.selectedOutcomes, allOutcomeIds) &&
     selectionsMatch(nextFilters.selectedSubtypes, allSubtypeIds);
 
+  useEffect(() => {
+    const availableIds = sequenceEndTypeOptions.map((option) => option.id);
+    const previousIds = previousSequenceEndTypeIdsRef.current;
+
+    setFilters((currentFilters) => {
+      const validSelectedIds = currentFilters.sequenceEndTypeIds.filter((id) =>
+        availableIds.includes(id),
+      );
+      const selectedAllPrevious =
+        previousIds.length === 0 ||
+        previousIds.every((id) => currentFilters.sequenceEndTypeIds.includes(id));
+      const nextSequenceEndTypeIds =
+        availableIds.length === 0
+          ? []
+          : currentFilters.sequenceEndTypeIds.length === 0 && previousIds.length === 0
+            ? availableIds
+            : selectedAllPrevious
+              ? availableIds
+              : validSelectedIds;
+      const unchanged = selectionsMatch(
+        currentFilters.sequenceEndTypeIds,
+        nextSequenceEndTypeIds,
+      );
+
+      return unchanged
+        ? currentFilters
+        : { ...currentFilters, sequenceEndTypeIds: nextSequenceEndTypeIds };
+    });
+
+    previousSequenceEndTypeIdsRef.current = availableIds;
+  }, [sequenceEndTypeOptions]);
+
   const sequenceMatchesFilters = useCallback(
-    (sequence: EventSequence, activeFilters: EventsFilters) => {
+    (
+      sequence: EventSequence,
+      activeFilters: EventsFilters,
+      selectedSequenceEndRawTypeIds: Set<string>,
+    ) => {
       if (activeFilters.team !== "both" && game) {
         const teamId =
           activeFilters.team === "home"
@@ -135,7 +235,8 @@ const EventsPage: React.FC = () => {
         if (sequence.teamId !== teamId) return false;
       }
 
-      if (!activeFilters.sequenceEndReasons.includes(sequence.endReason)) {
+      const endEvent = getSequenceEndEvent(sequence);
+      if (!endEvent || !selectedSequenceEndRawTypeIds.has(endEvent.type_id)) {
         return false;
       }
 
@@ -199,11 +300,18 @@ const EventsPage: React.FC = () => {
   }, [filters, seededFilters, isDefaultAllSelection, currentMaxMinute]);
 
   const filteredSequences = useMemo(
-    () =>
-      eventSequences.filter((sequence) =>
-        sequenceMatchesFilters(sequence, displayFilters),
-      ),
-    [eventSequences, displayFilters, sequenceMatchesFilters],
+    () => {
+      const selectedSequenceEndRawTypeIds = new Set(
+        sequenceEndTypeOptions
+          .filter((option) => displayFilters.sequenceEndTypeIds.includes(option.id))
+          .flatMap((option) => option.typeIds),
+      );
+
+      return eventSequences.filter((sequence) =>
+        sequenceMatchesFilters(sequence, displayFilters, selectedSequenceEndRawTypeIds),
+      );
+    },
+    [eventSequences, displayFilters, sequenceEndTypeOptions, sequenceMatchesFilters],
   );
 
   const selectedSequence = useMemo(
@@ -213,6 +321,9 @@ const EventsPage: React.FC = () => {
         : null,
     [filteredSequences, selectedSequenceId],
   );
+  const highlightedSequenceEventId = selectedSequence
+    ? getSequenceEndEvent(selectedSequence)?.id ?? null
+    : null;
 
   useEffect(() => {
     if (displayFilters.mode !== "sequences") return;
@@ -341,6 +452,7 @@ const EventsPage: React.FC = () => {
               teamColors={teamColors}
               orientation="horizontal"
               loadingMessage={pitchLoadingMessage}
+              highlightedEventId={highlightedSequenceEventId}
               game={game}
             />
           ) : shouldShowSequenceSelectionPrompt ? (
@@ -350,6 +462,7 @@ const EventsPage: React.FC = () => {
               teamColors={teamColors}
               orientation="horizontal"
               noDataMessage="Seleccione una secuencia en la Tabla para observarla en el campo"
+              highlightedEventId={highlightedSequenceEventId}
               game={game}
             />
           ) : (
@@ -358,6 +471,7 @@ const EventsPage: React.FC = () => {
               mode={displayFilters.mode}
               teamColors={teamColors}
               orientation="horizontal"
+              highlightedEventId={highlightedSequenceEventId}
               game={game}
             />
           )}
@@ -377,6 +491,7 @@ const EventsPage: React.FC = () => {
             isOpen={showFilters}
             onToggle={() => setShowFilters((value) => !value)}
             availableTypeIds={availableTypeIds}
+            availableSequenceEndTypes={sequenceEndTypeOptions}
             maxMinute={currentMaxMinute}
             hasSecondHalf={hasSecondHalf}
           />
@@ -401,6 +516,7 @@ const EventsPage: React.FC = () => {
             defaultValue="filters"
             onToggle={() => setIsMobilePanelOpen(false)}
             availableTypeIds={availableTypeIds}
+            availableSequenceEndTypes={sequenceEndTypeOptions}
             maxMinute={currentMaxMinute}
             hasSecondHalf={hasSecondHalf}
           />

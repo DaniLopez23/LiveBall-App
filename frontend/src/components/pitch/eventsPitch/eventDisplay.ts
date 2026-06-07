@@ -2,7 +2,28 @@ import type { OptaEvent } from "@/components/pitch/figures/OptaMarkers";
 import type { Game } from "@/types/game";
 import { OUTCOME_OPTIONS_FLAT, PITCH_EVENT_TYPES_CONFIG } from "@/types/outcomeOptions";
 
+const ACTION_LABEL_BY_TYPE_ID: Record<string, string> = {
+  "1": "Pase",
+  "2": "Pase en fuera de juego",
+  "3": "Regate",
+  "4": "Falta",
+  "5": "Fuera del campo",
+  "7": "Entrada",
+  "8": "Intercepción",
+  "12": "Despeje",
+  "13": "Tiro",
+  "14": "Tiro al poste",
+  "15": "Tiro parado",
+  "16": "Gol",
+  "44": "Duelo",
+  "49": "Recuperación de balón",
+  "67": "Duelo",
+};
+
 export function getActionLabel(typeId: string): string {
+  const exactLabel = ACTION_LABEL_BY_TYPE_ID[typeId];
+  if (exactLabel) return exactLabel;
+
   const config = PITCH_EVENT_TYPES_CONFIG.find(
     (item) => item.value !== "all" && item.typeIds.includes(typeId),
   );

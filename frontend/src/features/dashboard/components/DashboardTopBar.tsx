@@ -1,4 +1,4 @@
-import { Eye, LayoutDashboard, Pencil, Plus, Save, Settings } from "lucide-react";
+import { Eye, Pencil, Plus, Save, Settings } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -35,10 +35,6 @@ export function DashboardTopBar({
 	onSaveTemplate,
 }: DashboardTopBarProps) {
 	const isEditMode = mode === "edit";
-	const modeLabel = isEditMode ? "Modo edicion" : "Modo visualizacion";
-	const modeDescription = isEditMode
-		? "Arrastra, redimensiona y configura widgets"
-		: "Consulta el resumen con filtros temporales";
 	const ModeIcon = isEditMode ? Pencil : Eye;
 
 	return (
@@ -55,13 +51,13 @@ export function DashboardTopBar({
 					<div className="flex min-w-0 items-center gap-3">
 						<span
 							className={cn(
-								"inline-flex size-9 shrink-0 items-center justify-center rounded-md",
+								"inline-flex size-11 shrink-0 items-center justify-center rounded-md",
 								isEditMode
 									? "bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100"
 									: "bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-100",
 							)}
 						>
-							<LayoutDashboard className="size-4" />
+							<ModeIcon className="size-6" />
 						</span>
 						<div className="min-w-0">
 							<p className="text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
@@ -70,20 +66,6 @@ export function DashboardTopBar({
 							<h1 className="truncate text-base font-semibold">
 								{activeTemplate?.name ?? "Sin plantilla"}
 							</h1>
-							<div
-								className={cn(
-									"mt-1 inline-flex max-w-full items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] font-semibold uppercase tracking-normal",
-									isEditMode
-										? "border-amber-300 bg-amber-100 text-amber-900 dark:border-amber-700 dark:bg-amber-900/80 dark:text-amber-50"
-										: "border-sky-200 bg-white/80 text-sky-900 dark:border-sky-800 dark:bg-sky-950/70 dark:text-sky-50",
-								)}
-							>
-								<ModeIcon className="size-3" />
-								<span>{modeLabel}</span>
-								<span className="hidden normal-case text-muted-foreground sm:inline">
-									{modeDescription}
-								</span>
-							</div>
 						</div>
 					</div>
 

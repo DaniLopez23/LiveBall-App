@@ -1,3 +1,5 @@
+import os
+import shutil
 import time
 import random
 import copy
@@ -8,9 +10,14 @@ from pathlib import Path
 from datetime import datetime
 
 # Configuración
-DATA_EVENTS_PATH = Path(__file__).parent.parent / "data" / "events"
-DATA_STATS_PATH = Path(__file__).parent.parent / "data" / "stats"
+DATA_ROOT = Path(__file__).parent.parent / "data"
+DATA_EVENTS_PATH = DATA_ROOT / "events"
+DATA_STATS_PATH = DATA_ROOT / "stats"
 OUTPUT_PATH = Path(__file__).parent.parent.parent / "simulated-real-time-data"
+DEFAULT_EVENTS_OUTPUT_FILE_NAME = "f24-simulated-data.xml"
+DEFAULT_STATS_OUTPUT_FILE_NAME = "f9-simulated-data.xml"
+DEFAULT_F40_FILE_NAME = "F40-squad-23.xml"
+DEFAULT_F42_FILE_NAME = "f42-23-2023-results.xml"
 
 SIMULATED_TEAM_STAT_TYPES = {
     "possession_percentage",
@@ -124,13 +131,63 @@ def get_today_date_formatted() -> str:
     return today.strftime("%d%m%y")
 
 
-def find_first_xml_file() -> Path:
+def _env_path(*names: str) -> Path | None:
+    for name in names:
+        value = os.getenv(name)
+        if value:
+            return Path(value)
+    return None
+
+
+def resolve_source_xml_path(*env_names: str, default_dir: Path) -> Path:
+    configured_path = _env_path(*env_names)
+    if configured_path is not None:
+        return configured_path
+    return find_first_xml_file(default_dir)
+
+
+def resolve_output_xml_path(*env_names: str, default_file_name: str) -> Path:
+    configured_path = _env_path(*env_names)
+    if configured_path is not None:
+        return configured_path
+    return OUTPUT_PATH / default_file_name
+
+
+def simulation_speed_from_env() -> float:
+    value = _safe_float(os.getenv("SIMULATION_SPEED"))
+    if value is None or value <= 0:
+        return 1.0
+    return value
+
+
+def write_interval_from_env() -> float | None:
+    value = _safe_float(os.getenv("WRITE_INTERVAL_SECONDS"))
+    if value is None:
+        return None
+    return max(0.0, value)
+
+
+def delay_seconds(
+    min_seconds: float,
+    max_seconds: float,
+    simulation_speed: float,
+    write_interval_seconds: float | None,
+) -> float:
+    base_delay = (
+        write_interval_seconds
+        if write_interval_seconds is not None
+        else random.uniform(min_seconds, max_seconds)
+    )
+    return max(0.0, base_delay / max(0.001, simulation_speed))
+
+
+def find_first_xml_file(directory: Path = DATA_EVENTS_PATH) -> Path:
     """
-    Encuentra el primer archivo XML en data/events.
+    Encuentra el primer archivo XML en el directorio indicado.
     """
-    xml_files = list(DATA_EVENTS_PATH.glob("*.xml"))
+    xml_files = list(directory.glob("*.xml"))
     if not xml_files:
-        raise FileNotFoundError(f"No XML files found in {DATA_EVENTS_PATH}")
+        raise FileNotFoundError(f"No XML files found in {directory}")
     
     return xml_files[0]
 
@@ -139,11 +196,7 @@ def find_first_stats_xml_file() -> Path:
     """
     Encuentra el primer archivo XML en data/stats.
     """
-    xml_files = list(DATA_STATS_PATH.glob("*.xml"))
-    if not xml_files:
-        raise FileNotFoundError(f"No XML files found in {DATA_STATS_PATH}")
-
-    return xml_files[0]
+    return find_first_xml_file(DATA_STATS_PATH)
 
 
 def extract_game_attributes(source_xml: Path) -> dict:
@@ -166,10 +219,36 @@ def element_to_string(elem: ET.Element) -> str:
     return ET.tostring(elem, encoding="unicode", method="xml")
 
 
+def write_xml_tree_atomic(tree_out: ET.ElementTree, output_file: Path):
+    """
+    Escribe el XML en un temporal y luego reemplaza el destino de forma atomica.
+    """
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = output_file.with_name(f".{output_file.name}.tmp")
+    tree_out.write(temp_file, encoding="utf-8", xml_declaration=True)
+    temp_file.replace(output_file)
+
+
+def copy_static_xml_atomic(source_file: Path, output_file: Path):
+    """
+    Copia XML estatico al volumen compartido sin dejar lecturas parciales.
+    """
+    if not source_file.exists():
+        print(f"WARNING: XML estatico no encontrado: {source_file}")
+        return
+
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    temp_file = output_file.with_name(f".{output_file.name}.tmp")
+    shutil.copyfile(source_file, temp_file)
+    temp_file.replace(output_file)
+
+
 def create_new_xml_streaming(
     source_xml: Path,
-    output_filename: str,
+    output_file: Path,
     stats_trigger: StatsMinuteTrigger | None = None,
+    simulation_speed: float = 1.0,
+    write_interval_seconds: float | None = None,
 ):
     """
     Lee eventos del XML fuente y los escribe en tiempo real en un nuevo archivo XML.
@@ -178,10 +257,7 @@ def create_new_xml_streaming(
     print(f"📖 Leyendo eventos de: {source_xml}")
     print(f"⏱️  Escribiendo eventos con delays aleatorios (2-8 segundos):\n")
     
-    # Crear carpeta de salida si no existe
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    
-    output_file = OUTPUT_PATH / output_filename
+    print(f"Output eventos: {output_file}")
     
     # Extraer atributos del Game original y timestamp del Games
     tree = ET.parse(source_xml)
@@ -224,7 +300,7 @@ def create_new_xml_streaming(
         # Escribir el archivo XML completo
         tree_out = ET.ElementTree(games_elem)
         ET.indent(tree_out, space="  ")
-        tree_out.write(output_file, encoding="utf-8", xml_declaration=True)
+        write_xml_tree_atomic(tree_out, output_file)
         
         # Mostrar información del evento
         event_id = event_element.get("event_id", "?")
@@ -238,8 +314,8 @@ def create_new_xml_streaming(
         )
         stats_message = f" | Stats trigger: min {event_minute}" if stats_triggered else ""
         
-        # Delay aleatorio entre 2-8 segundos
-        delay = random.uniform(2, 8)
+        # Delay configurable para simular datos en tiempo real.
+        delay = delay_seconds(2, 8, simulation_speed, write_interval_seconds)
         print(f"  [{idx:4d}] Event ID: {event_id:4s} | Type: {type_id:3s} | Team: {team_id:3s} | Min: {event_minute:3d} | Delay: {delay:.2f}s | Total acumulados: {len(accumulated_events)}{stats_message}")
         
         # Aplicar delay para simular datos en tiempo real
@@ -514,13 +590,15 @@ def _write_stats_xml(root: ET.Element, output_file: Path):
     """
     tree_out = ET.ElementTree(root)
     ET.indent(tree_out, space="  ")
-    tree_out.write(output_file, encoding="utf-8", xml_declaration=True)
+    write_xml_tree_atomic(tree_out, output_file)
 
 
 def create_new_stats_streaming(
     source_xml: Path,
-    output_filename: str,
+    output_file: Path,
     minute_trigger: StatsMinuteTrigger | None = None,
+    simulation_speed: float = 1.0,
+    write_interval_seconds: float | None = None,
 ):
     """
     Simula evolución de stats F9 cuando el feed de eventos alcanza un minuto nuevo.
@@ -531,8 +609,7 @@ def create_new_stats_streaming(
     print(f"📖 Leyendo stats de: {source_xml}")
     print("⏱️  Actualizando stats cuando los eventos alcancen un minuto nuevo:\n")
 
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    output_file = OUTPUT_PATH / output_filename
+    print(f"Output stats: {output_file}")
 
     source_tree = ET.parse(source_xml)
     source_root = source_tree.getroot()
@@ -579,7 +656,7 @@ def create_new_stats_streaming(
 
     while simulated_minute < target_match_time:
         if minute_trigger is None:
-            time.sleep(random.uniform(17, 23))
+            time.sleep(delay_seconds(17, 23, simulation_speed, write_interval_seconds))
             next_minute = simulated_minute + 1
         else:
             next_minute = minute_trigger.wait_for_next_minute(simulated_minute)
@@ -620,22 +697,74 @@ def main():
         # Se mantiene por compatibilidad aunque hoy no se use para nombrado.
         _ = get_today_date_formatted()
 
-        source_events_xml = find_first_xml_file()
-        source_stats_xml = find_first_stats_xml_file()
+        source_events_xml = resolve_source_xml_path(
+            "SOURCE_EVENTS_XML_PATH",
+            "SOURCE_XML_PATH",
+            default_dir=DATA_EVENTS_PATH,
+        )
+        source_stats_xml = resolve_source_xml_path(
+            "SOURCE_STATS_XML_PATH",
+            default_dir=DATA_STATS_PATH,
+        )
+        output_events_xml = resolve_output_xml_path(
+            "OUTPUT_EVENTS_XML_PATH",
+            "OUTPUT_XML_PATH",
+            default_file_name=DEFAULT_EVENTS_OUTPUT_FILE_NAME,
+        )
+        output_stats_xml = resolve_output_xml_path(
+            "OUTPUT_STATS_XML_PATH",
+            default_file_name=DEFAULT_STATS_OUTPUT_FILE_NAME,
+        )
+        f40_source_xml = _env_path("F40_SOURCE_XML_PATH") or DATA_ROOT / DEFAULT_F40_FILE_NAME
+        f40_output_xml = (
+            _env_path("F40_OUTPUT_XML_PATH")
+            or output_events_xml.parent / DEFAULT_F40_FILE_NAME
+        )
+        f42_source_xml = _env_path("F42_SOURCE_XML_PATH") or DATA_ROOT / DEFAULT_F42_FILE_NAME
+        f42_output_xml = (
+            _env_path("F42_OUTPUT_XML_PATH")
+            or output_events_xml.parent / DEFAULT_F42_FILE_NAME
+        )
+        simulation_speed = simulation_speed_from_env()
+        write_interval_seconds = write_interval_from_env()
 
         print(f"📁 Fuente eventos: {source_events_xml.name}")
         print(f"📁 Fuente stats:   {source_stats_xml.name}\n")
+
+        print(f"Output eventos: {output_events_xml}")
+        print(f"Output stats:   {output_stats_xml}")
+        print(f"Output F40:     {f40_output_xml}")
+        print(f"Output F42:     {f42_output_xml}")
+        print(f"Velocidad:      x{simulation_speed}")
+        if write_interval_seconds is not None:
+            print(f"Intervalo fijo: {write_interval_seconds}s")
+        print()
+
+        copy_static_xml_atomic(f40_source_xml, f40_output_xml)
+        copy_static_xml_atomic(f42_source_xml, f42_output_xml)
 
         stats_trigger = StatsMinuteTrigger()
 
         events_thread = threading.Thread(
             target=create_new_xml_streaming,
-            args=(source_events_xml, "f24-simulated-data.xml", stats_trigger),
+            args=(
+                source_events_xml,
+                output_events_xml,
+                stats_trigger,
+                simulation_speed,
+                write_interval_seconds,
+            ),
             daemon=True,
         )
         stats_thread = threading.Thread(
             target=create_new_stats_streaming,
-            args=(source_stats_xml, "f9-simulated-data.xml", stats_trigger),
+            args=(
+                source_stats_xml,
+                output_stats_xml,
+                stats_trigger,
+                simulation_speed,
+                None,
+            ),
             daemon=True,
         )
 

@@ -11,6 +11,7 @@ export interface BallOutFigureProps {
   markerLabel?: string;
   markerScale?: number;
   color?: string;
+  showSequenceLabel?: boolean;
 }
 
 const BADGE_H = 7.2;
@@ -26,6 +27,7 @@ const BallOutFigure: React.FC<BallOutFigureProps> = ({
   markerLabel,
   markerScale = 1,
   color = "#ffffff",
+  showSequenceLabel = true,
 }) => {
   const label = `${markerLabel ?? sequence} - OUT`;
   const badgeHeight = BADGE_H * markerScale;
@@ -77,12 +79,14 @@ const BallOutFigure: React.FC<BallOutFigureProps> = ({
       >
         {label}
       </text>
-      <EventSequenceLabel
-        x={0}
-        y={badgeHeight / 2 + 1.15}
-        sequence={sequence}
-        fontSize={4.15 * markerScale}
-      />
+      {showSequenceLabel ? (
+        <EventSequenceLabel
+          x={0}
+          y={badgeHeight / 2 + 1.15}
+          sequence={sequence}
+          fontSize={4.15 * markerScale}
+        />
+      ) : null}
     </g>
   );
 };

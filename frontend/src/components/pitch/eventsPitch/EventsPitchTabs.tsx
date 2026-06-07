@@ -6,7 +6,10 @@ import {
 } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
-import EventsPitchFilters, { type EventsFilters } from "./EventsPitchFilters";
+import EventsPitchFilters, {
+  type EventsFilters,
+  type SequenceEndTypeOption,
+} from "./EventsPitchFilters";
 import EventsPitchStats from "./EventsPitchStats";
 
 interface EventsPitchTabsProps {
@@ -17,6 +20,7 @@ interface EventsPitchTabsProps {
   isOpen: boolean;
   onToggle: () => void;
   availableTypeIds: string[];
+  availableSequenceEndTypes: SequenceEndTypeOption[];
   maxMinute: number;
   hasSecondHalf: boolean;
   defaultValue?: "stats" | "filters";
@@ -31,6 +35,7 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   isOpen,
   onToggle,
   availableTypeIds,
+  availableSequenceEndTypes,
   maxMinute,
   hasSecondHalf,
   defaultValue = "filters",
@@ -95,6 +100,7 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
           homeTeamName={homeTeamName}
           awayTeamName={awayTeamName}
           availableTypeIds={availableTypeIds}
+          availableSequenceEndTypes={availableSequenceEndTypes}
           maxMinute={maxMinute}
           hasSecondHalf={hasSecondHalf}
         />

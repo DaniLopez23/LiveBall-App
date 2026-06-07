@@ -260,38 +260,52 @@ function ShotMarker({
 	point,
 	color,
 	isSelected,
-	label,
+	outcome,
 }: {
 	point: ShotPoint;
 	color: string;
 	isSelected: boolean;
-	label: string;
+	outcome: ShotOutcome;
 }) {
-	const radius = isSelected ? 7.2 : 6;
+	const size = isSelected ? 4.4 : 3.5;
+	const strokeWidth = isSelected ? 1.55 : 1;
 
 	return (
 		<g transform={`translate(${point.x} ${point.y})`}>
-			<circle
-				r={radius}
-				fill={color}
-				stroke="#f8fafc"
-				strokeWidth={isSelected ? "1.7" : "1.1"}
-			/>
-			<text
-				y="0.35"
-				textAnchor="middle"
-				dominantBaseline="middle"
-				fill="#f8fafc"
-				fontSize={label.length > 2 ? "5.6" : "6.5"}
-				fontWeight="700"
-				pointerEvents="none"
-			>
-				{label}
-			</text>
+			{outcome === "Goal" ? (
+				<circle r={size} fill={color} stroke="#f8fafc" strokeWidth={strokeWidth} />
+			) : null}
+			{outcome === "Attempt Saved" ? (
+				<rect
+					x={-size}
+					y={-size}
+					width={size * 2}
+					height={size * 2}
+					rx="0.8"
+					fill={color}
+					stroke="#f8fafc"
+					strokeWidth={strokeWidth}
+				/>
+			) : null}
+			{outcome === "Post" ? (
+				<path
+					d={`M 0 ${-size} L ${size} 0 L 0 ${size} L ${-size} 0 Z`}
+					fill={color}
+					stroke="#f8fafc"
+					strokeWidth={strokeWidth}
+				/>
+			) : null}
+			{outcome === "Miss" ? (
+				<g stroke={color} strokeWidth={strokeWidth + 0.45} strokeLinecap="round">
+					<line x1={-size} y1={-size} x2={size} y2={size} />
+					<line x1={size} y1={-size} x2={-size} y2={size} />
+					<circle r={size + 1.2} fill="none" stroke="#f8fafc" strokeWidth="0.8" />
+				</g>
+			) : null}
 
 			{isSelected ? (
 				<circle
-					r={radius + 2.3}
+					r={size + 2.8}
 					fill="none"
 					stroke="#f8fafc"
 					strokeWidth="1.1"
@@ -302,72 +316,49 @@ function ShotMarker({
 	);
 }
 
-function ShotEndMarker({
-	point,
+function SelectedShotTrajectory({
+	start,
+	end,
 	color,
-	outcome,
-	isSelected,
 }: {
-	point: ShotPoint;
+	start: ShotPoint;
+	end: ShotPoint;
 	color: string;
-	outcome: ShotOutcome;
-	isSelected: boolean;
 }) {
-	const size = isSelected ? 3.9 : 3.1;
-
-	if (outcome === "Miss") {
-		return (
-			<path
-				d={`M ${point.x - size} ${point.y - size} L ${point.x + size} ${
-					point.y + size
-				} M ${point.x + size} ${point.y - size} L ${point.x - size} ${
-					point.y + size
-				}`}
-				stroke={color}
-				strokeWidth={isSelected ? "1.8" : "1.35"}
-				strokeLinecap="round"
-				strokeOpacity={isSelected ? "0.95" : "0.72"}
-			/>
-		);
-	}
-
-	if (outcome === "Post") {
-		return (
-			<path
-				d={`M ${point.x} ${point.y - size} L ${point.x + size} ${point.y} L ${
-					point.x
-				} ${point.y + size} L ${point.x - size} ${point.y} Z`}
-				fill="#f8fafc"
-				stroke={color}
-				strokeWidth={isSelected ? "1.7" : "1.25"}
-			/>
-		);
-	}
-
-	if (outcome === "Attempt Saved") {
-		return (
-			<rect
-				x={point.x - size}
-				y={point.y - size}
-				width={size * 2}
-				height={size * 2}
-				rx="0.9"
-				fill="#f8fafc"
-				stroke={color}
-				strokeWidth={isSelected ? "1.7" : "1.25"}
-			/>
-		);
-	}
-
 	return (
-		<circle
-			cx={point.x}
-			cy={point.y}
-			r={size}
-			fill="#f8fafc"
-			stroke={color}
-			strokeWidth={isSelected ? "1.8" : "1.3"}
-		/>
+		<g pointerEvents="none">
+			<line
+				x1={start.x}
+				y1={start.y}
+				x2={end.x}
+				y2={end.y}
+				stroke="#0f172a"
+				strokeWidth="3.2"
+				strokeDasharray="5 4"
+				strokeLinecap="round"
+				strokeOpacity="0.32"
+			/>
+			<line
+				x1={start.x}
+				y1={start.y}
+				x2={end.x}
+				y2={end.y}
+				stroke={color}
+				strokeWidth="2.05"
+				strokeDasharray="5 4"
+				strokeLinecap="round"
+				strokeOpacity="0.95"
+			>
+				<animate
+					attributeName="stroke-dashoffset"
+					from="42"
+					to="0"
+					dur="0.7s"
+					fill="freeze"
+				/>
+			</line>
+			<circle cx={end.x} cy={end.y} r="2.1" fill={color} stroke="#f8fafc" strokeWidth="0.9" />
+		</g>
 	);
 }
 
@@ -375,37 +366,51 @@ function GoalShotMarker({
 	point,
 	color,
 	isSelected,
-	label,
+	outcome,
 }: {
 	point: ShotPoint;
 	color: string;
 	isSelected: boolean;
-	label: string;
+	outcome: ShotOutcome;
 }) {
-	const radius = isSelected ? 7 : 5.8;
+	const size = isSelected ? 4.4 : 3.4;
+	const strokeWidth = isSelected ? 1.55 : 1;
 
 	return (
 		<g transform={`translate(${point.x} ${point.y})`}>
-			<circle
-				r={radius}
-				fill={color}
-				stroke="#f8fafc"
-				strokeWidth={isSelected ? "1.8" : "1.1"}
-			/>
-			<text
-				y="0.35"
-				textAnchor="middle"
-				dominantBaseline="middle"
-				fill="#f8fafc"
-				fontSize={label.length > 2 ? "5.2" : "6.2"}
-				fontWeight="700"
-				pointerEvents="none"
-			>
-				{label}
-			</text>
+			{outcome === "Goal" ? (
+				<circle r={size} fill={color} stroke="#f8fafc" strokeWidth={strokeWidth} />
+			) : null}
+			{outcome === "Attempt Saved" ? (
+				<rect
+					x={-size}
+					y={-size}
+					width={size * 2}
+					height={size * 2}
+					rx="0.8"
+					fill={color}
+					stroke="#f8fafc"
+					strokeWidth={strokeWidth}
+				/>
+			) : null}
+			{outcome === "Post" ? (
+				<path
+					d={`M 0 ${-size} L ${size} 0 L 0 ${size} L ${-size} 0 Z`}
+					fill={color}
+					stroke="#f8fafc"
+					strokeWidth={strokeWidth}
+				/>
+			) : null}
+			{outcome === "Miss" ? (
+				<g stroke={color} strokeWidth={strokeWidth + 0.45} strokeLinecap="round">
+					<line x1={-size} y1={-size} x2={size} y2={size} />
+					<line x1={size} y1={-size} x2={-size} y2={size} />
+					<circle r={size + 1.2} fill="none" stroke="#f8fafc" strokeWidth="0.8" />
+				</g>
+			) : null}
 			{isSelected ? (
 				<circle
-					r={radius + 2.2}
+					r={size + 2.8}
 					fill="none"
 					stroke={color}
 					strokeWidth="1.3"
@@ -556,7 +561,7 @@ export function GoalShotMap({
 				const side = getTeamSideFromIds(shot.team_id, homeTeamId, awayTeamId);
 				const color = side ? teamColors[side] : UNKNOWN_TEAM_COLOR;
 				const outcomeLabel = getOutcomeLabel(shot.type_id, shot.outcome);
-				const markerLabel = shot.player?.dorsal?.trim() || "?";
+				const outcome = getShotOutcome(shot);
 
 				return (
 					<g
@@ -581,7 +586,7 @@ export function GoalShotMap({
 							point={point}
 							color={color}
 							isSelected={isSelected}
-							label={markerLabel}
+							outcome={outcome}
 						/>
 					</g>
 				);
@@ -629,7 +634,6 @@ export default function MapShotPitch({
 				const color = side ? teamColors[side] : UNKNOWN_TEAM_COLOR;
 				const outcomeLabel = getOutcomeLabel(shot.type_id, shot.outcome);
 				const outcome = getShotOutcome(shot);
-				const markerLabel = shot.player?.dorsal?.trim() || "?";
 
 				return (
 					<g
@@ -647,32 +651,19 @@ export default function MapShotPitch({
 						}
 					>
 						<title>{outcomeLabel} - {formatPlayerLabel(shot)}</title>
-						<line
-							x1={start.x}
-							y1={start.y}
-							x2={end.x}
-							y2={end.y}
-							stroke={color}
-							strokeWidth={isSelected ? "2.7" : "1.65"}
-							strokeOpacity={isSelected ? "0.95" : "0.58"}
-							strokeLinecap="round"
-						/>
-						<ShotEndMarker
-							point={end}
-							color={color}
-							outcome={outcome}
-							isSelected={isSelected}
-						/>
+						{isSelected ? (
+							<SelectedShotTrajectory start={start} end={end} color={color} />
+						) : null}
 						<ShotMarker
 							point={start}
 							color={color}
 							isSelected={isSelected}
-							label={markerLabel}
+							outcome={outcome}
 						/>
 						<circle
 							cx={start.x}
 							cy={start.y}
-							r={isSelected ? 15 : 12}
+							r={isSelected ? 12 : 10}
 							fill="transparent"
 							stroke="transparent"
 							strokeWidth="0"

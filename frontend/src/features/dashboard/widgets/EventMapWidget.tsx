@@ -1,14 +1,17 @@
+import { useEffect, useMemo, useRef } from "react";
+
 import EventsPitch from "@/components/pitch/eventsPitch/EventsPitch";
 import type {
 	EventsMode,
+	SequenceEndTypeOption,
 	SequencePassCountMode,
 } from "@/components/pitch/eventsPitch/EventsPitchFilters";
 import {
 	buildEventSequences,
-	EVENT_SEQUENCE_END_REASONS,
 	type EventSequence,
 	type EventSequenceEndReason,
 } from "@/components/pitch/eventsPitch/eventSequences";
+import { getActionLabel } from "@/components/pitch/eventsPitch/eventDisplay";
 import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
 import useEventsStore from "@/store/eventsStore";
@@ -42,7 +45,8 @@ export type EventMapConfig = {
 export type EventMapFilters = {
 	lastCount: number;
 	team: "home" | "away" | "both";
-	sequenceEndReasons: EventSequenceEndReason[];
+	sequenceEndTypeIds: string[];
+	sequenceEndReasons?: EventSequenceEndReason[];
 	sequencePassCountMode: SequencePassCountMode;
 	sequencePassCount: number;
 	selectedEventType: PitchEventType | "all";
@@ -52,6 +56,19 @@ export type EventMapFilters = {
 	selectedSequenceId: string | null;
 };
 
+const DEFAULT_SEQUENCE_END_TYPE_IDS = [
+	"pass",
+	"take-on",
+	"foul",
+	"out",
+	"tackle",
+	"interception",
+	"clearance",
+	"shot",
+	"duel",
+	"ball-recovery",
+];
+
 export const DEFAULT_EVENT_MAP_CONFIG: EventMapConfig = {
 	mode: "all",
 };
@@ -59,7 +76,7 @@ export const DEFAULT_EVENT_MAP_CONFIG: EventMapConfig = {
 export const DEFAULT_EVENT_MAP_FILTERS: EventMapFilters = {
 	lastCount: 10,
 	team: "both",
-	sequenceEndReasons: EVENT_SEQUENCE_END_REASONS,
+	sequenceEndTypeIds: DEFAULT_SEQUENCE_END_TYPE_IDS,
 	sequencePassCountMode: "any",
 	sequencePassCount: 3,
 	selectedEventType: "all",
@@ -75,24 +92,48 @@ const EVENT_MODE_OPTIONS = [
 	{ value: "all", label: "Todo" },
 ];
 
-const SEQUENCE_END_REASON_LABELS: Record<EventSequenceEndReason, string> = {
-	shot: "Tiro",
-	foul: "Falta",
-	out: "Fuera",
-	opponent: "Otro equipo",
+const LEGACY_SEQUENCE_END_REASON_TYPE_IDS: Record<EventSequenceEndReason, string[]> = {
+	shot: ["shot"],
+	foul: ["foul"],
+	out: ["out"],
+	opponent: DEFAULT_SEQUENCE_END_TYPE_IDS,
 };
+
+const LEGACY_SEQUENCE_END_REASONS: EventSequenceEndReason[] = [
+	"shot",
+	"foul",
+	"out",
+	"opponent",
+];
 
 function normalizeEventMapFilters(filters: Partial<EventMapFilters>): EventMapFilters {
 	return {
 		...DEFAULT_EVENT_MAP_FILTERS,
 		...filters,
-		sequenceEndReasons:
-			filters.sequenceEndReasons ?? DEFAULT_EVENT_MAP_FILTERS.sequenceEndReasons,
+		sequenceEndTypeIds: getNormalizedSequenceEndTypeIds(filters),
 		selectedOutcomes: filters.selectedOutcomes ?? [],
 		selectedSubtypes: filters.selectedSubtypes ?? [],
 		minuteRange: filters.minuteRange ?? DEFAULT_EVENT_MAP_FILTERS.minuteRange,
 		selectedSequenceId: filters.selectedSequenceId ?? null,
 	};
+}
+
+function getNormalizedSequenceEndTypeIds(filters: Partial<EventMapFilters>) {
+	if (Array.isArray(filters.sequenceEndTypeIds)) {
+		return filters.sequenceEndTypeIds;
+	}
+
+	if (Array.isArray(filters.sequenceEndReasons)) {
+		return Array.from(
+			new Set(
+				filters.sequenceEndReasons.flatMap(
+					(reason) => LEGACY_SEQUENCE_END_REASON_TYPE_IDS[reason] ?? [],
+				),
+			),
+		);
+	}
+
+	return DEFAULT_EVENT_MAP_FILTERS.sequenceEndTypeIds;
 }
 
 function getMaxMinute(events: PitchEvent[]) {
@@ -119,15 +160,120 @@ function getTeamId(
 	return undefined;
 }
 
+const getSequenceEndEvent = (sequence: EventSequence): PitchEvent | null =>
+	sequence.events[sequence.events.length - 1] ?? null;
+
+const getSequenceEndTypeOption = (event: PitchEvent): SequenceEndTypeOption => {
+	const typeId = event.type_id;
+
+	switch (typeId) {
+		case "1":
+		case "2":
+			return { id: "pass", label: "Pase", typeIds: ["1", "2"] };
+		case "3":
+			return { id: "take-on", label: "Regate", typeIds: ["3"] };
+		case "4":
+			return { id: "foul", label: "Falta", typeIds: ["4"] };
+		case "5":
+			return { id: "out", label: "Fuera del campo", typeIds: ["5"] };
+		case "7":
+			return { id: "tackle", label: "Entradas", typeIds: ["7"] };
+		case "8":
+			return { id: "interception", label: "Intercepciones", typeIds: ["8"] };
+		case "12":
+			return { id: "clearance", label: "Despejes", typeIds: ["12"] };
+		case "13":
+		case "14":
+		case "15":
+		case "16":
+			return { id: "shot", label: "Tiro", typeIds: ["13", "14", "15", "16"] };
+		case "44":
+		case "67":
+			return { id: "duel", label: "Duelo", typeIds: ["44", "67"] };
+		case "49":
+			return { id: "ball-recovery", label: "Recuperacion de balon", typeIds: ["49"] };
+		default:
+			return {
+				id: `event-${typeId}`,
+				label: getActionLabel(typeId),
+				typeIds: [typeId],
+			};
+	}
+};
+
+function getSequenceEndTypeOptions(sequences: EventSequence[]) {
+	const optionsById = new Map<string, SequenceEndTypeOption>();
+
+	for (const sequence of sequences) {
+		const endEvent = getSequenceEndEvent(sequence);
+		if (!endEvent?.type_id) continue;
+
+		const option = getSequenceEndTypeOption(endEvent);
+		if (!optionsById.has(option.id)) {
+			optionsById.set(option.id, option);
+		}
+	}
+
+	return Array.from(optionsById.values()).sort(
+		(left, right) =>
+			left.label.localeCompare(right.label, "es", { sensitivity: "base" }) ||
+			left.id.localeCompare(right.id),
+	);
+}
+
+function selectionsMatch(selectedIds: string[], availableIds: string[]) {
+	return (
+		selectedIds.length === availableIds.length &&
+		selectedIds.every((id) => availableIds.includes(id))
+	);
+}
+
+function getActiveSequenceEndTypeIds(
+	selectedSequenceEndTypeIds: string[],
+	availableSequenceEndTypes: SequenceEndTypeOption[],
+) {
+	const availableIds = availableSequenceEndTypes.map((option) => option.id);
+	const validSelectedIds = selectedSequenceEndTypeIds.filter((id) =>
+		availableIds.includes(id),
+	);
+
+	if (DEFAULT_SEQUENCE_END_TYPE_IDS.every((id) => selectedSequenceEndTypeIds.includes(id))) {
+		return availableIds;
+	}
+
+	return validSelectedIds;
+}
+
+function getSelectedSequenceEndRawTypeIds(
+	filters: EventMapFilters,
+	availableSequenceEndTypes: SequenceEndTypeOption[],
+) {
+	const activeSequenceEndTypeIds = getActiveSequenceEndTypeIds(
+		filters.sequenceEndTypeIds,
+		availableSequenceEndTypes,
+	);
+
+	return new Set(
+		availableSequenceEndTypes
+			.filter((option) => activeSequenceEndTypeIds.includes(option.id))
+			.flatMap((option) => option.typeIds),
+	);
+}
+
 function sequenceMatchesFilters(
 	sequence: EventSequence,
 	filters: EventMapFilters,
+	selectedSequenceEndRawTypeIds: Set<string>,
 	homeTeamId?: string,
 	awayTeamId?: string,
 ) {
 	const teamId = getTeamId(filters.team, homeTeamId, awayTeamId);
 	if (teamId && sequence.teamId !== teamId) return false;
-	if (!filters.sequenceEndReasons.includes(sequence.endReason)) return false;
+
+	const endEvent = getSequenceEndEvent(sequence);
+	if (!endEvent || !selectedSequenceEndRawTypeIds.has(endEvent.type_id)) {
+		return false;
+	}
 
 	if (filters.sequencePassCountMode === "more") {
 		return sequence.passCount > filters.sequencePassCount;
@@ -222,7 +368,7 @@ function EventPitchSurface({
 				orientation="horizontal"
 				showHeader={false}
 				noDataMessage={noDataMessage}
-				markerScaleMultiplier={1.28}
+				markerScaleMultiplier={1.55}
 				game={game}
 			/>
 		</div>
@@ -261,10 +407,20 @@ function SequenceEventMap({
 	onFiltersChange?: (filters: EventMapFilters) => void;
 }) {
 	const game = useGameStore((state) => state.game);
-	const sequences = buildEventSequences(events).filter((sequence) =>
+	const eventSequences = useMemo(() => buildEventSequences(events), [events]);
+	const sequenceEndTypeOptions = useMemo(
+		() => getSequenceEndTypeOptions(eventSequences),
+		[eventSequences],
+	);
+	const selectedSequenceEndRawTypeIds = useMemo(
+		() => getSelectedSequenceEndRawTypeIds(filters, sequenceEndTypeOptions),
+		[filters, sequenceEndTypeOptions],
+	);
+	const sequences = eventSequences.filter((sequence) =>
 		sequenceMatchesFilters(
 			sequence,
 			filters,
+			selectedSequenceEndRawTypeIds,
 			game?.home_team.team_id,
 			game?.away_team.team_id,
 		),
@@ -304,6 +460,8 @@ function SequenceEventMap({
 					{sequences.map((sequence, index) => {
 						const active = sequence.id === selectedSequence?.id;
 						const startMinute = sequence.events[0]?.min ?? 0;
+						const endEvent = getSequenceEndEvent(sequence);
+						const endLabel = endEvent ? getSequenceEndTypeOption(endEvent).label : "Final";
 
 						return (
 							<button
@@ -322,7 +480,7 @@ function SequenceEventMap({
 									#{index + 1} - Min {startMinute}'
 								</span>
 								<span className="mt-0.5 block text-muted-foreground">
-									{sequence.passCount} pases - {SEQUENCE_END_REASON_LABELS[sequence.endReason]}
+									{sequence.passCount} pases - {endLabel}
 								</span>
 							</button>
 						);
@@ -376,7 +534,7 @@ export function EventMapWidget({
 	onFiltersChange,
 }: WidgetComponentProps<EventMapConfig, EventMapFilters>) {
 	const events = useEventsStore((state) => state.events);
-	const pitchEvents = events.filter(isPitchEvent);
+	const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
 	const normalizedFilters = normalizeEventMapFilters(filters);
 	const maxMinute = getMaxMinute(pitchEvents);
 
@@ -428,8 +586,24 @@ export function EventMapWidgetFilters({
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
 	const filters = normalizeEventMapFilters(value);
+	const hasExplicitSequenceEndTypeIds = Array.isArray(value.sequenceEndTypeIds);
+	const hasExplicitLegacySequenceEndReasons = Array.isArray(value.sequenceEndReasons);
+	const hasStoredSequenceEndSelection =
+		hasExplicitSequenceEndTypeIds || hasExplicitLegacySequenceEndReasons;
 	const mode = config?.mode ?? "all";
-	const pitchEvents = events.filter(isPitchEvent);
+	const pitchEvents = useMemo(() => events.filter(isPitchEvent), [events]);
+	const eventSequences = useMemo(() => buildEventSequences(pitchEvents), [pitchEvents]);
+	const availableSequenceEndTypes = useMemo(
+		() => getSequenceEndTypeOptions(eventSequences),
+		[eventSequences],
+	);
+	const availableSequenceEndTypeIds = useMemo(
+		() => availableSequenceEndTypes.map((option) => option.id),
+		[availableSequenceEndTypes],
+	);
+	const previousSequenceEndTypeIdsRef = useRef<string[]>([]);
+	const selectedSequenceEndTypeIdsKey = filters.sequenceEndTypeIds.join("|");
+	const availableSequenceEndTypeIdsKey = availableSequenceEndTypeIds.join("|");
 	const maxMinute = getMaxMinute(pitchEvents);
 	const availableTypeIds: string[] = Array.from(
 		new Set(pitchEvents.map((event) => String(event.type_id))),
@@ -445,6 +619,64 @@ export function EventMapWidgetFilters({
 		EVENT_SUBTYPE_OPTIONS_BY_TYPE[filters.selectedEventType]?.filter((option) =>
 			option.typeIds.some((id) => availableTypeIds.includes(id)),
 		) ?? [];
+	const validSelectedSequenceEndTypeIds = filters.sequenceEndTypeIds.filter((id) =>
+		availableSequenceEndTypeIds.includes(id),
+	);
+
+	useEffect(() => {
+		const previousIds = previousSequenceEndTypeIdsRef.current;
+		const validSelectedIds = filters.sequenceEndTypeIds.filter((id) =>
+			availableSequenceEndTypeIds.includes(id),
+		);
+		const selectedAllKnownDefaults = DEFAULT_SEQUENCE_END_TYPE_IDS.every((id) =>
+			filters.sequenceEndTypeIds.includes(id),
+		);
+		const selectedAllAvailable = availableSequenceEndTypeIds.every((id) =>
+			filters.sequenceEndTypeIds.includes(id),
+		);
+		const selectedAllLegacyReasons =
+			hasExplicitLegacySequenceEndReasons &&
+			LEGACY_SEQUENCE_END_REASONS.every((reason) =>
+				value.sequenceEndReasons?.includes(reason),
+			);
+		const selectedAllPrevious =
+			previousIds.length === 0
+				? !hasStoredSequenceEndSelection ||
+					selectedAllKnownDefaults ||
+					selectedAllAvailable ||
+					selectedAllLegacyReasons
+				: previousIds.every((id) => filters.sequenceEndTypeIds.includes(id));
+		const nextSequenceEndTypeIds =
+			availableSequenceEndTypeIds.length === 0
+				? []
+				: filters.sequenceEndTypeIds.length === 0 &&
+						previousIds.length === 0 &&
+						!hasStoredSequenceEndSelection
+					? availableSequenceEndTypeIds
+					: selectedAllPrevious
+						? availableSequenceEndTypeIds
+						: validSelectedIds;
+
+		if (!selectionsMatch(filters.sequenceEndTypeIds, nextSequenceEndTypeIds)) {
+			onChange({
+				...filters,
+				sequenceEndTypeIds: nextSequenceEndTypeIds,
+				selectedSequenceId: null,
+			});
+		}
+
+		previousSequenceEndTypeIdsRef.current = availableSequenceEndTypeIds;
+	}, [
+		availableSequenceEndTypeIds,
+		availableSequenceEndTypeIdsKey,
+		filters,
+		hasExplicitSequenceEndTypeIds,
+		hasExplicitLegacySequenceEndReasons,
+		hasStoredSequenceEndSelection,
+		onChange,
+		selectedSequenceEndTypeIdsKey,
+		value.sequenceEndReasons,
+	]);
 
 	if (mode === "live") {
 		return (
@@ -481,20 +713,25 @@ export function EventMapWidgetFilters({
 					]}
 				/>
 				<CheckboxList
-					options={EVENT_SEQUENCE_END_REASONS.map((reason) => ({
-						value: reason,
-						label: SEQUENCE_END_REASON_LABELS[reason],
+					options={availableSequenceEndTypes.map((option) => ({
+						value: option.id,
+						label: option.label,
 					}))}
-					value={filters.sequenceEndReasons}
-					onChange={(sequenceEndReasons) =>
+					value={validSelectedSequenceEndTypeIds}
+					onChange={(sequenceEndTypeIds) =>
 						onChange({
 							...filters,
-							sequenceEndReasons: sequenceEndReasons as EventSequenceEndReason[],
+							sequenceEndTypeIds,
 							selectedSequenceId: null,
 						})
 					}
 				/>
-				<div className="grid gap-3 sm:grid-cols-[1fr_auto]">
+				{availableSequenceEndTypes.length === 0 ? (
+					<p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+						No hay finales de secuencia disponibles.
+					</p>
+				) : null}
+				<div className="grid gap-3">
 					<SelectField
 						label="Numero de pases"
 						value={filters.sequencePassCountMode}
@@ -540,7 +777,7 @@ export function EventMapWidgetFilters({
 	return (
 		<div className="grid gap-3">
 			<SectionTitle>Todos los eventos</SectionTitle>
-			<div className="grid gap-3 sm:grid-cols-2">
+			<div className="grid gap-3">
 				<SelectField
 					label="Equipo"
 					value={filters.team}

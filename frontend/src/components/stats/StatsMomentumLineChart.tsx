@@ -23,6 +23,10 @@ interface StatsMomentumLineChartProps {
 	homeTeamName: string;
 	awayTeamName: string;
 	events: StatsEventMarker[];
+	title?: string;
+	description?: string;
+	minuteRange?: [number, number];
+	compact?: boolean;
 }
 
 interface MomentumPoint {
@@ -172,6 +176,10 @@ export default function StatsMomentumLineChart({
 	homeTeamName,
 	awayTeamName,
 	events,
+	title = "Evolucion de momentum",
+	description = "xT neto por minuto; cero indica equilibrio",
+	minuteRange,
+	compact = false,
 }: StatsMomentumLineChartProps) {
 	const chartData = useMemo<MomentumPoint[]>(() => {
 		const points = [...timeline.buckets]
@@ -224,14 +232,20 @@ export default function StatsMomentumLineChart({
 						};
 
 	return (
-		<section className="rounded-md border bg-background shadow-sm">
+		<section
+			className={
+				compact
+					? "flex h-full min-h-0 flex-col rounded-md border bg-background shadow-sm"
+					: "rounded-md border bg-background shadow-sm"
+			}
+		>
 			<header className="flex flex-wrap items-start justify-between gap-3 border-b px-4 py-3">
 				<div>
 					<h2 className="text-sm font-semibold text-foreground">
-						Evolución de momentum
+						{title}
 					</h2>
 					<p className="mt-1 text-xs text-muted-foreground">
-						xT neto por minuto; cero indica equilibrio
+						{description}
 					</p>
 				</div>
 				<div className="flex flex-wrap gap-3 text-xs">
@@ -245,22 +259,22 @@ export default function StatsMomentumLineChart({
 				</div>
 			</header>
 
-			<div className="px-3 py-4">
+			<div className={compact ? "min-h-0 flex-1 px-3 py-3" : "px-3 py-4"}>
 				{hasData ? (
 					<ChartContainer
 						config={chartConfig}
-						className="h-[18rem] min-h-[18rem] w-full"
+						className={compact ? "h-full min-h-[12rem] w-full" : "h-[18rem] min-h-[18rem] w-full"}
 					>
 						<LineChart
 							accessibilityLayer
 							data={chartData}
-							margin={{ left: 8, right: 16, top: 24, bottom: 8 }}
+							margin={compact ? { left: 0, right: 10, top: 18, bottom: 0 } : { left: 8, right: 16, top: 24, bottom: 8 }}
 						>
 							<CartesianGrid vertical={false} />
 							<XAxis
 								type="number"
 								dataKey="minute"
-								domain={[0, "dataMax"]}
+								domain={minuteRange ?? [0, "dataMax"]}
 								allowDecimals={false}
 								tickLine={false}
 								axisLine={false}
@@ -326,7 +340,13 @@ export default function StatsMomentumLineChart({
 						</LineChart>
 					</ChartContainer>
 				) : (
-					<div className="flex min-h-[14rem] items-center justify-center rounded-md border border-dashed bg-muted/20 px-6 text-center text-sm text-muted-foreground">
+					<div
+						className={
+							compact
+								? "flex h-full min-h-[10rem] items-center justify-center rounded-md border border-dashed bg-muted/20 px-6 text-center text-sm text-muted-foreground"
+								: "flex min-h-[14rem] items-center justify-center rounded-md border border-dashed bg-muted/20 px-6 text-center text-sm text-muted-foreground"
+						}
+					>
 						Esperando momentum para pintar la evolución.
 					</div>
 				)}

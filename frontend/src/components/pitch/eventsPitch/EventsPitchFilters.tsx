@@ -27,19 +27,21 @@ import {
   OUTCOME_OPTIONS_BY_TYPE,
   EVENT_SUBTYPE_OPTIONS_BY_TYPE,
 } from "@/types/outcomeOptions";
-import {
-  EVENT_SEQUENCE_END_REASONS,
-  type EventSequenceEndReason,
-} from "./eventSequences";
 
 export type EventsMode = "live" | "sequences" | "all";
 export type SequencePassCountMode = "any" | "more" | "less";
+
+export interface SequenceEndTypeOption {
+  id: string;
+  label: string;
+  typeIds: string[];
+}
 
 export interface EventsFilters {
   mode: EventsMode;
   lastCount: number;
   team: "home" | "away" | "both";
-  sequenceEndReasons: EventSequenceEndReason[];
+  sequenceEndTypeIds: string[];
   sequencePassCountMode: SequencePassCountMode;
   sequencePassCount: number;
   selectedEventType: PitchEventType | "all";
@@ -54,16 +56,10 @@ interface EventsPitchFiltersProps {
   homeTeamName?: string;
   awayTeamName?: string;
   availableTypeIds: string[];
+  availableSequenceEndTypes: SequenceEndTypeOption[];
   maxMinute: number;
   hasSecondHalf: boolean;
 }
-
-const sequenceEndReasonLabels: Record<EventSequenceEndReason, string> = {
-  shot: "Tiro",
-  foul: "Falta",
-  out: "Fuera",
-  opponent: "Otro equipo",
-};
 
 const COMPACT_COUNTER_THRESHOLD = 4;
 
@@ -73,10 +69,11 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   homeTeamName = "Local",
   awayTeamName = "Visitante",
   availableTypeIds,
+  availableSequenceEndTypes,
   maxMinute,
   hasSecondHalf,
 }) => {
-  const sequenceEndReasonsAnchor = useComboboxAnchor();
+  const sequenceEndTypesAnchor = useComboboxAnchor();
   const outcomesAnchor = useComboboxAnchor();
   const subtypesAnchor = useComboboxAnchor();
 
@@ -102,6 +99,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
 
   const allOutcomeIds = availableOutcomeOptions.map((option) => option.id);
   const allSubtypeIds = availableSubtypeOptions.map((option) => option.id);
+  const allSequenceEndTypeIds = availableSequenceEndTypes.map((option) => option.id);
 
   const allOutcomesSelected =
     allOutcomeIds.length > 0 &&
@@ -110,9 +108,9 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const allSubtypesSelected =
     allSubtypeIds.length > 0 &&
     allSubtypeIds.every((id) => filters.selectedSubtypes.includes(id));
-  const allSequenceEndReasonsSelected =
-    filters.sequenceEndReasons.length === EVENT_SEQUENCE_END_REASONS.length &&
-    EVENT_SEQUENCE_END_REASONS.every((reason) => filters.sequenceEndReasons.includes(reason));
+  const allSequenceEndTypesSelected =
+    allSequenceEndTypeIds.length > 0 &&
+    allSequenceEndTypeIds.every((typeId) => filters.sequenceEndTypeIds.includes(typeId));
 
   const outcomeLabelById = new Map(
     availableOutcomeOptions.map((option) => [option.id, option.label]),
@@ -120,12 +118,18 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const subtypeLabelById = new Map(
     availableSubtypeOptions.map((option) => [option.id, option.label]),
   );
+  const sequenceEndTypeLabelById = new Map(
+    availableSequenceEndTypes.map((option) => [option.id, option.label]),
+  );
 
   const validSelectedOutcomes = filters.selectedOutcomes.filter((id) =>
     outcomeLabelById.has(id),
   );
   const validSelectedSubtypes = filters.selectedSubtypes.filter((id) =>
     subtypeLabelById.has(id),
+  );
+  const validSelectedSequenceEndTypeIds = filters.sequenceEndTypeIds.filter((id) =>
+    sequenceEndTypeLabelById.has(id),
   );
 
   const formatSelectionCounter = (selectedCount: number, totalCount: number) =>
@@ -303,54 +307,61 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               </p>
               <Combobox
                 multiple
-                value={filters.sequenceEndReasons}
+                value={validSelectedSequenceEndTypeIds}
+                disabled={availableSequenceEndTypes.length === 0}
                 onValueChange={(value) =>
                   onChange({
                     ...filters,
-                    sequenceEndReasons: value as EventSequenceEndReason[],
+                    sequenceEndTypeIds: value as string[],
                   })
                 }
               >
-                <div ref={sequenceEndReasonsAnchor} className="w-full min-w-0">
-                  <ComboboxTrigger className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50">
+                <div ref={sequenceEndTypesAnchor} className="w-full min-w-0">
+                  <ComboboxTrigger
+                    disabled={availableSequenceEndTypes.length === 0}
+                    className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  >
                     <span className="min-w-0 flex-1 truncate text-left">
                       {formatSelectionSummary(
-                        filters.sequenceEndReasons.length,
-                        EVENT_SEQUENCE_END_REASONS.length,
+                        validSelectedSequenceEndTypeIds.length,
+                        availableSequenceEndTypes.length,
                         "Sin finales",
                         "Todos los finales",
                       )}
                     </span>
                     <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                       {formatSelectionCounter(
-                        filters.sequenceEndReasons.length,
-                        EVENT_SEQUENCE_END_REASONS.length,
+                        validSelectedSequenceEndTypeIds.length,
+                        availableSequenceEndTypes.length,
                       )}
                     </span>
                   </ComboboxTrigger>
                 </div>
-                <ComboboxContent anchor={sequenceEndReasonsAnchor}>
+                <ComboboxContent anchor={sequenceEndTypesAnchor}>
                   <div className="flex items-center justify-end border-b px-2 py-1.5">
                     <button
                       type="button"
-                      className="text-xs text-primary"
+                      className="text-xs text-primary disabled:text-muted-foreground"
+                      disabled={availableSequenceEndTypes.length === 0}
                       onClick={() =>
                         onChange({
                           ...filters,
-                          sequenceEndReasons: allSequenceEndReasonsSelected
+                          sequenceEndTypeIds: allSequenceEndTypesSelected
                             ? []
-                            : EVENT_SEQUENCE_END_REASONS,
+                            : allSequenceEndTypeIds,
                         })
                       }
                     >
-                      {allSequenceEndReasonsSelected ? "Limpiar seleccion" : "Seleccionar todo"}
+                      {allSequenceEndTypesSelected ? "Limpiar seleccion" : "Seleccionar todo"}
                     </button>
                   </div>
                   <ComboboxList>
-                    <ComboboxEmpty>No hay finales de secuencia.</ComboboxEmpty>
-                    {EVENT_SEQUENCE_END_REASONS.map((reason) => (
-                      <ComboboxItem key={reason} value={reason}>
-                        {sequenceEndReasonLabels[reason]}
+                    {availableSequenceEndTypes.length === 0 ? (
+                      <ComboboxEmpty>No hay finales de secuencia.</ComboboxEmpty>
+                    ) : null}
+                    {availableSequenceEndTypes.map((option) => (
+                      <ComboboxItem key={option.id} value={option.id}>
+                        {option.label}
                       </ComboboxItem>
                     ))}
                   </ComboboxList>
