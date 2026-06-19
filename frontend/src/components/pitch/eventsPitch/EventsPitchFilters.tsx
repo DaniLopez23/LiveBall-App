@@ -37,11 +37,19 @@ export interface SequenceEndTypeOption {
   typeIds: string[];
 }
 
+export interface PlayerFilterOption {
+  id: string;
+  label: string;
+  teamId?: string | null;
+}
+
 export interface EventsFilters {
   mode: EventsMode;
   lastCount: number;
   team: "home" | "away" | "both";
+  selectedPlayerIds: string[];
   sequenceEndTypeIds: string[];
+  sequencePrecedingTypeIds: string[];
   sequencePassCountMode: SequencePassCountMode;
   sequencePassCount: number;
   selectedEventType: PitchEventType | "all";
@@ -57,6 +65,8 @@ interface EventsPitchFiltersProps {
   awayTeamName?: string;
   availableTypeIds: string[];
   availableSequenceEndTypes: SequenceEndTypeOption[];
+  availableSequencePrecedingTypes: SequenceEndTypeOption[];
+  availablePlayers: PlayerFilterOption[];
   maxMinute: number;
   hasSecondHalf: boolean;
 }
@@ -70,10 +80,14 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   awayTeamName = "Visitante",
   availableTypeIds,
   availableSequenceEndTypes,
+  availableSequencePrecedingTypes,
+  availablePlayers,
   maxMinute,
   hasSecondHalf,
 }) => {
   const sequenceEndTypesAnchor = useComboboxAnchor();
+  const sequencePrecedingTypesAnchor = useComboboxAnchor();
+  const playersAnchor = useComboboxAnchor();
   const outcomesAnchor = useComboboxAnchor();
   const subtypesAnchor = useComboboxAnchor();
 
@@ -100,6 +114,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const allOutcomeIds = availableOutcomeOptions.map((option) => option.id);
   const allSubtypeIds = availableSubtypeOptions.map((option) => option.id);
   const allSequenceEndTypeIds = availableSequenceEndTypes.map((option) => option.id);
+  const allSequencePrecedingTypeIds = availableSequencePrecedingTypes.map((option) => option.id);
+  const allPlayerIds = availablePlayers.map((option) => option.id);
 
   const allOutcomesSelected =
     allOutcomeIds.length > 0 &&
@@ -111,6 +127,11 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const allSequenceEndTypesSelected =
     allSequenceEndTypeIds.length > 0 &&
     allSequenceEndTypeIds.every((typeId) => filters.sequenceEndTypeIds.includes(typeId));
+  const allSequencePrecedingTypesSelected =
+    allSequencePrecedingTypeIds.length > 0 &&
+    allSequencePrecedingTypeIds.every((typeId) =>
+      filters.sequencePrecedingTypeIds.includes(typeId),
+    );
 
   const outcomeLabelById = new Map(
     availableOutcomeOptions.map((option) => [option.id, option.label]),
@@ -121,6 +142,12 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const sequenceEndTypeLabelById = new Map(
     availableSequenceEndTypes.map((option) => [option.id, option.label]),
   );
+  const sequencePrecedingTypeLabelById = new Map(
+    availableSequencePrecedingTypes.map((option) => [option.id, option.label]),
+  );
+  const playerLabelById = new Map(
+    availablePlayers.map((option) => [option.id, option.label]),
+  );
 
   const validSelectedOutcomes = filters.selectedOutcomes.filter((id) =>
     outcomeLabelById.has(id),
@@ -130,6 +157,12 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   );
   const validSelectedSequenceEndTypeIds = filters.sequenceEndTypeIds.filter((id) =>
     sequenceEndTypeLabelById.has(id),
+  );
+  const validSelectedSequencePrecedingTypeIds = filters.sequencePrecedingTypeIds.filter((id) =>
+    sequencePrecedingTypeLabelById.has(id),
+  );
+  const validSelectedPlayerIds = filters.selectedPlayerIds.filter((id) =>
+    playerLabelById.has(id),
   );
 
   const formatSelectionCounter = (selectedCount: number, totalCount: number) =>
@@ -155,6 +188,22 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
           ? allLabel
           : `${selectedCount} seleccionados`;
 
+  const formatPlayerSelectionSummary = (selectedCount: number, totalCount: number) =>
+    totalCount === 0
+      ? "Sin jugadores"
+      : selectedCount === 0 || selectedCount === totalCount
+        ? "Todos los jugadores"
+        : `${selectedCount} jugadores seleccionados`;
+
+  const formatPlayerSelectionCounter = (selectedCount: number, totalCount: number) =>
+    totalCount === 0
+      ? "0/0"
+      : selectedCount === 0 || selectedCount === totalCount
+        ? "Todos"
+        : selectedCount > COMPACT_COUNTER_THRESHOLD
+          ? `+${selectedCount}`
+          : `${selectedCount}/${totalCount}`;
+
   const handleModeChange = (value: string) => {
     if (value === "live" || value === "sequences" || value === "all") {
       onChange({ ...filters, mode: value });
@@ -163,7 +212,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
 
   const handleTeamChange = (value: string) => {
     if (value === "home" || value === "away" || value === "both") {
-      onChange({ ...filters, team: value });
+      onChange({ ...filters, team: value, selectedPlayerIds: [] });
     }
   };
 
@@ -228,8 +277,14 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         >
           <div className="flex min-w-0 items-center gap-2 rounded-md border border-input bg-background px-3 py-2">
             <RadioGroupItem value="live" id="mode-live" />
-            <label htmlFor="mode-live" className="min-w-0 flex-1 cursor-pointer truncate text-sm">
-              LIVE
+            <label
+              htmlFor="mode-live"
+              className="min-w-0 flex-1 cursor-pointer text-sm"
+            >
+              <span className="block font-medium leading-none">LIVE</span>
+              <span className="mt-1 block truncate text-[11px] leading-tight text-muted-foreground">
+                Numero de ultimos eventos a mostrar
+              </span>
             </label>
             <NumberInput
               value={filters.lastCount}
@@ -257,50 +312,184 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         </RadioGroup>
       </div>
 
-      {!isLiveMode ? (
-        <>
-          <Separator />
+      <Separator />
 
-          <div>
-            <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Equipo
-            </p>
-            <ToggleGroup
-              type="single"
-              value={filters.team}
-              onValueChange={(value) => value && handleTeamChange(value)}
-              variant="outline"
-              size="sm"
-              className="grid w-full grid-cols-3 gap-1"
+      <div className="flex flex-col gap-4">
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Equipo
+          </p>
+          <ToggleGroup
+            type="single"
+            value={filters.team}
+            onValueChange={(value) => value && handleTeamChange(value)}
+            variant="outline"
+            size="sm"
+            className="grid w-full grid-cols-3 gap-1"
+          >
+            <ToggleGroupItem
+              value="home"
+              className="w-full truncate bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-blue-500 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
             >
-              <ToggleGroupItem
-                value="home"
-                className="w-full truncate bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-blue-500 data-[state=on]:bg-blue-500 data-[state=on]:text-white"
+              {homeTeamName}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="away"
+              className="w-full truncate bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-red-500 data-[state=on]:bg-red-500 data-[state=on]:text-white"
+            >
+              {awayTeamName}
+            </ToggleGroupItem>
+            <ToggleGroupItem
+              value="both"
+              className="w-full bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
+            >
+              Ambos
+            </ToggleGroupItem>
+          </ToggleGroup>
+        </div>
+
+        <div>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            Jugadores
+          </p>
+          <Combobox
+            multiple
+            value={validSelectedPlayerIds}
+            disabled={availablePlayers.length === 0}
+            onValueChange={(value) =>
+              onChange({ ...filters, selectedPlayerIds: value as string[] })
+            }
+          >
+            <div ref={playersAnchor} className="w-full min-w-0">
+              <ComboboxTrigger
+                disabled={availablePlayers.length === 0}
+                className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
               >
-                {homeTeamName}
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="away"
-                className="w-full truncate bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-red-500 data-[state=on]:bg-red-500 data-[state=on]:text-white"
-              >
-                {awayTeamName}
-              </ToggleGroupItem>
-              <ToggleGroupItem
-                value="both"
-                className="w-full bg-background px-1 text-xs hover:bg-background/80 data-[state=on]:border-primary data-[state=on]:bg-primary data-[state=on]:text-primary-foreground"
-              >
-                Ambos
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
-        </>
-      ) : null}
+                <span className="min-w-0 flex-1 truncate text-left">
+                  {formatPlayerSelectionSummary(
+                    validSelectedPlayerIds.length,
+                    availablePlayers.length,
+                  )}
+                </span>
+                <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                  {formatPlayerSelectionCounter(
+                    validSelectedPlayerIds.length,
+                    availablePlayers.length,
+                  )}
+                </span>
+              </ComboboxTrigger>
+            </div>
+            <ComboboxContent anchor={playersAnchor}>
+              <div className="flex items-center justify-end border-b px-2 py-1.5">
+                <button
+                  type="button"
+                  className="text-xs text-primary disabled:text-muted-foreground"
+                  disabled={availablePlayers.length === 0}
+                  onClick={() =>
+                    onChange({
+                      ...filters,
+                      selectedPlayerIds:
+                        validSelectedPlayerIds.length === availablePlayers.length
+                          ? []
+                          : allPlayerIds,
+                    })
+                  }
+                >
+                  {validSelectedPlayerIds.length === availablePlayers.length
+                    ? "Limpiar seleccion"
+                    : "Seleccionar todo"}
+                </button>
+              </div>
+              <ComboboxList>
+                {availablePlayers.length === 0 ? (
+                  <ComboboxEmpty>No hay jugadores disponibles.</ComboboxEmpty>
+                ) : null}
+                {availablePlayers.map((option) => (
+                  <ComboboxItem key={option.id} value={option.id}>
+                    {option.label}
+                  </ComboboxItem>
+                ))}
+              </ComboboxList>
+            </ComboboxContent>
+          </Combobox>
+        </div>
+      </div>
 
       {isSequencesMode ? (
         <>
           <Separator />
 
           <div className="flex flex-col gap-4">
+            <div>
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                Evento precedente
+              </p>
+              <Combobox
+                multiple
+                value={validSelectedSequencePrecedingTypeIds}
+                disabled={availableSequencePrecedingTypes.length === 0}
+                onValueChange={(value) =>
+                  onChange({
+                    ...filters,
+                    sequencePrecedingTypeIds: value as string[],
+                  })
+                }
+              >
+                <div ref={sequencePrecedingTypesAnchor} className="w-full min-w-0">
+                  <ComboboxTrigger
+                    disabled={availableSequencePrecedingTypes.length === 0}
+                    className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-left">
+                      {formatSelectionSummary(
+                        validSelectedSequencePrecedingTypeIds.length,
+                        availableSequencePrecedingTypes.length,
+                        "Sin precedentes",
+                        "Todos los precedentes",
+                      )}
+                    </span>
+                    <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                      {formatSelectionCounter(
+                        validSelectedSequencePrecedingTypeIds.length,
+                        availableSequencePrecedingTypes.length,
+                      )}
+                    </span>
+                  </ComboboxTrigger>
+                </div>
+                <ComboboxContent anchor={sequencePrecedingTypesAnchor}>
+                  <div className="flex items-center justify-end border-b px-2 py-1.5">
+                    <button
+                      type="button"
+                      className="text-xs text-primary disabled:text-muted-foreground"
+                      disabled={availableSequencePrecedingTypes.length === 0}
+                      onClick={() =>
+                        onChange({
+                          ...filters,
+                          sequencePrecedingTypeIds: allSequencePrecedingTypesSelected
+                            ? []
+                            : allSequencePrecedingTypeIds,
+                        })
+                      }
+                    >
+                      {allSequencePrecedingTypesSelected
+                        ? "Limpiar seleccion"
+                        : "Seleccionar todo"}
+                    </button>
+                  </div>
+                  <ComboboxList>
+                    {availableSequencePrecedingTypes.length === 0 ? (
+                      <ComboboxEmpty>No hay eventos precedentes.</ComboboxEmpty>
+                    ) : null}
+                    {availableSequencePrecedingTypes.map((option) => (
+                      <ComboboxItem key={option.id} value={option.id}>
+                        {option.label}
+                      </ComboboxItem>
+                    ))}
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+            </div>
+
             <div>
               <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Final de secuencia
@@ -565,7 +754,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                       </div>
                       <ComboboxList>
                         {availableOutcomeOptions.length === 0 ? (
-                          <ComboboxEmpty>No hay outcomes disponibles.</ComboboxEmpty>
+                          <ComboboxEmpty>No hay resultados disponibles.</ComboboxEmpty>
                         ) : null}
                         {availableOutcomeOptions.map((option) => (
                           <ComboboxItem key={option.id} value={option.id}>

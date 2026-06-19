@@ -9,14 +9,14 @@ const ACTION_LABEL_BY_TYPE_ID: Record<string, string> = {
   "4": "Falta",
   "5": "Fuera del campo",
   "7": "Entrada",
-  "8": "Intercepción",
+  "8": "Intercepcion",
   "12": "Despeje",
   "13": "Tiro",
   "14": "Tiro al poste",
   "15": "Tiro parado",
   "16": "Gol",
   "44": "Duelo",
-  "49": "Recuperación de balón",
+  "49": "Recuperacion de balon",
   "67": "Duelo",
 };
 

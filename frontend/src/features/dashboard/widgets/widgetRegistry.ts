@@ -39,6 +39,15 @@ import {
 	type MatchStatsFilters,
 } from "@/features/dashboard/widgets/MatchStatsWidget";
 import {
+	DEFAULT_KEY_EVENTS_TIMELINE_CONFIG,
+	DEFAULT_KEY_EVENTS_TIMELINE_FILTERS,
+	KeyEventsTimelineWidget,
+	KeyEventsTimelineWidgetConfig,
+	KeyEventsTimelineWidgetFilters,
+	type KeyEventsTimelineConfig,
+	type KeyEventsTimelineFilters,
+} from "@/features/dashboard/widgets/KeyEventsTimelineWidget";
+import {
 	DEFAULT_MOMENTUM_CONFIG,
 	DEFAULT_STATS_EVOLUTION_CONFIG,
 	DEFAULT_TIMELINE_CHART_FILTERS,
@@ -130,11 +139,25 @@ const momentumDefinition = {
 	filterComponent: MomentumChartWidgetFilters,
 } satisfies WidgetDefinition<TimelineChartConfig, TimelineChartFilters>;
 
+const keyEventsTimelineDefinition = {
+	type: "key-events-timeline",
+	label: "Timeline de eventos",
+	description: "Barra temporal de goles, tiros y tarjetas con marcador por minuto.",
+	defaultTitle: "Timeline de eventos",
+	defaultConfig: DEFAULT_KEY_EVENTS_TIMELINE_CONFIG,
+	defaultFilters: DEFAULT_KEY_EVENTS_TIMELINE_FILTERS,
+	defaultLayout: { x: 0, y: 12, w: 8, h: 3, minW: 4, minH: 3 },
+	component: KeyEventsTimelineWidget,
+	configComponent: KeyEventsTimelineWidgetConfig,
+	filterComponent: KeyEventsTimelineWidgetFilters,
+} satisfies WidgetDefinition<KeyEventsTimelineConfig, KeyEventsTimelineFilters>;
+
 export const widgetDefinitions = [
 	eventMapDefinition,
 	shotMapDefinition,
 	passNetworkDefinition,
 	matchStatsDefinition,
+	keyEventsTimelineDefinition,
 	statsEvolutionDefinition,
 	momentumDefinition,
 ];

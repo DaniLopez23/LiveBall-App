@@ -16,7 +16,7 @@ from app.state.game_state import GameStateCache
 logger = logging.getLogger(__name__)
 
 DEFAULT_XT_MODEL_PATH = (
-    Path(__file__).resolve().parents[3] / "data" / "models" / "xthreat_model.json"
+    Path(__file__).resolve().parents[2] / "data" / "models" / "xthreat_model.json"
 )
 MOMENTUM_SOURCE = "socceraction_xT"
 FALLBACK_MOMENTUM_SOURCE = "heuristic_xT"

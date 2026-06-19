@@ -10,7 +10,8 @@ export type DashboardWidgetType =
 	| "pass-network"
 	| "match-stats"
 	| "stats-evolution-chart"
-	| "momentum-chart";
+	| "momentum-chart"
+	| "key-events-timeline";
 
 export interface DashboardLayoutItem {
 	i: string;

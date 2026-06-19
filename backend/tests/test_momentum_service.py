@@ -1,9 +1,11 @@
 import unittest
+from pathlib import Path
 
 from app.schemas.events import Event, Qualifier
 from app.schemas.games import ParsedGame
 from app.schemas.teams import TeamInGame
 from app.services.momentum.service import (
+    DEFAULT_XT_MODEL_PATH,
     DefaultXTValueProvider,
     HeuristicXTProvider,
     MatchMomentumService,
@@ -100,6 +102,17 @@ def make_game(events: list[Event], match_id: str = "game-1") -> ParsedGame:
 
 
 class MatchMomentumServiceTests(unittest.TestCase):
+    def test_default_xt_model_path_uses_packaged_app_data(self):
+        expected_path = (
+            Path(__file__).resolve().parents[1]
+            / "app"
+            / "data"
+            / "models"
+            / "xthreat_model.json"
+        )
+
+        self.assertEqual(DEFAULT_XT_MODEL_PATH, expected_path)
+
     def test_normalizes_event_for_momentum_with_end_coordinates(self):
         normalized = normalize_event_for_momentum("game-1", make_event("e1", 2))
 

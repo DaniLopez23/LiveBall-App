@@ -7,7 +7,6 @@ import {
   formatEventTime,
   formatPlayerLabel,
   getActionLabel,
-  getEventUniqueId,
   getOutcomeLabel,
   getTeamName,
 } from "@/components/pitch/eventsPitch/eventDisplay";
@@ -15,13 +14,16 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import type { Game } from "@/types/game";
 
-const PAGE_SIZE = 15;
+const PAGE_SIZE = 50;
 
 interface EventsPitchTableProps {
   events: OptaEvent[];
   sequenceEvents?: OptaEvent[];
   game?: Game | null;
 }
+
+const getEventSortValue = (event: OptaEvent): number =>
+  (event.period_id ?? 0) * 10000 + (event.min ?? 0) * 60 + (event.sec ?? 0);
 
 const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEvents, game }) => {
   const [page, setPage] = useState(0);
@@ -33,8 +35,15 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEve
   }, [events]);
 
   const totalPages = Math.max(1, Math.ceil(events.length / PAGE_SIZE));
-  const reversed = [...events].reverse();
-  const pageEvents = reversed.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const orderedEvents = events
+    .map((event, index) => ({ event, index }))
+    .sort(
+      (left, right) =>
+        getEventSortValue(right.event) - getEventSortValue(left.event) ||
+        right.index - left.index,
+    )
+    .map(({ event }) => event);
+  const pageEvents = orderedEvents.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const selectedActionLabel = selectedEvent ? getActionLabel(selectedEvent.type_id) : "";
   const selectedOutcomeLabel = selectedEvent
     ? getOutcomeLabel(selectedEvent.type_id, selectedEvent.outcome)
@@ -46,19 +55,18 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEve
         <Table>
           <TableHeader>
             <TableRow className="sticky top-0 bg-background *:whitespace-nowrap after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-border after:content-['']">
-              <TableHead>ID evento</TableHead>
+              <TableHead>Tiempo</TableHead>
               <TableHead>Jugador</TableHead>
               <TableHead>Equipo</TableHead>
               <TableHead>Accion</TableHead>
               <TableHead>Resultado</TableHead>
-              <TableHead>Tiempo</TableHead>
               <TableHead className="w-10 text-center">Mas informacion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="overflow-hidden">
             {events.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                   Sin eventos para mostrar
                 </TableCell>
               </TableRow>
@@ -80,8 +88,8 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEve
                     idx % 2 === 0 ? "bg-white dark:bg-slate-700" : "bg-slate-50 dark:bg-slate-750",
                   )}
                 >
-                  <TableCell className="max-w-52 truncate font-mono text-xs">
-                    {getEventUniqueId(event)}
+                  <TableCell className="tabular-nums text-xs">
+                    {formatEventTime(event.min, event.sec)}
                   </TableCell>
                   <TableCell className="text-xs">
                     {formatPlayerLabel(event)}
@@ -94,9 +102,6 @@ const EventsPitchTable: React.FC<EventsPitchTableProps> = ({ events, sequenceEve
                   </TableCell>
                   <TableCell className="text-xs">
                     {getOutcomeLabel(event.type_id, event.outcome)}
-                  </TableCell>
-                  <TableCell className="tabular-nums text-xs">
-                    {formatEventTime(event.min, event.sec)}
                   </TableCell>
                   <TableCell className="text-center">
                     <button

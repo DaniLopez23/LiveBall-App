@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/sheet";
 import {
   type EventsFilters,
+  type PlayerFilterOption,
   type SequenceEndTypeOption,
 } from "@/components/pitch/eventsPitch/EventsPitchFilters";
 import {
@@ -27,6 +28,7 @@ import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import { isPitchEvent, type PitchEvent } from "@/types/event";
+import type { Game } from "@/types/game";
 import {
   eventMatchesOutcome,
   eventMatchesSubtype,
@@ -39,7 +41,9 @@ const DEFAULT_FILTERS: EventsFilters = {
   mode: "live",
   lastCount: 10,
   team: "both",
+  selectedPlayerIds: [],
   sequenceEndTypeIds: [],
+  sequencePrecedingTypeIds: [],
   sequencePassCountMode: "any",
   sequencePassCount: 3,
   selectedEventType: "all",
@@ -62,6 +66,98 @@ const PITCH_MODE_READY_DELAY_MS = 320;
 
 const getSequenceEndEvent = (sequence: EventSequence): PitchEvent | null =>
   sequence.events[sequence.events.length - 1] ?? null;
+
+const getTeamIdForFilter = (
+  teamFilter: EventsFilters["team"],
+  game: Game | null | undefined,
+): string | null => {
+  if (!game || teamFilter === "both") return null;
+  return teamFilter === "home" ? game.home_team.team_id : game.away_team.team_id;
+};
+
+const formatPlayerOptionLabel = (
+  id: string,
+  dorsal?: string | null,
+  name?: string | null,
+): string => {
+  const safeDorsal = dorsal?.trim() || "S/D";
+  const safeName = name?.trim() || `Jugador ${id}`;
+  return `${safeDorsal}-${safeName}`;
+};
+
+const getEventPlayerIds = (event: PitchEvent): string[] => {
+  const ids = [
+    event.player?.id,
+    event.player_id,
+    event.player_receiver?.id,
+    event.player_receiver_id,
+  ]
+    .map((id) => id?.trim())
+    .filter((id): id is string => Boolean(id));
+
+  return Array.from(new Set(ids));
+};
+
+const eventMatchesPlayerFilter = (
+  event: PitchEvent,
+  selectedPlayerIds: string[],
+): boolean => {
+  if (selectedPlayerIds.length === 0) return true;
+  const selected = new Set(selectedPlayerIds);
+  return getEventPlayerIds(event).some((id) => selected.has(id));
+};
+
+const buildPlayerOptions = (
+  events: PitchEvent[],
+  teamFilter: EventsFilters["team"],
+  game: Game | null | undefined,
+): PlayerFilterOption[] => {
+  const selectedTeamId = getTeamIdForFilter(teamFilter, game);
+  const playersById = new Map<string, PlayerFilterOption & { dorsalSort: number }>();
+
+  for (const event of events) {
+    if (selectedTeamId && event.team_id !== selectedTeamId) continue;
+
+    const candidates = [
+      {
+        id: event.player?.id ?? event.player_id,
+        dorsal: event.player?.dorsal,
+        name: event.player?.name,
+      },
+      {
+        id: event.player_receiver?.id ?? event.player_receiver_id,
+        dorsal: event.player_receiver?.dorsal,
+        name: event.player_receiver?.name,
+      },
+    ];
+
+    for (const candidate of candidates) {
+      const id = candidate.id?.trim();
+      if (!id) continue;
+
+      const dorsalSort = Number(candidate.dorsal);
+      const option = {
+        id,
+        label: formatPlayerOptionLabel(id, candidate.dorsal, candidate.name),
+        teamId: event.team_id,
+        dorsalSort: Number.isFinite(dorsalSort) ? dorsalSort : Number.MAX_SAFE_INTEGER,
+      };
+      const current = playersById.get(id);
+
+      if (!current || current.label.startsWith("S/D-")) {
+        playersById.set(id, option);
+      }
+    }
+  }
+
+  return Array.from(playersById.values())
+    .sort(
+      (left, right) =>
+        left.dorsalSort - right.dorsalSort ||
+        left.label.localeCompare(right.label, "es", { sensitivity: "base" }),
+    )
+    .map(({ dorsalSort, ...option }) => option);
+};
 
 const getSequenceEndTypeOption = (event: PitchEvent): SequenceEndTypeOption => {
   const typeId: string = event.type_id;
@@ -112,6 +208,7 @@ const EventsPage: React.FC = () => {
   const [isPitchModePreparing, setIsPitchModePreparing] = useState(false);
   const previousPitchModeRef = useRef<EventsFilters["mode"]>(filters.mode);
   const previousSequenceEndTypeIdsRef = useRef<string[]>([]);
+  const previousSequencePrecedingTypeIdsRef = useRef<string[]>([]);
 
   const teamColors = useMemo(() => {
     if (!game) return {};
@@ -132,6 +229,25 @@ const EventsPage: React.FC = () => {
       if (!endEvent?.type_id) continue;
 
       const option = getSequenceEndTypeOption(endEvent);
+      if (!optionsById.has(option.id)) {
+        optionsById.set(option.id, option);
+      }
+    }
+
+    return Array.from(optionsById.values()).sort(
+      (left, right) =>
+        left.label.localeCompare(right.label, "es", { sensitivity: "base" }) ||
+        left.id.localeCompare(right.id),
+    );
+  }, [eventSequences]);
+  const sequencePrecedingTypeOptions = useMemo<SequenceEndTypeOption[]>(() => {
+    const optionsById = new Map<string, SequenceEndTypeOption>();
+
+    for (const sequence of eventSequences) {
+      const precedingEvent = sequence.precedingEvent;
+      if (!precedingEvent?.type_id) continue;
+
+      const option = getSequenceEndTypeOption(precedingEvent);
       if (!optionsById.has(option.id)) {
         optionsById.set(option.id, option);
       }
@@ -221,11 +337,44 @@ const EventsPage: React.FC = () => {
     previousSequenceEndTypeIdsRef.current = availableIds;
   }, [sequenceEndTypeOptions]);
 
+  useEffect(() => {
+    const availableIds = sequencePrecedingTypeOptions.map((option) => option.id);
+    const previousIds = previousSequencePrecedingTypeIdsRef.current;
+
+    setFilters((currentFilters) => {
+      const validSelectedIds = currentFilters.sequencePrecedingTypeIds.filter((id) =>
+        availableIds.includes(id),
+      );
+      const selectedAllPrevious =
+        previousIds.length === 0 ||
+        previousIds.every((id) => currentFilters.sequencePrecedingTypeIds.includes(id));
+      const nextSequencePrecedingTypeIds =
+        availableIds.length === 0
+          ? []
+          : currentFilters.sequencePrecedingTypeIds.length === 0 && previousIds.length === 0
+            ? availableIds
+            : selectedAllPrevious
+              ? availableIds
+              : validSelectedIds;
+      const unchanged = selectionsMatch(
+        currentFilters.sequencePrecedingTypeIds,
+        nextSequencePrecedingTypeIds,
+      );
+
+      return unchanged
+        ? currentFilters
+        : { ...currentFilters, sequencePrecedingTypeIds: nextSequencePrecedingTypeIds };
+    });
+
+    previousSequencePrecedingTypeIdsRef.current = availableIds;
+  }, [sequencePrecedingTypeOptions]);
+
   const sequenceMatchesFilters = useCallback(
     (
       sequence: EventSequence,
       activeFilters: EventsFilters,
       selectedSequenceEndRawTypeIds: Set<string>,
+      selectedSequencePrecedingRawTypeIds: Set<string>,
     ) => {
       if (activeFilters.team !== "both" && game) {
         const teamId =
@@ -233,6 +382,23 @@ const EventsPage: React.FC = () => {
             ? game.home_team.team_id
             : game.away_team.team_id;
         if (sequence.teamId !== teamId) return false;
+      }
+
+      if (
+        activeFilters.selectedPlayerIds.length > 0 &&
+        !sequence.events.some((event) =>
+          eventMatchesPlayerFilter(event, activeFilters.selectedPlayerIds),
+        )
+      ) {
+        return false;
+      }
+
+      if (
+        activeFilters.sequencePrecedingTypeIds.length > 0 &&
+        (!sequence.precedingEvent ||
+          !selectedSequencePrecedingRawTypeIds.has(sequence.precedingEvent.type_id))
+      ) {
+        return false;
       }
 
       const endEvent = getSequenceEndEvent(sequence);
@@ -299,6 +465,30 @@ const EventsPage: React.FC = () => {
     };
   }, [filters, seededFilters, isDefaultAllSelection, currentMaxMinute]);
 
+  const availablePlayers = useMemo(
+    () => buildPlayerOptions(pitchEvents, displayFilters.team, game),
+    [pitchEvents, displayFilters.team, game],
+  );
+  const availablePlayerIds = useMemo(
+    () => availablePlayers.map((player) => player.id),
+    [availablePlayers],
+  );
+
+  useEffect(() => {
+    setFilters((currentFilters) => {
+      if (currentFilters.selectedPlayerIds.length === 0) return currentFilters;
+
+      const validSelectedPlayerIds = currentFilters.selectedPlayerIds.filter((id) =>
+        availablePlayerIds.includes(id),
+      );
+      if (selectionsMatch(currentFilters.selectedPlayerIds, validSelectedPlayerIds)) {
+        return currentFilters;
+      }
+
+      return { ...currentFilters, selectedPlayerIds: validSelectedPlayerIds };
+    });
+  }, [availablePlayerIds]);
+
   const filteredSequences = useMemo(
     () => {
       const selectedSequenceEndRawTypeIds = new Set(
@@ -306,12 +496,28 @@ const EventsPage: React.FC = () => {
           .filter((option) => displayFilters.sequenceEndTypeIds.includes(option.id))
           .flatMap((option) => option.typeIds),
       );
+      const selectedSequencePrecedingRawTypeIds = new Set(
+        sequencePrecedingTypeOptions
+          .filter((option) => displayFilters.sequencePrecedingTypeIds.includes(option.id))
+          .flatMap((option) => option.typeIds),
+      );
 
       return eventSequences.filter((sequence) =>
-        sequenceMatchesFilters(sequence, displayFilters, selectedSequenceEndRawTypeIds),
+        sequenceMatchesFilters(
+          sequence,
+          displayFilters,
+          selectedSequenceEndRawTypeIds,
+          selectedSequencePrecedingRawTypeIds,
+        ),
       );
     },
-    [eventSequences, displayFilters, sequenceEndTypeOptions, sequenceMatchesFilters],
+    [
+      eventSequences,
+      displayFilters,
+      sequenceEndTypeOptions,
+      sequencePrecedingTypeOptions,
+      sequenceMatchesFilters,
+    ],
   );
 
   const selectedSequence = useMemo(
@@ -321,10 +527,6 @@ const EventsPage: React.FC = () => {
         : null,
     [filteredSequences, selectedSequenceId],
   );
-  const highlightedSequenceEventId = selectedSequence
-    ? getSequenceEndEvent(selectedSequence)?.id ?? null
-    : null;
-
   useEffect(() => {
     if (displayFilters.mode !== "sequences") return;
     if (selectedSequenceId && !selectedSequence) {
@@ -346,14 +548,6 @@ const EventsPage: React.FC = () => {
   }, [displayFilters.mode]);
 
   const filteredEvents = useMemo(() => {
-    if (displayFilters.mode === "live") {
-      return pitchEvents.slice(-displayFilters.lastCount);
-    }
-
-    if (displayFilters.mode === "sequences") {
-      return selectedSequence?.events ?? [];
-    }
-
     let result = pitchEvents;
 
     if (displayFilters.team !== "both" && game) {
@@ -362,6 +556,20 @@ const EventsPage: React.FC = () => {
           ? game.home_team.team_id
           : game.away_team.team_id;
       result = result.filter((event: PitchEvent) => event.team_id === teamId);
+    }
+
+    if (displayFilters.selectedPlayerIds.length > 0) {
+      result = result.filter((event) =>
+        eventMatchesPlayerFilter(event, displayFilters.selectedPlayerIds),
+      );
+    }
+
+    if (displayFilters.mode === "live") {
+      return result.slice(-displayFilters.lastCount);
+    }
+
+    if (displayFilters.mode === "sequences") {
+      return selectedSequence?.events ?? [];
     }
 
     if (!isDefaultAllSelection) {
@@ -416,13 +624,9 @@ const EventsPage: React.FC = () => {
 
   return (
     <div className="flex min-h-full flex-col gap-4 p-4">
-      <div className="flex flex-wrap items-center gap-x-2 gap-y-3">
+      <div className="flex flex-wrap items-start gap-x-2 gap-y-3">
         <div className="min-w-0 shrink-0">
-          <h1 className="text-2xl font-bold">Real Time Events</h1>
-        </div>
-
-        <div className="shrink-0 ml-4">
-          <NewEventsAlert key={game?.game_id ?? "no-game"} />
+          <h1 className="text-2xl font-bold">Eventos en tiempo real</h1>
         </div>
 
         <Button
@@ -430,11 +634,15 @@ const EventsPage: React.FC = () => {
           variant="outline"
           size="sm"
           onClick={() => setIsMobilePanelOpen(true)}
-          className="ml-auto xl:hidden"
+          className="ml-auto shrink-0 xl:hidden"
         >
           <SlidersHorizontal className="size-4" />
           Filtros
         </Button>
+
+        <div className="order-last w-full min-w-0 sm:order-none sm:ml-2 sm:w-auto sm:flex-1 xl:flex-none">
+          <NewEventsAlert key={game?.game_id ?? "no-game"} />
+        </div>
       </div>
 
       <div className="flex min-h-[46rem] gap-2 xl:h-[calc(100svh-8rem)] xl:min-h-[48rem]">
@@ -452,7 +660,6 @@ const EventsPage: React.FC = () => {
               teamColors={teamColors}
               orientation="horizontal"
               loadingMessage={pitchLoadingMessage}
-              highlightedEventId={highlightedSequenceEventId}
               game={game}
             />
           ) : shouldShowSequenceSelectionPrompt ? (
@@ -462,7 +669,6 @@ const EventsPage: React.FC = () => {
               teamColors={teamColors}
               orientation="horizontal"
               noDataMessage="Seleccione una secuencia en la Tabla para observarla en el campo"
-              highlightedEventId={highlightedSequenceEventId}
               game={game}
             />
           ) : (
@@ -471,7 +677,7 @@ const EventsPage: React.FC = () => {
               mode={displayFilters.mode}
               teamColors={teamColors}
               orientation="horizontal"
-              highlightedEventId={highlightedSequenceEventId}
+              animateSequence={displayFilters.mode === "sequences"}
               game={game}
             />
           )}
@@ -492,6 +698,8 @@ const EventsPage: React.FC = () => {
             onToggle={() => setShowFilters((value) => !value)}
             availableTypeIds={availableTypeIds}
             availableSequenceEndTypes={sequenceEndTypeOptions}
+            availableSequencePrecedingTypes={sequencePrecedingTypeOptions}
+            availablePlayers={availablePlayers}
             maxMinute={currentMaxMinute}
             hasSecondHalf={hasSecondHalf}
           />
@@ -517,6 +725,8 @@ const EventsPage: React.FC = () => {
             onToggle={() => setIsMobilePanelOpen(false)}
             availableTypeIds={availableTypeIds}
             availableSequenceEndTypes={sequenceEndTypeOptions}
+            availableSequencePrecedingTypes={sequencePrecedingTypeOptions}
+            availablePlayers={availablePlayers}
             maxMinute={currentMaxMinute}
             hasSecondHalf={hasSecondHalf}
           />

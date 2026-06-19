@@ -3,6 +3,7 @@ import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import type { Event } from "@/types/event";
 import type { TeamPassNetwork } from "@/types/passNetwork";
 import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
 
@@ -20,6 +21,9 @@ interface PassNetworkTabsProps {
 	onPause: () => void;
 	onResetPlayback: () => void;
 	onCurrentMinuteChange: (minute: number) => void;
+	events: Event[];
+	homeTeamId: string | null;
+	awayTeamId: string | null;
 	homeScoreAtMinute: number;
 	awayScoreAtMinute: number;
 	homeNetwork: TeamPassNetwork | null;
@@ -50,6 +54,9 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	onPause,
 	onResetPlayback,
 	onCurrentMinuteChange,
+	events,
+	homeTeamId,
+	awayTeamId,
 	homeScoreAtMinute,
 	awayScoreAtMinute,
 	homeNetwork,
@@ -134,6 +141,13 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 					onPause={onPause}
 					onResetPlayback={onResetPlayback}
 					onCurrentMinuteChange={onCurrentMinuteChange}
+					events={events}
+					homeTeamId={homeTeamId}
+					awayTeamId={awayTeamId}
+					homeTeamName={homeTeamName}
+					awayTeamName={awayTeamName}
+					homeColor={homeColor}
+					awayColor={awayColor}
 					homeScoreAtMinute={homeScoreAtMinute}
 					awayScoreAtMinute={awayScoreAtMinute}
 					maxMinute={maxMinute}

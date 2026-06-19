@@ -3,6 +3,8 @@ import { Pause, Play, RotateCcw } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider-14";
 import { cn } from "@/lib/utils";
+import type { Event } from "@/types/event";
+import PassNetworkTimelineSlicer from "./PassNetworkTimelineSlicer";
 import {
 	DEFAULT_PASS_NETWORK_FILTERS,
 	type PassNetworkFiltersState,
@@ -17,6 +19,13 @@ interface PassNetworkFiltersProps {
 	onPause: () => void;
 	onResetPlayback: () => void;
 	onCurrentMinuteChange: (minute: number) => void;
+	events: Event[];
+	homeTeamId: string | null;
+	awayTeamId: string | null;
+	homeTeamName: string;
+	awayTeamName: string;
+	homeColor: string;
+	awayColor: string;
 	homeScoreAtMinute: number;
 	awayScoreAtMinute: number;
 	maxMinute: number;
@@ -58,145 +67,67 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 	onPause,
 	onResetPlayback,
 	onCurrentMinuteChange,
+	events,
+	homeTeamId,
+	awayTeamId,
+	homeTeamName,
+	awayTeamName,
+	homeColor,
+	awayColor,
 	homeScoreAtMinute,
 	awayScoreAtMinute,
 	maxMinute,
 }) => {
 	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
-	const [activePointerId, setActivePointerId] = React.useState<number | null>(null);
-	const progressTrackRef = React.useRef<HTMLDivElement | null>(null);
 	const [rawStartMinute, rawEndMinute] = filters.minuteRange;
 	const startMinute = Math.min(boundedMaxMinute, Math.max(0, rawStartMinute));
 	const endMinute = Math.min(boundedMaxMinute, Math.max(startMinute, rawEndMinute));
 	const clampedMinute = Math.min(endMinute, Math.max(startMinute, currentMinute));
-	const progressStart = boundedMaxMinute > 0 ? (startMinute / boundedMaxMinute) * 100 : 0;
-	const progressEnd = boundedMaxMinute > 0 ? (clampedMinute / boundedMaxMinute) * 100 : 0;
-	const progressWidth = Math.max(0, progressEnd - progressStart);
 	const canPlay = startMinute < endMinute;
 	const momentPresets = getMomentPresets(boundedMaxMinute);
 	const selectedPresetLabel = getMomentPresetLabel([startMinute, endMinute], boundedMaxMinute);
-	const sliderMax = Math.max(1, boundedMaxMinute);
-
-	const handleMinuteRangeChange = (values: number[]) => {
-		const first = values[0] ?? 0;
-		const second = values[1] ?? first;
-		const nextStart = Math.min(boundedMaxMinute, Math.max(0, first));
-		const nextEnd = Math.min(boundedMaxMinute, Math.max(0, second));
-
-		onChange({
-			...filters,
-			minuteRange: [Math.min(nextStart, nextEnd), Math.max(nextStart, nextEnd)] as [
-				number,
-				number,
-			],
-		});
-	};
-
-	const setMinuteFromPointer = (clientX: number) => {
-		const element = progressTrackRef.current;
-		if (!element) return;
-
-		const rect = element.getBoundingClientRect();
-		if (rect.width <= 0) return;
-
-		const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-		const rawMinute = Math.round(ratio * boundedMaxMinute);
-		const nextMinute = Math.min(endMinute, Math.max(startMinute, rawMinute));
-
-		onCurrentMinuteChange(nextMinute);
-	};
-
-	const handleProgressPointerDown: React.PointerEventHandler<HTMLButtonElement> = (event) => {
-		event.preventDefault();
-		onPause();
-		setActivePointerId(event.pointerId);
-		event.currentTarget.setPointerCapture(event.pointerId);
-		setMinuteFromPointer(event.clientX);
-	};
-
-	const handleProgressPointerMove: React.PointerEventHandler<HTMLButtonElement> = (event) => {
-		if (activePointerId !== event.pointerId) return;
-		setMinuteFromPointer(event.clientX);
-	};
-
-	const handleProgressPointerEnd: React.PointerEventHandler<HTMLButtonElement> = (event) => {
-		if (activePointerId !== event.pointerId) return;
-		setActivePointerId(null);
-		if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-			event.currentTarget.releasePointerCapture(event.pointerId);
-		}
-	};
 
 	return (
 		<div className="flex h-full flex-col gap-5">
 			{/* Section 1: Momento */}
 			<div>
 				<div className="mb-2 rounded-lg border border-primary/35 bg-primary/5 p-4 shadow-sm">
-					<div className="grid grid-cols-[auto_1fr_auto] items-start gap-2">
+					<div className="grid grid-cols-[1fr_auto] items-start gap-2">
 						<p className="text-sm font-semibold uppercase tracking-wide text-primary">
 							Momento
 						</p>
-						<span className="justify-self-center rounded-md border border-emerald-500/30 bg-emerald-500/10 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
-							{homeScoreAtMinute} - {awayScoreAtMinute}
-						</span>
 						<span className="rounded-full bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground">
 							{selectedPresetLabel}
 						</span>
 					</div>
 
-					<div className="mt-3 text-xs text-muted-foreground">
-						Define la ventana de minutos y reproduce la evolucion de la red de pases.
-					</div>
-
-					<div className="mt-4 space-y-3">
-						<div className="relative px-1 pt-6">
-							<div
-								ref={progressTrackRef}
-								className="pointer-events-none absolute inset-x-1 top-0 h-6"
-							>
-								<span className="absolute inset-x-0 top-2 h-1.5 rounded-full bg-primary/20" />
-								<span
-									className="absolute top-2 h-1.5 rounded-full bg-emerald-500/35"
-									style={{
-										left: `${progressStart}%`,
-										width: `${progressWidth}%`,
-									}}
-								/>
-
-								<button
-									type="button"
-									aria-label="Mover minuto actual"
-									className="pointer-events-auto absolute top-0 z-20 flex h-6 w-6 -translate-x-1/2 touch-none select-none cursor-grab flex-col items-center active:cursor-grabbing"
-									style={{ left: `${progressEnd}%` }}
-									onPointerDown={handleProgressPointerDown}
-									onPointerMove={handleProgressPointerMove}
-									onPointerUp={handleProgressPointerEnd}
-									onPointerCancel={handleProgressPointerEnd}
-								>
-									<span className="mt-0.5 h-3 w-1 rounded-full bg-emerald-600 shadow-sm" />
-									<span className="-mt-0.5 h-0 w-0 border-l-[6px] border-r-[6px] border-t-8 border-l-transparent border-r-transparent border-t-emerald-600" />
-								</button>
-							</div>
-
-							<Slider
-								min={0}
-								max={sliderMax}
-								step={1}
-								disabled={boundedMaxMinute === 0}
-								value={[startMinute, endMinute]}
-								onValueChange={handleMinuteRangeChange}
-								className="relative z-10"
-							/>
-						</div>
-
-						<div className="flex items-center justify-between px-1 text-[11px] text-muted-foreground">
-							<span>{startMinute}&apos;</span>
-							<span>
-								Minuto actual: <strong className="text-foreground">{clampedMinute}&apos;</strong>
-							</span>
-							<span>{endMinute}&apos;</span>
-						</div>
-					</div>
+					<PassNetworkTimelineSlicer
+						events={events}
+						homeTeamId={homeTeamId}
+						awayTeamId={awayTeamId}
+						homeTeamName={homeTeamName}
+						awayTeamName={awayTeamName}
+						homeColor={homeColor}
+						awayColor={awayColor}
+						homeScore={homeScoreAtMinute}
+						awayScore={awayScoreAtMinute}
+						minuteRange={[startMinute, endMinute]}
+						currentMinute={clampedMinute}
+						maxMinute={boundedMaxMinute}
+						disabled={boundedMaxMinute === 0}
+						className="mt-3"
+						onMinuteRangeChange={(minuteRange) => {
+							onPause();
+							onChange({
+								...filters,
+								minuteRange,
+							});
+						}}
+						onCurrentMinuteChange={(minute) => {
+							onPause();
+							onCurrentMinuteChange(minute);
+						}}
+					/>
 
 					<div className="mt-4 flex items-center justify-center gap-2">
 						<button

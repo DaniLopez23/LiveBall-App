@@ -3,9 +3,9 @@ import { BellRing, Clock3, UserRound, Zap } from "lucide-react";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { getActionLabel } from "@/components/pitch/eventsPitch/eventDisplay";
 import useEventsStore from "@/store/eventsStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
-import { PITCH_EVENT_TYPES_CONFIG } from "@/types/outcomeOptions";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 
@@ -19,9 +19,9 @@ function formatClock(min?: number | null, sec?: number | null): string {
   return `${minute}:${second}`;
 }
 
-function getEventLabel(typeId: string, eventName?: string | null): string {
-  const fromRegistry = PITCH_EVENT_TYPES_CONFIG.find((item) => item.typeIds.includes(typeId));
-  return eventName?.trim() || fromRegistry?.label || "Unknown event";
+function getEventLabel(typeId: string): string {
+  const actionLabel = getActionLabel(typeId);
+  return actionLabel === typeId ? `Evento ${typeId}` : actionLabel;
 }
 
 function resolvePlayerName(
@@ -30,12 +30,12 @@ function resolvePlayerName(
   passNetworksByTeamId: Record<string, { nodes: { player_id: string; player_name: string }[] }>,
 ): string {
   if (!playerId) {
-    return "Unknown player";
+    return "Jugador desconocido";
   }
 
   const teamNetwork = teamId ? passNetworksByTeamId[String(teamId)] : undefined;
   const matchedPlayer = teamNetwork?.nodes.find((node) => node.player_id === playerId);
-  return matchedPlayer?.player_name?.trim() || `Player ${playerId}`;
+  return matchedPlayer?.player_name?.trim() || `Jugador ${playerId}`;
 }
 
 function formatLivePlayerLabel(
@@ -107,13 +107,15 @@ const NewEventsAlert = () => {
     previousCountRef.current = currentCount;
   }, [events.length, latestEvent]);
 
+  const newEventsLabel = latestBatchNewEvents === 1 ? "nuevo" : "nuevos";
+
   const alertDetails = useMemo(() => {
     if (!latestEvent) {
       return null;
     }
 
     return {
-      eventLabel: getEventLabel(latestEvent.type_id, latestEvent.event_name),
+      eventLabel: getEventLabel(latestEvent.type_id),
       playerLabel: formatLivePlayerLabel(latestEvent, passNetworksByTeamId),
       timeLabel: formatClock(latestEvent.min, latestEvent.sec),
     };
@@ -126,35 +128,39 @@ const NewEventsAlert = () => {
   return (
     <Alert
       className={cn(
-        "inline-flex w-fit max-w-full items-center gap-3 border-border/70 bg-background/90 px-3 py-2 backdrop-blur supports-backdrop-filter:bg-background/80 shadow-sm transition-all duration-300",
+        "flex w-full min-w-0 items-start gap-2 border-border/70 bg-background/90 px-2.5 py-2 shadow-sm backdrop-blur transition-all duration-300 supports-backdrop-filter:bg-background/80 sm:w-fit sm:max-w-full sm:items-center sm:gap-3 sm:px-3",
         isPulsing && "scale-[1.015] border-primary/40 bg-primary/5 shadow-md shadow-primary/10",
       )}
     >
-      <BellRing className="text-primary" />
-      <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-1">
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          <AlertTitle className="mb-0 text-sm font-semibold">Live event feed</AlertTitle>
-          <Badge variant="secondary" className="gap-1.5">
+      <BellRing className="mt-0.5 shrink-0 text-primary sm:mt-0" />
+      <div className="grid min-w-0 flex-1 gap-1 sm:flex sm:flex-wrap sm:items-center sm:gap-x-3 sm:gap-y-1">
+        <div className="flex min-w-0 items-center gap-2">
+          <AlertTitle className="mb-0 shrink-0 text-xs font-semibold sm:text-sm">
+            Eventos en directo
+          </AlertTitle>
+          <Badge variant="secondary" className="shrink-0 gap-1.5">
             <Zap className="size-3" />
-            {latestBatchNewEvents} new
+            {latestBatchNewEvents} {newEventsLabel}
           </Badge>
         </div>
 
         {alertDetails ? (
-          <AlertDescription className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-            <span className="truncate font-medium text-foreground">{alertDetails.eventLabel}</span>
-            <span className="inline-flex items-center gap-1.5 text-muted-foreground">
-              <UserRound className="size-3.5" />
-              <span className="truncate">{alertDetails.playerLabel}</span>
+          <AlertDescription className="grid min-w-0 gap-1 text-xs leading-snug sm:flex sm:flex-wrap sm:items-center sm:gap-x-4 sm:gap-y-1 sm:text-sm">
+            <span className="min-w-0 truncate font-medium text-foreground">
+              {alertDetails.eventLabel}
             </span>
-            <span className="inline-flex items-center gap-1.5 tabular-nums text-muted-foreground">
-              <Clock3 className="size-3.5" />
+            <span className="inline-flex min-w-0 items-center gap-1.5 text-muted-foreground">
+              <UserRound className="size-3.5 shrink-0" />
+              <span className="min-w-0 truncate">{alertDetails.playerLabel}</span>
+            </span>
+            <span className="inline-flex min-w-0 items-center gap-1.5 tabular-nums text-muted-foreground">
+              <Clock3 className="size-3.5 shrink-0" />
               {alertDetails.timeLabel}
             </span>
           </AlertDescription>
         ) : (
           <AlertDescription>
-            Waiting for the first live events to arrive.
+            Esperando los primeros eventos en directo.
           </AlertDescription>
         )}
       </div>

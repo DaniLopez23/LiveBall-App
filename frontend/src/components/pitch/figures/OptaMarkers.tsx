@@ -15,6 +15,10 @@ import useOptaPitchConfigStore, {
   VB_SHORT,
 } from "@/store/optaPitchConfigStore";
 import {
+  formatEventTime,
+  getActionLabel,
+} from "@/components/pitch/eventsPitch/eventDisplay";
+import {
   type PitchEvent,
   isDefensiveEvent,
   isFoulEvent,
@@ -97,32 +101,8 @@ function deriveFieldEdge(optaX: number, optaY: number, orientation: Orientation)
   return optaY <= 50 ? "bottom" : "top";
 }
 
-function getDefensiveSubtypeLabel(typeId: string): string {
-  switch (typeId) {
-    case "7":
-      return "Tackle";
-    case "8":
-      return "Interception";
-    case "12":
-      return "Clearance";
-    case "49":
-      return "Ball Recovery";
-    case "44":
-    case "67":
-      return "Duel";
-    default:
-      return "Defensive";
-  }
-}
-
 function getEventLabel(event: OptaEvent): string {
-  if (isPassEvent(event)) return "Pass";
-  if (isTakeOnEvent(event)) return "Take On";
-  if (isOutEvent(event)) return "Out";
-  if (isShotEvent(event)) return "Shot";
-  if (isFoulEvent(event)) return "Foul";
-  if (isDefensiveEvent(event)) return getDefensiveSubtypeLabel(event.type_id);
-  return "Event";
+  return getActionLabel(event.type_id);
 }
 
 function getPlayerMarkerLabel(event: OptaEvent): string {
@@ -378,30 +358,18 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     value == null ? "-" : Number(value.toFixed(1)).toString();
 
   const getTooltipLines = (event: OptaEvent, sequence: number): string[] => {
-    const lines = [`${sequence}. ${getEventLabel(event)}`];
-    const minute =
-      event.min != null
-        ? `Min ${event.min}${event.sec != null ? `:${String(event.sec).padStart(2, "0")}` : ""}`
-        : null;
+    const playerDorsal = event.player?.dorsal?.trim() || "-";
+    const playerName = event.player?.name?.trim() || "-";
+    const endCoordinates = isPassEvent(event)
+      ? { x: event.end_x, y: event.end_y }
+      : { x: null, y: null };
 
-    const playerDorsal = event.player?.dorsal?.trim();
-    const playerName = event.player?.name?.trim();
-
-    if (minute) lines.push(minute);
-    if (playerDorsal && playerName) {
-      lines.push(`Jugador ${playerDorsal} - ${playerName}`);
-    } else if (playerDorsal) {
-      lines.push(`Dorsal ${playerDorsal}`);
-    } else if (playerName) {
-      lines.push(`Jugador ${playerName}`);
-    }
-    lines.push(`Inicio X ${formatCoord(event.x)} | Y ${formatCoord(event.y)}`);
-
-    if (isPassEvent(event)) {
-      lines.push(`Fin X ${formatCoord(event.end_x)} | Y ${formatCoord(event.end_y)}`);
-    }
-
-    return lines;
+    return [
+      `${sequence}. ${getEventLabel(event)} - ${formatEventTime(event.min, event.sec)}`,
+      `Dorsal ${playerDorsal} - ${playerName}`,
+      `Coordenadas inicio (${formatCoord(event.x)}, ${formatCoord(event.y)})`,
+      `Coordenadas fin (${formatCoord(endCoordinates.x)}, ${formatCoord(endCoordinates.y)})`,
+    ];
   };
 
   const renderHoverMarker = (

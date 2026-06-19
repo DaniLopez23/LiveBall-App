@@ -495,6 +495,13 @@ export function PassNetworkWidgetFilters({
 					momentMinute: clampMinute(minute, normalizedFilters.minuteRange),
 				});
 			}}
+			events={events}
+			homeTeamId={game?.home_team.team_id ?? null}
+			awayTeamId={game?.away_team.team_id ?? null}
+			homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
+			awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
+			homeColor={HOME_COLOR}
+			awayColor={AWAY_COLOR}
 			homeScoreAtMinute={scoreAtMinute.home}
 			awayScoreAtMinute={scoreAtMinute.away}
 			maxMinute={lastEventMinute}

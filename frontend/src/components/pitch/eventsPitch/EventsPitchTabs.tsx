@@ -8,6 +8,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import EventsPitchFilters, {
   type EventsFilters,
+  type PlayerFilterOption,
   type SequenceEndTypeOption,
 } from "./EventsPitchFilters";
 import EventsPitchStats from "./EventsPitchStats";
@@ -21,6 +22,8 @@ interface EventsPitchTabsProps {
   onToggle: () => void;
   availableTypeIds: string[];
   availableSequenceEndTypes: SequenceEndTypeOption[];
+  availableSequencePrecedingTypes: SequenceEndTypeOption[];
+  availablePlayers: PlayerFilterOption[];
   maxMinute: number;
   hasSecondHalf: boolean;
   defaultValue?: "stats" | "filters";
@@ -36,6 +39,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   onToggle,
   availableTypeIds,
   availableSequenceEndTypes,
+  availableSequencePrecedingTypes,
+  availablePlayers,
   maxMinute,
   hasSecondHalf,
   defaultValue = "filters",
@@ -101,6 +106,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
           awayTeamName={awayTeamName}
           availableTypeIds={availableTypeIds}
           availableSequenceEndTypes={availableSequenceEndTypes}
+          availableSequencePrecedingTypes={availableSequencePrecedingTypes}
+          availablePlayers={availablePlayers}
           maxMinute={maxMinute}
           hasSecondHalf={hasSecondHalf}
         />

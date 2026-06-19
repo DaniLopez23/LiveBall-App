@@ -26,7 +26,7 @@ import type {
 import { isShotEvent } from "@/types/event";
 
 const HOME_COLOR = "#3b82f6";
-const AWAY_COLOR = "#ef4444";
+const AWAY_COLOR = "#f43f5e";
 const PLAYBACK_TICK_MS = 650;
 
 const clampMinute = (
@@ -183,7 +183,10 @@ const PassNetworkPage: React.FC = () => {
   const lastEventMinute = useMemo(() => {
     if (events.length === 0) return 0;
 
-    return Math.max(0, Math.floor(events[events.length - 1].min ?? 0));
+    return events.reduce(
+      (maxMinute, event) => Math.max(maxMinute, Math.floor(event.min ?? 0)),
+      0,
+    );
   }, [events]);
 
   const previousMaxMinuteRef = useRef(lastEventMinute);
@@ -244,17 +247,10 @@ const PassNetworkPage: React.FC = () => {
       ...nextFilters,
       minuteRange: clampMinuteRange(nextFilters.minuteRange, lastEventMinute),
     };
-    const minuteRangeChanged =
-      boundedNextFilters.minuteRange[0] !== filters.minuteRange[0] ||
-      boundedNextFilters.minuteRange[1] !== filters.minuteRange[1];
 
     setFilters(boundedNextFilters);
     setIsPlaying(false);
-    setCurrentMinute(
-      minuteRangeChanged
-        ? boundedNextFilters.minuteRange[1]
-        : clampMinute(currentMinute, boundedNextFilters.minuteRange),
-    );
+    setCurrentMinute(clampMinute(currentMinute, boundedNextFilters.minuteRange));
   };
 
   const handlePlay = () => {
@@ -385,6 +381,9 @@ const PassNetworkPage: React.FC = () => {
             onPause={handlePause}
             onResetPlayback={handleResetPlayback}
             onCurrentMinuteChange={handleCurrentMinuteChange}
+            events={events}
+            homeTeamId={game?.home_team.team_id ?? null}
+            awayTeamId={game?.away_team.team_id ?? null}
             homeScoreAtMinute={scoreAtMinute.home}
             awayScoreAtMinute={scoreAtMinute.away}
             homeNetwork={homeNetwork}
@@ -441,6 +440,9 @@ const PassNetworkPage: React.FC = () => {
             onPause={handlePause}
             onResetPlayback={handleResetPlayback}
             onCurrentMinuteChange={handleCurrentMinuteChange}
+            events={events}
+            homeTeamId={game?.home_team.team_id ?? null}
+            awayTeamId={game?.away_team.team_id ?? null}
             homeScoreAtMinute={scoreAtMinute.home}
             awayScoreAtMinute={scoreAtMinute.away}
             homeNetwork={homeNetwork}

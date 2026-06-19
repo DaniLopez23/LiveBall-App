@@ -13,7 +13,8 @@ import type { EventsMode } from "./EventsPitchFilters";
 import type { Game } from "@/types/game";
 
 const LIVE_EVENT_STEP_MS = 2200;
-const SEQUENCE_EVENT_STEP_MS = 850;
+const SEQUENCE_EVENT_STEP_MS = 1450;
+const SEQUENCE_REPLAY_PAUSE_MS = 1300;
 
 function EventsPitchAttackDirectionFooter({ game }: { game?: Game | null }) {
   const homeTeamName = game?.home_team.team_name ?? "Local";
@@ -64,7 +65,7 @@ function EventsPitchAttackDirectionFooter({ game }: { game?: Game | null }) {
 
 interface EventsPitchProps {
   events: OptaEvent[];
-  /** 'live' animates incremental updates; 'sequences' reveals the selected sequence in order. */
+  /** Controls marker presentation. Live always animates incremental updates. */
   mode?: EventsMode;
   /** Optional map of teamId -> color to distinguish teams visually. */
   teamColors?: Record<string, string>;
@@ -84,6 +85,10 @@ interface EventsPitchProps {
   markerScaleMultiplier?: number;
   /** Event id that should be highlighted inside a selected sequence. */
   highlightedEventId?: string | null;
+  /** Reveals provided events one by one. Intended for event/sequence detail modals. */
+  animateSequence?: boolean;
+  /** Replays the sequence animation after it reaches the final event. */
+  loopSequenceAnimation?: boolean;
   game?: Game | null;
 }
 
@@ -99,9 +104,11 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   loadingMessage,
   markerScaleMultiplier,
   highlightedEventId,
+  animateSequence = false,
+  loopSequenceAnimation = false,
   game,
 }) => {
-  const animated = mode === "live" || mode === "sequences";
+  const animated = mode === "live" || animateSequence;
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
   const [liveEvents, setLiveEvents] = useState<OptaEvent[]>(events);
@@ -111,6 +118,12 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   const latestLiveSourceRef = useRef<OptaEvent[]>(events);
   const isLiveInitializedRef = useRef(false);
   const sequenceEventsKey = events.map((event) => event.id).join("|");
+  const shouldShowSequenceRestart =
+    mode === "sequences" &&
+    animateSequence &&
+    events.length > 1 &&
+    !loadingMessage &&
+    !noDataMessage;
 
   const clearLiveTimer = useCallback(() => {
     if (liveTimerRef.current == null) return;
@@ -197,28 +210,45 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   useEffect(() => clearLiveTimer, [clearLiveTimer]);
 
   useEffect(() => {
-    if (mode !== "sequences") {
+    if (!animateSequence) {
       setSequenceEventCount(events.length);
       return;
     }
 
     setSequenceEventCount(events.length > 0 ? 1 : 0);
-  }, [events.length, mode, sequenceEventsKey]);
+  }, [animateSequence, events.length, sequenceEventsKey]);
 
   useEffect(() => {
-    if (mode !== "sequences" || events.length <= 1 || sequenceEventCount >= events.length) return;
+    if (!animateSequence || events.length <= 1) return;
+
+    const isComplete = sequenceEventCount >= events.length;
+    if (isComplete && !loopSequenceAnimation) return;
 
     const timeoutId = window.setTimeout(
       () => {
-        setSequenceEventCount((currentCount) =>
-          Math.min(events.length, currentCount + 1),
-        );
+        setSequenceEventCount((currentCount) => {
+          if (currentCount >= events.length) {
+            return loopSequenceAnimation ? 1 : currentCount;
+          }
+
+          return Math.min(events.length, currentCount + 1);
+        });
       },
-      SEQUENCE_EVENT_STEP_MS,
+      isComplete ? SEQUENCE_REPLAY_PAUSE_MS : SEQUENCE_EVENT_STEP_MS,
     );
 
     return () => window.clearTimeout(timeoutId);
-  }, [events.length, mode, sequenceEventCount, sequenceEventsKey]);
+  }, [
+    animateSequence,
+    events.length,
+    loopSequenceAnimation,
+    sequenceEventCount,
+    sequenceEventsKey,
+  ]);
+
+  const restartSequenceAnimation = useCallback(() => {
+    setSequenceEventCount(events.length > 0 ? 1 : 0);
+  }, [events.length]);
 
   useEffect(() => {
     if (!isFullscreenOpen) return;
@@ -236,10 +266,23 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
   const displayedEvents =
     mode === "live"
       ? liveEvents
-      : mode === "sequences"
+      : animateSequence
         ? events.slice(0, sequenceEventCount)
         : events;
   const boardMode = mode ?? "all";
+  const renderSequenceRestartControl = () =>
+    shouldShowSequenceRestart ? (
+      <div className="flex shrink-0 justify-center border-t border-border/50 px-3 py-2">
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={restartSequenceAnimation}
+        >
+          Reiniciar animacion de secuencia
+        </Button>
+      </div>
+    ) : null;
 
   return (
     <div className="flex flex-col w-full h-full">
@@ -272,6 +315,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           <PassNetworkNoDataOverlay message={noDataMessage} />
         ) : null}
       </div>
+      {renderSequenceRestartControl()}
       <EventsPitchAttackDirectionFooter game={game} />
 
       {isFullscreenOpen ? (
@@ -321,6 +365,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
                   <PassNetworkNoDataOverlay message={noDataMessage} />
                 ) : null}
               </div>
+              {renderSequenceRestartControl()}
               <EventsPitchAttackDirectionFooter game={game} />
             </div>
           </div>

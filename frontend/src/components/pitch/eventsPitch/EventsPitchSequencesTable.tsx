@@ -7,7 +7,6 @@ import type { EventSequence } from "@/components/pitch/eventsPitch/eventSequence
 import {
   formatEventTime,
   getActionLabel,
-  getEventUniqueId,
   getOutcomeLabel,
   getTeamName,
 } from "@/components/pitch/eventsPitch/eventDisplay";
@@ -15,7 +14,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { cn } from "@/lib/utils";
 import type { Game } from "@/types/game";
 
-const PAGE_SIZE = 12;
+const PAGE_SIZE = 50;
 
 interface EventsPitchSequencesTableProps {
   sequences: EventSequence[];
@@ -26,6 +25,9 @@ interface EventsPitchSequencesTableProps {
 
 const getSequenceEndEvent = (sequence: EventSequence): OptaEvent | null =>
   sequence.events[sequence.events.length - 1] ?? null;
+
+const getEventSortValue = (event: OptaEvent | null): number =>
+  (event?.period_id ?? 0) * 10000 + (event?.min ?? 0) * 60 + (event?.sec ?? 0);
 
 const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
   sequences,
@@ -41,8 +43,15 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
   }, [sequences]);
 
   const totalPages = Math.max(1, Math.ceil(sequences.length / PAGE_SIZE));
-  const reversed = [...sequences].reverse();
-  const pageSequences = reversed.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
+  const orderedSequences = sequences
+    .map((sequence, index) => ({ sequence, index, endEvent: getSequenceEndEvent(sequence) }))
+    .sort(
+      (left, right) =>
+        getEventSortValue(right.endEvent) - getEventSortValue(left.endEvent) ||
+        right.index - left.index,
+    )
+    .map(({ sequence }) => sequence);
+  const pageSequences = orderedSequences.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
   const detailEndEvent = detailSequence ? getSequenceEndEvent(detailSequence) : null;
   const detailOutcomeLabel = detailEndEvent
     ? getOutcomeLabel(detailEndEvent.type_id, detailEndEvent.outcome)
@@ -54,19 +63,18 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
         <Table>
           <TableHeader>
             <TableRow className="sticky top-0 bg-background *:whitespace-nowrap after:absolute after:inset-x-0 after:bottom-0 after:h-px after:bg-border after:content-['']">
+              <TableHead>Tiempo</TableHead>
               <TableHead className="w-12 text-center">Ver</TableHead>
-              <TableHead>ID evento final</TableHead>
               <TableHead>Equipo</TableHead>
               <TableHead>Accion que la termina</TableHead>
               <TableHead>Accion precedente</TableHead>
-              <TableHead>Minuto</TableHead>
               <TableHead className="w-10 text-center">Mas informacion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="overflow-hidden">
             {sequences.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="py-6 text-center text-muted-foreground">
+                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
                   Sin secuencias para mostrar
                 </TableCell>
               </TableRow>
@@ -93,6 +101,9 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
                       !isSelected && (idx % 2 === 0 ? "bg-white dark:bg-slate-700" : "bg-slate-50 dark:bg-slate-750"),
                     )}
                   >
+                    <TableCell className="tabular-nums text-xs">
+                      {endEvent ? formatEventTime(endEvent.min, endEvent.sec) : "-"}
+                    </TableCell>
                     <TableCell className="text-center">
                       <button
                         type="button"
@@ -112,9 +123,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
                         <span className={cn("size-2 rounded-full", isSelected ? "bg-white" : "bg-muted-foreground/45")} />
                       </button>
                     </TableCell>
-                    <TableCell className="max-w-52 truncate font-mono text-xs">
-                      {endEvent ? getEventUniqueId(endEvent) : "-"}
-                    </TableCell>
                     <TableCell className="text-xs">
                       {getTeamName(game, sequence.teamId)}
                     </TableCell>
@@ -123,9 +131,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
                     </TableCell>
                     <TableCell className="text-xs">
                       {sequence.precedingEvent ? getActionLabel(sequence.precedingEvent.type_id) : "-"}
-                    </TableCell>
-                    <TableCell className="tabular-nums text-xs">
-                      {endEvent ? formatEventTime(endEvent.min, endEvent.sec) : "-"}
                     </TableCell>
                     <TableCell className="text-center">
                       <button

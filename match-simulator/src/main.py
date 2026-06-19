@@ -110,6 +110,9 @@ class StatsMinuteTrigger:
     def wait_for_next_minute(self, processed_minute: int) -> int | None:
         """
         Espera hasta que el feed de eventos alcance un minuto posterior.
+
+        Si el feed salta varios minutos, devuelve el siguiente minuto pendiente
+        para que el XML de stats no deje huecos intermedios.
         """
         with self._condition:
             self._condition.wait_for(
@@ -117,7 +120,7 @@ class StatsMinuteTrigger:
             )
 
             if self._latest_minute > processed_minute:
-                return self._latest_minute
+                return processed_minute + 1
 
             return None
 

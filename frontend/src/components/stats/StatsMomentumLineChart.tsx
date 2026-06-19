@@ -8,11 +8,9 @@ import {
 	YAxis,
 } from "recharts";
 
-import StatsEventMarkers, {
-	type StatsEventMarker,
-} from "@/components/stats/StatsEventMarkers";
 import {
 	ChartContainer,
+	ChartTooltip,
 	type ChartConfig,
 } from "@/components/ui/chart";
 import type { MatchMomentumPayload, MatchStatsTimeline } from "@/types/stats";
@@ -22,7 +20,7 @@ interface StatsMomentumLineChartProps {
 	momentum: MatchMomentumPayload | null | undefined;
 	homeTeamName: string;
 	awayTeamName: string;
-	events: StatsEventMarker[];
+	events: unknown[];
 	title?: string;
 	description?: string;
 	minuteRange?: [number, number];
@@ -35,15 +33,6 @@ interface MomentumPoint {
 	away: number | null;
 	neutral: number | null;
 	value: number | null;
-}
-
-interface MomentumDotProps {
-	cx?: number;
-	cy?: number;
-	value?: number | null;
-	payload?: MomentumPoint;
-	homeTeamName: string;
-	awayTeamName: string;
 }
 
 const NEUTRAL_MOMENTUM_EPSILON = 0.000001;
@@ -73,6 +62,27 @@ const getMomentumValue = (
 	return null;
 };
 
+const getMomentumChartSourcePoints = (
+	timeline: MatchStatsTimeline,
+	momentum: MatchMomentumPayload | null | undefined,
+): Array<{ minute: number; value: number | null }> => {
+	if (momentum?.points.length) {
+		return [...momentum.points]
+			.sort((a, b) => a.minute - b.minute)
+			.map((point) => ({
+				minute: point.minute,
+				value: normalizeMomentumValue(point.netMomentum),
+			}));
+	}
+
+	return [...timeline.buckets]
+		.sort((a, b) => a.minute - b.minute)
+		.map((bucket) => ({
+			minute: bucket.minute,
+			value: getMomentumValue(bucket, momentum),
+		}));
+};
+
 const splitByMomentumSide = (
 	points: Array<{ minute: number; value: number | null }>,
 ): MomentumPoint[] => {
@@ -96,7 +106,7 @@ const splitByMomentumSide = (
 				value: 0,
 				home: 0,
 				away: 0,
-				neutral: 0,
+				neutral: null,
 			});
 		}
 
@@ -113,60 +123,20 @@ const splitByMomentumSide = (
 	return result;
 };
 
-function MomentumDot({
-	cx,
-	cy,
-	value,
-	payload,
-	homeTeamName,
-	awayTeamName,
-}: MomentumDotProps) {
-	if (cx == null || cy == null || value == null || payload?.minute == null) return null;
-
-	const teamName =
-		value === 0 ? "Neutro" : value > 0 ? homeTeamName : awayTeamName;
-	const tooltipWidth = Math.max(112, teamName.length * 6 + 76);
-	const tooltipX = cx - tooltipWidth / 2;
-	const tooltipY = cy < 38 ? cy + 14 : cy - 34;
-	const stroke =
-		value === 0
-			? "var(--color-neutral)"
-			: value > 0
-				? "var(--color-home)"
-				: "var(--color-away)";
+function MinuteTooltip({
+	active,
+	label,
+}: {
+	active?: boolean;
+	label?: unknown;
+}) {
+	const minute = typeof label === "number" ? label : Number(label);
+	if (!active || !Number.isFinite(minute)) return null;
 
 	return (
-		<g className="group">
-			<circle cx={cx} cy={cy} r={9} fill="transparent" />
-			<circle
-				cx={cx}
-				cy={cy}
-				r={3.5}
-				fill="var(--background)"
-				stroke={stroke}
-				strokeWidth={2.5}
-				className="transition-opacity group-hover:opacity-75"
-			/>
-			<g
-				transform={`translate(${tooltipX}, ${tooltipY})`}
-				className="pointer-events-none opacity-0 transition-opacity group-hover:opacity-100"
-			>
-				<rect
-					width={tooltipWidth}
-					height={24}
-					rx={5}
-					className="fill-background stroke-border"
-				/>
-				<text
-					x={tooltipWidth / 2}
-					y={15}
-					textAnchor="middle"
-					className="fill-foreground text-[11px] font-medium"
-				>
-					{teamName} · {formatMomentumValue(value)} · {payload.minute}'
-				</text>
-			</g>
-		</g>
+		<div className="rounded-md border bg-background px-2.5 py-1 text-xs font-semibold tabular-nums text-foreground shadow-md">
+			Min {minute.toFixed(0)}'
+		</div>
 	);
 }
 
@@ -175,22 +145,15 @@ export default function StatsMomentumLineChart({
 	momentum,
 	homeTeamName,
 	awayTeamName,
-	events,
 	title = "Evolucion de momentum",
 	description = "xT neto por minuto; cero indica equilibrio",
 	minuteRange,
 	compact = false,
 }: StatsMomentumLineChartProps) {
 	const chartData = useMemo<MomentumPoint[]>(() => {
-		const points = [...timeline.buckets]
-			.sort((a, b) => a.minute - b.minute)
-			.map((bucket) => ({
-				minute: bucket.minute,
-				value: getMomentumValue(bucket, momentum),
-			}));
-
+		const points = getMomentumChartSourcePoints(timeline, momentum);
 		return splitByMomentumSide(points);
-	}, [momentum, timeline.buckets]);
+	}, [momentum, timeline]);
 
 	const hasData = chartData.some((point) => point.value != null);
 	const values = chartData
@@ -290,19 +253,26 @@ export default function StatsMomentumLineChart({
 									formatMomentumValue(Number(value))
 								}
 							/>
-							<ReferenceLine y={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
+							<ChartTooltip
+								cursor={{
+									stroke: "hsl(var(--foreground))",
+									strokeOpacity: 0.34,
+									strokeWidth: 1.5,
+								}}
+								content={<MinuteTooltip />}
+							/>
+							<ReferenceLine
+								y={0}
+								stroke="hsl(var(--foreground))"
+								strokeOpacity={0.75}
+								strokeWidth={2}
+							/>
 							<Line
 								dataKey="home"
 								type="monotone"
 								stroke="var(--color-home)"
 								strokeWidth={3}
-								dot={(props: Omit<MomentumDotProps, "homeTeamName" | "awayTeamName">) => (
-									<MomentumDot
-										{...props}
-										homeTeamName={homeTeamName}
-										awayTeamName={awayTeamName}
-									/>
-								)}
+								dot={false}
 								activeDot={false}
 								connectNulls={false}
 							/>
@@ -311,13 +281,7 @@ export default function StatsMomentumLineChart({
 								type="monotone"
 								stroke="var(--color-away)"
 								strokeWidth={3}
-								dot={(props: Omit<MomentumDotProps, "homeTeamName" | "awayTeamName">) => (
-									<MomentumDot
-										{...props}
-										homeTeamName={homeTeamName}
-										awayTeamName={awayTeamName}
-									/>
-								)}
+								dot={false}
 								activeDot={false}
 								connectNulls={false}
 							/>
@@ -326,17 +290,10 @@ export default function StatsMomentumLineChart({
 								type="monotone"
 								stroke="var(--color-neutral)"
 								strokeWidth={3.5}
-								dot={(props: Omit<MomentumDotProps, "homeTeamName" | "awayTeamName">) => (
-									<MomentumDot
-										{...props}
-										homeTeamName={homeTeamName}
-										awayTeamName={awayTeamName}
-									/>
-								)}
+								dot={false}
 								activeDot={false}
 								connectNulls={false}
 							/>
-							<StatsEventMarkers events={events} />
 						</LineChart>
 					</ChartContainer>
 				) : (
@@ -347,7 +304,7 @@ export default function StatsMomentumLineChart({
 								: "flex min-h-[14rem] items-center justify-center rounded-md border border-dashed bg-muted/20 px-6 text-center text-sm text-muted-foreground"
 						}
 					>
-						Esperando momentum para pintar la evolución.
+						Esperando momentum para pintar la evolucion.
 					</div>
 				)}
 			</div>
