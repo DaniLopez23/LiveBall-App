@@ -30,9 +30,11 @@ logger = logging.getLogger(__name__)
 
 BASE_DIR_SIMULATED_DATA = BASE_DIR / "simulated-real-time-data"
 
-DEFAULT_F24_EVENTS_XML_PATH = BASE_DIR_SIMULATED_DATA / "f24-simulated-data.xml"
-DEFAULT_F9_STATS_XML_PATH = BASE_DIR_SIMULATED_DATA / "f9-simulated-data.xml"
-DEFAULT_F42_MATCHES_XML_PATH = BASE_DIR_SIMULATED_DATA / "f42-23-2023-results.xml"
+DEFAULT_F24_EVENTS_XML_PATH = BASE_DIR_SIMULATED_DATA / "events"
+DEFAULT_F9_STATS_XML_PATH = BASE_DIR_SIMULATED_DATA / "stats"
+DEFAULT_F42_MATCHES_XML_PATH = (
+    BASE_DIR_SIMULATED_DATA / "schedule" / "f42-23-2023-results.xml"
+)
 
 
 def _path_from_env(*names: str, default: Path) -> str:
@@ -66,11 +68,13 @@ def _cors_origins() -> list[str]:
 
 
 F24_EVENTS_XML_PATH = _path_from_env(
+    "F24_XML_DIR",
     "F24_XML_PATH",
     "LIVE_XML_PATH",
     default=DEFAULT_F24_EVENTS_XML_PATH,
 )
 F9_STATS_XML_PATH = _path_from_env(
+    "F9_XML_DIR",
     "F9_XML_PATH",
     "STATS_XML_PATH",
     default=DEFAULT_F9_STATS_XML_PATH,

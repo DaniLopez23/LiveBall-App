@@ -20,9 +20,11 @@ class PassNetworkUpdateService:
         self,
         game: ParsedGame,
         pass_candidates_by_team: Dict[str, List[Event]],
+        pass_deletions_by_team: Dict[str, List[str]] | None = None,
     ) -> List[Dict[str, Any]]:
         messages: List[Dict[str, Any]] = []
         player_names: Dict[tuple[str, str], str] = {}
+        pass_deletions_by_team = pass_deletions_by_team or {}
 
         def get_player_name(team_id: str, player_id: str) -> str:
             key = (str(team_id), str(player_id))
@@ -31,32 +33,47 @@ class PassNetworkUpdateService:
                 player_names[key] = brief.get("name") or ""
             return player_names[key]
 
-        for team_id, team_events in pass_candidates_by_team.items():
-            if not team_events:
+        team_ids = sorted(
+            set(pass_candidates_by_team.keys()) | set(pass_deletions_by_team.keys())
+        )
+        match_time_seconds = self._get_match_time_seconds(game)
+
+        for team_id in team_ids:
+            team_events = pass_candidates_by_team.get(team_id, [])
+            deleted_event_ids = pass_deletions_by_team.get(team_id, [])
+            if not team_events and not deleted_event_ids:
                 continue
 
             existing_service = self._cache.get_pass_network(game.game_id, team_id)
             service = self._cache.get_or_create_pass_network(game.game_id, team_id)
-            changed_nodes, changed_edges, changed_bucket_indices = (
+            (
+                changed_nodes,
+                changed_edges,
+                changed_bucket_indices,
+                changed_temporal_bucket_indices,
+            ) = (
                 service.add_passes_incremental(
                     team_events,
                     player_name_lookup=get_player_name,
+                    deleted_event_ids=deleted_event_ids,
                 )
             )
 
-            if not changed_nodes and not changed_edges:
+            if not changed_nodes and not changed_edges and not changed_temporal_bucket_indices:
                 continue
 
             action = "created" if existing_service is None else "updated"
             logger.info(
-                "PASS_NETWORK game=%s team=%s %s passes=%d nodes=%d edges=%d buckets=%d",
+                "PASS_NETWORK game=%s team=%s %s passes=%d deleted=%d nodes=%d edges=%d buckets=%d temporal=%d",
                 game.game_id,
                 team_id,
                 action,
                 len(team_events),
+                len(deleted_event_ids),
                 len(changed_nodes),
                 len(changed_edges),
                 len(changed_bucket_indices),
+                len(changed_temporal_bucket_indices),
             )
             logger.debug(
                 "(PASS_NETWORK) game=%s team=%s node_ids=%s edges=%s buckets=%s",
@@ -75,6 +92,10 @@ class PassNetworkUpdateService:
                 team_id,
                 changed_bucket_indices,
             )
+            temporal = service.get_temporal_payload(
+                match_time_seconds=match_time_seconds,
+                bucket_indices=changed_temporal_bucket_indices,
+            )
             messages.append(
                 {
                     "type": "pass_network_updated",
@@ -83,6 +104,7 @@ class PassNetworkUpdateService:
                     "nodes": changed_nodes,
                     "edges": changed_edges,
                     "statistics": statistics,
+                    "temporal": temporal,
                 }
             )
 
@@ -105,3 +127,23 @@ class PassNetworkUpdateService:
         statistics = service.get_bucket_statistics()
         self._cache.store_pass_network_statistics(game_id, team_id, statistics)
         return statistics
+
+    @staticmethod
+    def _get_match_time_seconds(game: ParsedGame) -> int:
+        latest_second = 0
+        for event in game.events:
+            latest_second = max(
+                latest_second,
+                PassNetworkUpdateService._event_match_second(event),
+            )
+        return latest_second
+
+    @staticmethod
+    def _event_match_second(event: Event) -> int:
+        minute = max(0, int(event.min or 0))
+        second = max(0, min(59, int(event.sec or 0)))
+        period_id = event.period_id
+        period_offsets = {1: 0, 2: 45, 3: 90, 4: 105, 5: 120}
+        period_offset = period_offsets.get(period_id or 0, 0)
+        absolute_minute = minute if minute >= period_offset else period_offset + minute
+        return absolute_minute * 60 + second

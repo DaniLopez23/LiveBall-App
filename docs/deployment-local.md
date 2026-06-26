@@ -13,17 +13,22 @@ This setup runs LiveBall locally with Docker Compose in a production-like layout
 docker compose up --build
 ```
 
-The simulator writes these files into the shared volume:
+The simulator writes feeds into the shared volume, preserving each source filename
+and therefore its match id:
 
-- `/shared/f24-simulated-data.xml`
-- `/shared/f9-simulated-data.xml`
-- `/shared/F40-squad-23.xml`
-- `/shared/f42-23-2023-results.xml`
+- `/shared/events/f24-23-2023-<match-id>-eventdetails.xml`
+- `/shared/stats/f9-23-2023-<match-id>-matchresults.xml`
+- `/shared/players/F40-squad-23.xml`
+- `/shared/schedule/f42-23-2023-results.xml`
+
+Feeds in `data/events/static` and `data/stats/static` are copied as complete
+matches. Feeds in each `simulate` directory are paired by match id and updated
+in parallel as live matches.
 
 FastAPI reads those same paths through environment variables:
 
-- `LIVE_XML_PATH` / `F24_XML_PATH`
-- `F9_XML_PATH`
+- `F24_XML_DIR`
+- `F9_XML_DIR`
 - `F40_XML_PATH`
 - `F42_XML_PATH`
 

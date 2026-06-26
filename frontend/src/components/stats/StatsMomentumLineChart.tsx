@@ -13,6 +13,9 @@ import {
 	ChartTooltip,
 	type ChartConfig,
 } from "@/components/ui/chart";
+import StatsEventMarkers, {
+	type StatsEventMarker,
+} from "@/components/stats/StatsEventMarkers";
 import type { MatchMomentumPayload, MatchStatsTimeline } from "@/types/stats";
 
 interface StatsMomentumLineChartProps {
@@ -20,7 +23,7 @@ interface StatsMomentumLineChartProps {
 	momentum: MatchMomentumPayload | null | undefined;
 	homeTeamName: string;
 	awayTeamName: string;
-	events: unknown[];
+	events: StatsEventMarker[];
 	title?: string;
 	description?: string;
 	minuteRange?: [number, number];
@@ -145,6 +148,7 @@ export default function StatsMomentumLineChart({
 	momentum,
 	homeTeamName,
 	awayTeamName,
+	events,
 	title = "Evolucion de momentum",
 	description = "xT neto por minuto; cero indica equilibrio",
 	minuteRange,
@@ -263,10 +267,11 @@ export default function StatsMomentumLineChart({
 							/>
 							<ReferenceLine
 								y={0}
-								stroke="hsl(var(--foreground))"
-								strokeOpacity={0.75}
-								strokeWidth={2}
+								stroke="#000000"
+								strokeOpacity={0.9}
+								strokeWidth={2.25}
 							/>
+							<StatsEventMarkers events={events} />
 							<Line
 								dataKey="home"
 								type="monotone"

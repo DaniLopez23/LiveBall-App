@@ -12,7 +12,16 @@ import {
 	type KeyEventKind,
 } from "@/components/stats/KeyEventsTimeline";
 import { Badge } from "@/components/ui/badge";
+import {
+	BUCKET_SIZE_SECONDS,
+	DEFAULT_TIMELINE_END_SECONDS,
+	clamp,
+	formatMatchTime,
+	getEventMatchSecond,
+	snapSecondToBucket,
+} from "@/lib/matchTime";
 import { cn } from "@/lib/utils";
+import type { PassingNetworkMode } from "./passNetworkFilters.types";
 import type { Event } from "@/types/event";
 import type { TeamSide } from "@/types/stats";
 
@@ -26,17 +35,18 @@ interface PassNetworkTimelineSlicerProps {
 	awayColor: string;
 	homeScore: number;
 	awayScore: number;
-	minuteRange: [number, number];
-	currentMinute: number;
-	maxMinute: number;
+	mode: PassingNetworkMode;
+	selectedRangeSeconds: [number, number];
+	currentSecond: number;
+	maxSecond: number;
+	followLive: boolean;
+	bucketSizeSeconds?: number;
 	disabled?: boolean;
 	className?: string;
-	onMinuteRangeChange: (minuteRange: [number, number]) => void;
-	onCurrentMinuteChange: (minute: number) => void;
+	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onCurrentSecondChange: (second: number) => void;
 }
 
-const TIMELINE_END_MINUTE = 90;
-const TIMELINE_END_SECONDS = TIMELINE_END_MINUTE * 60;
 const KIND_LABELS: Record<KeyEventKind, string> = {
 	goal: "Gol",
 	shot: "Tiro",
@@ -44,49 +54,18 @@ const KIND_LABELS: Record<KeyEventKind, string> = {
 };
 const UNKNOWN_TEAM_COLOR = "#64748b";
 
-function clamp(value: number, min: number, max: number): number {
-	return Math.min(max, Math.max(min, value));
-}
-
-function getEventSeconds(event: Event): number | null {
-	if (typeof event.min !== "number" || !Number.isFinite(event.min)) return null;
-
-	const minute = Math.max(0, Math.floor(event.min));
-	const second =
-		typeof event.sec === "number" && Number.isFinite(event.sec)
-			? clamp(Math.floor(event.sec), 0, 59)
-			: 0;
-
-	return minute * 60 + second;
-}
-
-function getLastAvailableSecond(events: Event[], maxMinute: number): number {
+function getLastAvailableSecond(events: Event[], maxSecond: number): number {
 	const lastEventSecond = events.reduce((latestSecond, event) => {
-		const eventSecond = getEventSeconds(event);
+		const eventSecond = getEventMatchSecond(event);
 		return eventSecond == null ? latestSecond : Math.max(latestSecond, eventSecond);
 	}, 0);
 
-	return clamp(Math.max(lastEventSecond, Math.floor(maxMinute) * 60), 0, TIMELINE_END_SECONDS);
+	return Math.max(0, Math.max(lastEventSecond, maxSecond));
 }
 
-function minuteToPercent(minute: number): number {
-	return clamp((minute / TIMELINE_END_MINUTE) * 100, 0, 100);
-}
-
-function secondToPercent(second: number): number {
-	return clamp((second / TIMELINE_END_SECONDS) * 100, 0, 100);
-}
-
-function formatMinute(minute: number): string {
-	return `${Math.round(minute)}'`;
-}
-
-function formatMatchTime(totalSeconds: number): string {
-	const safeSeconds = Math.max(0, Math.floor(totalSeconds));
-	const minute = Math.floor(safeSeconds / 60);
-	const second = safeSeconds % 60;
-
-	return `${minute}:${String(second).padStart(2, "0")}`;
+function secondToPercent(second: number, timelineEndSecond: number): number {
+	if (timelineEndSecond <= 0) return 0;
+	return clamp((second / timelineEndSecond) * 100, 0, 100);
 }
 
 function getTeamName(side: TeamSide | null, homeTeamName: string, awayTeamName: string) {
@@ -158,89 +137,160 @@ export default function PassNetworkTimelineSlicer({
 	awayColor,
 	homeScore,
 	awayScore,
-	minuteRange,
-	currentMinute,
-	maxMinute,
+	mode,
+	selectedRangeSeconds,
+	currentSecond,
+	maxSecond,
+	followLive,
+	bucketSizeSeconds = BUCKET_SIZE_SECONDS,
 	disabled = false,
 	className,
-	onMinuteRangeChange,
-	onCurrentMinuteChange,
+	onRangeChange,
+	onCurrentSecondChange,
 }: PassNetworkTimelineSlicerProps) {
 	const trackRef = useRef<HTMLDivElement | null>(null);
-	const [dragTarget, setDragTarget] = useState<"start" | "end" | "current" | null>(null);
-	const maxSelectableMinute = clamp(Math.floor(maxMinute), 0, TIMELINE_END_MINUTE);
-	const startMinute = clamp(Math.min(minuteRange[0], minuteRange[1]), 0, maxSelectableMinute);
-	const endMinute = clamp(Math.max(minuteRange[0], minuteRange[1]), startMinute, maxSelectableMinute);
-	const current = clamp(currentMinute, startMinute, endMinute);
+	const dragOffsetRef = useRef(0);
+	const [dragTarget, setDragTarget] = useState<"start" | "end" | "cursor" | "window" | null>(null);
+	const timelineEndSecond = Math.max(
+		DEFAULT_TIMELINE_END_SECONDS,
+		maxSecond,
+		selectedRangeSeconds[1],
+	);
+	const maxSelectableSecond = Math.max(0, maxSecond);
+	const rangeStartSecond = clamp(
+		Math.min(selectedRangeSeconds[0], selectedRangeSeconds[1]),
+		0,
+		maxSelectableSecond,
+	);
+	const rangeEndSecond = clamp(
+		Math.max(selectedRangeSeconds[0], selectedRangeSeconds[1]),
+		rangeStartSecond,
+		maxSelectableSecond,
+	);
+	const selectedDuration = Math.max(bucketSizeSeconds, rangeEndSecond - rangeStartSecond);
+	const current = clamp(currentSecond, 0, maxSelectableSecond);
+	const cursorSecond = clamp(current, rangeStartSecond, rangeEndSecond);
 	const lastAvailableSecond = useMemo(
-		() => getLastAvailableSecond(events, maxMinute),
-		[events, maxMinute],
+		() => getLastAvailableSecond(events, maxSecond),
+		[events, maxSecond],
 	);
 	const timelineEvents = useMemo(
 		() =>
 			getKeyTimelineEvents(events, homeTeamId, awayTeamId).filter(
 				(event) =>
 					ALL_KEY_EVENT_KINDS.includes(event.kind) &&
-					event.totalSeconds <= TIMELINE_END_SECONDS,
+					event.totalSeconds <= timelineEndSecond,
 			),
-		[awayTeamId, events, homeTeamId],
+		[awayTeamId, events, homeTeamId, timelineEndSecond],
 	);
 
-	const selectedStartPercent = minuteToPercent(startMinute);
-	const selectedEndPercent = minuteToPercent(endMinute);
+	const selectedStartPercent = secondToPercent(rangeStartSecond, timelineEndSecond);
+	const selectedEndPercent = secondToPercent(rangeEndSecond, timelineEndSecond);
 	const selectedWidthPercent = Math.max(0, selectedEndPercent - selectedStartPercent);
-	const currentPercent = minuteToPercent(current);
-	const playedPercent = secondToPercent(lastAvailableSecond);
+	const cursorPercent = secondToPercent(cursorSecond, timelineEndSecond);
+	const cursorWidthPercent = Math.max(0, cursorPercent - selectedStartPercent);
+	const playedPercent = secondToPercent(lastAvailableSecond, timelineEndSecond);
 
-	const getMinuteFromClientX = (clientX: number): number => {
+	const getSecondFromClientX = (clientX: number): number => {
 		const element = trackRef.current;
-		if (!element) return startMinute;
+		if (!element) return current;
 
 		const rect = element.getBoundingClientRect();
-		if (rect.width <= 0) return startMinute;
+		if (rect.width <= 0) return current;
 
 		const ratio = clamp((clientX - rect.left) / rect.width, 0, 1);
-		return clamp(Math.round(ratio * TIMELINE_END_MINUTE), 0, maxSelectableMinute);
+		return clamp(
+			snapSecondToBucket(ratio * timelineEndSecond, bucketSizeSeconds),
+			0,
+			maxSelectableSecond,
+		);
 	};
 
-	const commitRange = (nextStart: number, nextEnd: number) => {
-		const normalizedStart = clamp(Math.min(nextStart, nextEnd), 0, maxSelectableMinute);
-		const normalizedEnd = clamp(Math.max(nextStart, nextEnd), normalizedStart, maxSelectableMinute);
-		const nextCurrent = clamp(current, normalizedStart, normalizedEnd);
+	const commitCumulativeStart = (startSecond: number, followLiveValue = false) => {
+		const nextStart = clamp(
+			snapSecondToBucket(startSecond, bucketSizeSeconds),
+			0,
+			rangeEndSecond,
+		);
 
-		onMinuteRangeChange([normalizedStart, normalizedEnd]);
-		if (nextCurrent !== currentMinute) {
-			onCurrentMinuteChange(nextCurrent);
-		}
+		onRangeChange([nextStart, rangeEndSecond], { followLive: followLiveValue });
 	};
 
-	const applyDrag = (target: "start" | "end" | "current", clientX: number) => {
+	const commitCumulativeEnd = (endSecond: number, followLiveValue = false) => {
+		const nextEnd = clamp(
+			snapSecondToBucket(endSecond, bucketSizeSeconds),
+			rangeStartSecond,
+			maxSelectableSecond,
+		);
+
+		onRangeChange([rangeStartSecond, nextEnd], { followLive: followLiveValue });
+	};
+
+	const commitCumulativeCursor = (second: number) => {
+		onCurrentSecondChange(
+			clamp(
+				snapSecondToBucket(second, bucketSizeSeconds),
+				rangeStartSecond,
+				rangeEndSecond,
+			),
+		);
+	};
+
+	const commitWindowStart = (startSecond: number, followLiveValue = false) => {
+		const maxStart = Math.max(0, maxSelectableSecond - selectedDuration);
+		const nextStart = clamp(snapSecondToBucket(startSecond, bucketSizeSeconds), 0, maxStart);
+		const nextEnd = clamp(nextStart + selectedDuration, nextStart, maxSelectableSecond);
+		onRangeChange([nextStart, nextEnd], { followLive: followLiveValue });
+	};
+
+	const applyDrag = (target: "start" | "end" | "cursor" | "window", clientX: number) => {
 		if (disabled) return;
 
-		const minute = getMinuteFromClientX(clientX);
+		const second = getSecondFromClientX(clientX);
 		if (target === "start") {
-			commitRange(Math.min(minute, endMinute), endMinute);
+			commitCumulativeStart(second, false);
 			return;
 		}
 
 		if (target === "end") {
-			commitRange(startMinute, Math.max(minute, startMinute));
+			commitCumulativeEnd(second, false);
 			return;
 		}
 
-		onCurrentMinuteChange(clamp(minute, startMinute, endMinute));
+		if (target === "cursor") {
+			commitCumulativeCursor(second);
+			return;
+		}
+
+		commitWindowStart(second - dragOffsetRef.current, false);
 	};
 
 	const handleTrackPointerDown = (event: PointerEvent<HTMLDivElement>) => {
 		if (disabled) return;
 
-		const minute = getMinuteFromClientX(event.clientX);
-		const target =
-			minute < startMinute
-				? "start"
-				: minute > endMinute
-					? "end"
-					: "current";
+		const second = getSecondFromClientX(event.clientX);
+		const target = (() => {
+			if (mode === "sliding") return "window" as const;
+			const nearStart = Math.abs(second - rangeStartSecond) <= bucketSizeSeconds;
+			const nearEnd = Math.abs(second - rangeEndSecond) <= bucketSizeSeconds;
+			if (nearStart || nearEnd) {
+				return Math.abs(second - rangeStartSecond) <= Math.abs(second - rangeEndSecond)
+					? ("start" as const)
+					: ("end" as const);
+			}
+			return second >= rangeStartSecond && second <= rangeEndSecond
+				? ("cursor" as const)
+				: Math.abs(second - rangeStartSecond) <= Math.abs(second - rangeEndSecond)
+					? ("start" as const)
+					: ("end" as const);
+		})();
+
+		if (target === "window") {
+			dragOffsetRef.current =
+				second >= rangeStartSecond && second <= rangeEndSecond
+					? second - rangeStartSecond
+					: selectedDuration / 2;
+		}
 
 		setDragTarget(target);
 		event.currentTarget.setPointerCapture(event.pointerId);
@@ -259,8 +309,19 @@ export default function PassNetworkTimelineSlicer({
 		}
 	};
 
-	const handleThumbPointerDown =
-		(target: "start" | "end" | "current") => (event: PointerEvent<HTMLSpanElement>) => {
+	const handleWindowPointerDown = (event: PointerEvent<HTMLSpanElement>) => {
+		if (disabled) return;
+
+		event.preventDefault();
+		event.stopPropagation();
+		const second = getSecondFromClientX(event.clientX);
+		dragOffsetRef.current = clamp(second - rangeStartSecond, 0, selectedDuration);
+		setDragTarget("window");
+		trackRef.current?.setPointerCapture(event.pointerId);
+	};
+
+	const handleCumulativePointerDown =
+		(target: "start" | "end" | "cursor") => (event: PointerEvent<HTMLSpanElement>) => {
 			if (disabled) return;
 
 			event.preventDefault();
@@ -270,53 +331,44 @@ export default function PassNetworkTimelineSlicer({
 			applyDrag(target, event.clientX);
 		};
 
-	const handleThumbKeyDown =
-		(target: "start" | "end" | "current") => (event: KeyboardEvent<HTMLSpanElement>) => {
-			if (disabled) return;
+	const handleKeyDown =
+		(target: "start" | "end" | "cursor" | "window") =>
+		(event: KeyboardEvent<HTMLSpanElement>) => {
+		if (disabled) return;
 
-			const step = event.key === "PageUp" || event.key === "PageDown" ? 5 : 1;
-			const direction =
-				event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "PageUp"
-					? 1
-					: event.key === "ArrowLeft" ||
-						  event.key === "ArrowDown" ||
-						  event.key === "PageDown"
-						? -1
-						: 0;
+		const step = event.key === "PageUp" || event.key === "PageDown" ? 5 : 1;
+		const direction =
+			event.key === "ArrowRight" || event.key === "ArrowUp" || event.key === "PageUp"
+				? 1
+				: event.key === "ArrowLeft" ||
+					  event.key === "ArrowDown" ||
+					  event.key === "PageDown"
+					? -1
+					: 0;
 
-			if (direction !== 0) {
-				event.preventDefault();
-				const delta = direction * step;
+		if (direction === 0) return;
 
-				if (target === "start") {
-					commitRange(clamp(startMinute + delta, 0, endMinute), endMinute);
-					return;
-				}
+		event.preventDefault();
+		const delta = direction * step * bucketSizeSeconds;
+		if (target === "window") {
+			commitWindowStart(rangeStartSecond + delta, false);
+			return;
+		}
 
-				if (target === "end") {
-					commitRange(startMinute, clamp(endMinute + delta, startMinute, maxSelectableMinute));
-					return;
-				}
+		if (target === "start") {
+			commitCumulativeStart(rangeStartSecond + delta, false);
+			return;
+		}
 
-				onCurrentMinuteChange(clamp(current + delta, startMinute, endMinute));
-				return;
-			}
+		if (target === "cursor") {
+			commitCumulativeCursor(cursorSecond + delta);
+			return;
+		}
 
-			if (event.key !== "Home" && event.key !== "End") return;
+		commitCumulativeEnd(rangeEndSecond + delta, false);
+	};
 
-			event.preventDefault();
-			if (target === "start") {
-				commitRange(event.key === "Home" ? 0 : endMinute, endMinute);
-				return;
-			}
-
-			if (target === "end") {
-				commitRange(startMinute, event.key === "Home" ? startMinute : maxSelectableMinute);
-				return;
-			}
-
-			onCurrentMinuteChange(event.key === "Home" ? startMinute : endMinute);
-		};
+	const rangeLabel = `${formatMatchTime(rangeStartSecond)} - ${formatMatchTime(rangeEndSecond)}`;
 
 	return (
 		<div className={cn("min-w-0", className)}>
@@ -330,6 +382,15 @@ export default function PassNetworkTimelineSlicer({
 							{KIND_LABELS[kind]}
 						</span>
 					))}
+					<span className="inline-flex items-center gap-1.5">
+						<span
+							className={cn(
+								"size-2 rounded-full",
+								followLive ? "bg-emerald-500" : "bg-muted-foreground",
+							)}
+						/>
+						{followLive ? "Directo" : "Manual"}
+					</span>
 				</div>
 
 				<Badge
@@ -367,23 +428,37 @@ export default function PassNetworkTimelineSlicer({
 						style={{ width: `${playedPercent}%` }}
 					/>
 					<span
-						className="absolute inset-y-0 bg-primary/30 ring-1 ring-inset ring-primary/35"
+						className={cn(
+							"absolute inset-y-0 ring-1 ring-inset",
+							mode === "sliding"
+								? "bg-primary/35 ring-primary/55"
+								: "bg-emerald-500/25 ring-emerald-500/35",
+						)}
 						style={{
 							left: `${selectedStartPercent}%`,
 							width: `${selectedWidthPercent}%`,
 						}}
 					/>
+					{mode === "cumulative" ? (
+						<span
+							className="absolute inset-y-0 left-0 bg-primary/25"
+							style={{
+								left: `${selectedStartPercent}%`,
+								width: `${cursorWidthPercent}%`,
+							}}
+						/>
+					) : null}
 				</div>
 
 				<span className="absolute left-3 top-[4.7rem] text-[10px] font-medium tabular-nums text-muted-foreground">
-					0'
+					00:00
 				</span>
 				<span className="absolute right-3 top-[4.7rem] text-[10px] font-medium tabular-nums text-muted-foreground">
-					90'
+					{formatMatchTime(timelineEndSecond)}
 				</span>
 
 				{timelineEvents.map((event, index) => {
-					const percent = secondToPercent(event.totalSeconds);
+					const percent = secondToPercent(event.totalSeconds, timelineEndSecond);
 					const color = getTeamColor(event.teamSide, homeColor, awayColor);
 					const teamName = getTeamName(event.teamSide, homeTeamName, awayTeamName);
 
@@ -417,56 +492,84 @@ export default function PassNetworkTimelineSlicer({
 					);
 				})}
 
-				{(["start", "end"] as const).map((target) => {
-					const minute = target === "start" ? startMinute : endMinute;
-					const percent = target === "start" ? selectedStartPercent : selectedEndPercent;
-
-					return (
-						<span
-							key={target}
-							role="slider"
-							tabIndex={disabled ? undefined : 0}
-							aria-label={target === "start" ? "Inicio del rango" : "Final del rango"}
-							aria-valuemin={0}
-							aria-valuemax={maxSelectableMinute}
-							aria-valuenow={minute}
-							className={cn(
-								"absolute top-3 z-30 flex h-[4.65rem] w-9 -translate-x-1/2 touch-none flex-col items-center",
-								disabled ? "cursor-not-allowed" : "cursor-ew-resize",
-							)}
-							style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${percent / 100})` }}
-							onPointerDown={handleThumbPointerDown(target)}
-							onKeyDown={handleThumbKeyDown(target)}
-						>
-							<span className="h-10 w-1.5 rounded-full bg-primary shadow-sm ring-2 ring-background" />
-							<span className="mt-1 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground shadow-sm">
-								{formatMinute(minute)}
-							</span>
+				{mode === "sliding" ? (
+					<span
+						role="slider"
+						tabIndex={disabled ? undefined : 0}
+						aria-label="Ventana movil de red de pases"
+						aria-valuemin={0}
+						aria-valuemax={maxSelectableSecond}
+						aria-valuenow={rangeEndSecond}
+						className={cn(
+							"absolute top-12 z-40 flex h-5 -translate-y-1/2 touch-none flex-col items-center",
+							disabled ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
+						)}
+						style={{
+							left: `calc(0.75rem + (100% - 1.5rem) * ${selectedStartPercent / 100})`,
+							width: `calc((100% - 1.5rem) * ${selectedWidthPercent / 100})`,
+						}}
+						onPointerDown={handleWindowPointerDown}
+						onKeyDown={handleKeyDown("window")}
+					>
+						<span className="h-full w-full rounded-full border border-primary bg-primary/25 shadow-sm ring-2 ring-background" />
+						<span className="mt-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground shadow-sm">
+							{rangeLabel}
 						</span>
-					);
-				})}
-
-				<span
-					role="slider"
-					tabIndex={disabled ? undefined : 0}
-					aria-label="Minuto de evolucion"
-					aria-valuemin={startMinute}
-					aria-valuemax={endMinute}
-					aria-valuenow={current}
-					className={cn(
-						"absolute top-4 z-40 flex h-[4.2rem] w-8 -translate-x-1/2 touch-none flex-col items-center text-emerald-600",
-						disabled ? "cursor-not-allowed" : "cursor-grab active:cursor-grabbing",
-					)}
-					style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${currentPercent / 100})` }}
-					onPointerDown={handleThumbPointerDown("current")}
-					onKeyDown={handleThumbKeyDown("current")}
-				>
-					<span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-sm">
-						{formatMinute(current)}
 					</span>
-					<span className="mt-0.5 h-0 w-0 border-l-[7px] border-r-[7px] border-t-[9px] border-l-transparent border-r-transparent border-t-emerald-600" />
-					<span className="h-9 w-1 rounded-full bg-emerald-600 shadow-sm ring-2 ring-background" />
-				</span>
+				) : null}
+
+				{mode === "cumulative"
+					? ([
+							{ target: "start" as const, second: rangeStartSecond, percent: selectedStartPercent },
+							{ target: "end" as const, second: rangeEndSecond, percent: selectedEndPercent },
+						]).map(({ target, second, percent }) => (
+							<span
+								key={target}
+								role="slider"
+								tabIndex={disabled ? undefined : 0}
+								aria-label={target === "start" ? "Inicio del rango acumulado" : "Final del rango acumulado"}
+								aria-valuemin={0}
+								aria-valuemax={maxSelectableSecond}
+								aria-valuenow={second}
+								className={cn(
+									"absolute top-4 z-50 flex h-[4.2rem] w-8 -translate-x-1/2 touch-none flex-col items-center text-emerald-600",
+									disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+								)}
+								style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${percent / 100})` }}
+								onPointerDown={handleCumulativePointerDown(target)}
+								onKeyDown={handleKeyDown(target)}
+							>
+								<span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-sm">
+									{formatMatchTime(second)}
+								</span>
+								<span className="mt-0.5 h-0 w-0 border-l-[7px] border-r-[7px] border-t-[9px] border-l-transparent border-r-transparent border-t-emerald-600" />
+								<span className="h-9 w-1 rounded-full bg-emerald-600 shadow-sm ring-2 ring-background" />
+							</span>
+						))
+					: null}
+
+				{mode === "cumulative" ? (
+					<span
+						role="slider"
+						tabIndex={disabled ? undefined : 0}
+						aria-label="Instante de evolucion de la red de pases"
+						aria-valuemin={rangeStartSecond}
+						aria-valuemax={rangeEndSecond}
+						aria-valuenow={cursorSecond}
+						className={cn(
+							"absolute top-12 z-60 flex h-5 w-8 -translate-x-1/2 -translate-y-1/2 touch-none flex-col items-center text-primary",
+							disabled ? "cursor-not-allowed" : "cursor-ew-resize",
+						)}
+						style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${cursorPercent / 100})` }}
+						onPointerDown={handleCumulativePointerDown("cursor")}
+						onKeyDown={handleKeyDown("cursor")}
+					>
+						<span className="h-full w-1 rounded-full bg-primary shadow-sm ring-2 ring-background" />
+						<span className="mt-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground shadow-sm">
+							{formatMatchTime(cursorSecond)}
+						</span>
+					</span>
+				) : null}
 			</div>
 		</div>
 	);

@@ -29,11 +29,10 @@ services:
       APP_PORT: ${APP_PORT:-8000}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
-      LIVE_XML_PATH: ${LIVE_XML_PATH:-/shared/f24-simulated-data.xml}
-      F24_XML_PATH: ${F24_XML_PATH:-/shared/f24-simulated-data.xml}
-      F9_XML_PATH: ${F9_XML_PATH:-/shared/f9-simulated-data.xml}
-      F40_XML_PATH: ${F40_XML_PATH:-/shared/F40-squad-23.xml}
-      F42_XML_PATH: ${F42_XML_PATH:-/shared/f42-23-2023-results.xml}
+      F24_XML_DIR: ${F24_XML_DIR:-/shared/events}
+      F9_XML_DIR: ${F9_XML_DIR:-/shared/stats}
+      F40_XML_PATH: ${F40_XML_PATH:-/shared/players/F40-squad-23.xml}
+      F42_XML_PATH: ${F42_XML_PATH:-/shared/schedule/f42-23-2023-results.xml}
       XML_POLL_INTERVAL_SECONDS: ${XML_POLL_INTERVAL_SECONDS:-3}
       STATS_XML_POLL_INTERVAL_SECONDS: ${STATS_XML_POLL_INTERVAL_SECONDS:-60}
     ports:
@@ -55,20 +54,22 @@ services:
       context: .
       dockerfile: match-simulator/Dockerfile
     environment:
-      SOURCE_XML_PATH: ${SOURCE_XML_PATH:-/app/data/events/f24-23-2023-2372222-eventdetails.xml}
-      SOURCE_STATS_XML_PATH: ${SOURCE_STATS_XML_PATH:-/app/data/stats/f9-23-2023-2372222-matchresults.xml}
-      OUTPUT_XML_PATH: ${OUTPUT_XML_PATH:-/shared/f24-simulated-data.xml}
-      OUTPUT_STATS_XML_PATH: ${OUTPUT_STATS_XML_PATH:-/shared/f9-simulated-data.xml}
-      F40_SOURCE_XML_PATH: ${F40_SOURCE_XML_PATH:-/app/data/F40-squad-23.xml}
-      F40_OUTPUT_XML_PATH: ${F40_OUTPUT_XML_PATH:-/shared/F40-squad-23.xml}
-      F42_SOURCE_XML_PATH: ${F42_SOURCE_XML_PATH:-/app/data/f42-23-2023-results.xml}
-      F42_OUTPUT_XML_PATH: ${F42_OUTPUT_XML_PATH:-/shared/f42-23-2023-results.xml}
+      SIMULATE_EVENTS_DIR: ${SIMULATE_EVENTS_DIR:-/app/data/events/simulate}
+      SIMULATE_STATS_DIR: ${SIMULATE_STATS_DIR:-/app/data/stats/simulate}
+      STATIC_EVENTS_DIR: ${STATIC_EVENTS_DIR:-/app/data/events/static}
+      STATIC_STATS_DIR: ${STATIC_STATS_DIR:-/app/data/stats/static}
+      OUTPUT_EVENTS_DIR: ${OUTPUT_EVENTS_DIR:-/shared/events}
+      OUTPUT_STATS_DIR: ${OUTPUT_STATS_DIR:-/shared/stats}
+      F40_SOURCE_XML_PATH: ${F40_SOURCE_XML_PATH:-/app/data/players/F40-squad-23.xml}
+      F40_OUTPUT_XML_PATH: ${F40_OUTPUT_XML_PATH:-/shared/players/F40-squad-23.xml}
+      F42_SOURCE_XML_PATH: ${F42_SOURCE_XML_PATH:-/app/data/schedule/f42-23-2023-results.xml}
+      F42_OUTPUT_XML_PATH: ${F42_OUTPUT_XML_PATH:-/shared/schedule/f42-23-2023-results.xml}
       SIMULATION_SPEED: ${SIMULATION_SPEED:-1}
       WRITE_INTERVAL_SECONDS: ${WRITE_INTERVAL_SECONDS:-3}
     volumes:
       - shared-volume:/shared
     healthcheck:
-      test: ["CMD-SHELL", "test -s \"$${OUTPUT_XML_PATH}\" && test -s \"$${OUTPUT_STATS_XML_PATH}\" && test -s \"$${F40_OUTPUT_XML_PATH}\" && test -s \"$${F42_OUTPUT_XML_PATH}\""]
+      test: ["CMD-SHELL", "find /shared/events -maxdepth 1 -type f -name 'f24-*.xml' -size +0c | grep -q . && find /shared/stats -maxdepth 1 -type f -name 'f9-*.xml' -size +0c | grep -q . && test -s \"$${F40_OUTPUT_XML_PATH}\" && test -s \"$${F42_OUTPUT_XML_PATH}\""]
       interval: 10s
       timeout: 3s
       retries: 10

@@ -30,7 +30,10 @@ uvicorn app.main:app --reload
 
 ## Match Simulator
 
-Script que simula la generación de eventos y estadísticas en tiempo real a partir de archivos XML de ejemplo.
+Script que simula varios partidos a partir de XML de Opta. Los feeds de
+`data/events` y `data/stats` se organizan en `simulate` (actualizaciones en
+tiempo real) y `static` (partidos finalizados); los nombres de salida conservan
+el ID de partido.
 
 ### Ejecución
 

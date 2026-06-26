@@ -51,11 +51,12 @@ class ProcessEventsService:
         event_scan = self._event_scanner.scan(game)
         messages.extend(event_scan.messages)
 
-        if event_scan.pass_candidates_by_team:
+        if event_scan.pass_candidates_by_team or event_scan.pass_deletions_by_team:
             messages.extend(
                 self._pass_network_updater.update(
                     game,
                     event_scan.pass_candidates_by_team,
+                    event_scan.pass_deletions_by_team,
                 )
             )
 

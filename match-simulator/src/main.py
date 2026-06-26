@@ -6,6 +6,7 @@ import copy
 import threading
 import xml.etree.ElementTree as ET
 import math
+import re
 from pathlib import Path
 from datetime import datetime
 
@@ -13,11 +14,23 @@ from datetime import datetime
 DATA_ROOT = Path(__file__).parent.parent / "data"
 DATA_EVENTS_PATH = DATA_ROOT / "events"
 DATA_STATS_PATH = DATA_ROOT / "stats"
+DATA_EVENTS_SIMULATE_PATH = DATA_EVENTS_PATH / "simulate"
+DATA_EVENTS_STATIC_PATH = DATA_EVENTS_PATH / "static"
+DATA_STATS_SIMULATE_PATH = DATA_STATS_PATH / "simulate"
+DATA_STATS_STATIC_PATH = DATA_STATS_PATH / "static"
+DATA_PLAYERS_PATH = DATA_ROOT / "players"
+DATA_SCHEDULE_PATH = DATA_ROOT / "schedule"
 OUTPUT_PATH = Path(__file__).parent.parent.parent / "simulated-real-time-data"
-DEFAULT_EVENTS_OUTPUT_FILE_NAME = "f24-simulated-data.xml"
-DEFAULT_STATS_OUTPUT_FILE_NAME = "f9-simulated-data.xml"
+DEFAULT_EVENTS_OUTPUT_DIR = OUTPUT_PATH / "events"
+DEFAULT_STATS_OUTPUT_DIR = OUTPUT_PATH / "stats"
 DEFAULT_F40_FILE_NAME = "F40-squad-23.xml"
 DEFAULT_F42_FILE_NAME = "f42-23-2023-results.xml"
+F24_FILE_PATTERN = "f24-*-eventdetails.xml"
+F9_FILE_PATTERN = "f9-*-matchresults.xml"
+MATCH_ID_FROM_FEED_NAME = re.compile(
+    r"^f(?:24|9)-\d+-\d+-(?P<match_id>\d+)-(?:eventdetails|matchresults)\.xml$",
+    re.IGNORECASE,
+)
 
 SIMULATED_TEAM_STAT_TYPES = {
     "possession_percentage",
@@ -125,35 +138,12 @@ class StatsMinuteTrigger:
             return None
 
 
-def get_today_date_formatted() -> str:
-    """
-    Retorna la fecha actual en formato DDMMAA.
-    Ej: 030226 para 03/02/2026
-    """
-    today = datetime.now()
-    return today.strftime("%d%m%y")
-
-
 def _env_path(*names: str) -> Path | None:
     for name in names:
         value = os.getenv(name)
         if value:
             return Path(value)
     return None
-
-
-def resolve_source_xml_path(*env_names: str, default_dir: Path) -> Path:
-    configured_path = _env_path(*env_names)
-    if configured_path is not None:
-        return configured_path
-    return find_first_xml_file(default_dir)
-
-
-def resolve_output_xml_path(*env_names: str, default_file_name: str) -> Path:
-    configured_path = _env_path(*env_names)
-    if configured_path is not None:
-        return configured_path
-    return OUTPUT_PATH / default_file_name
 
 
 def simulation_speed_from_env() -> float:
@@ -184,22 +174,61 @@ def delay_seconds(
     return max(0.0, base_delay / max(0.001, simulation_speed))
 
 
-def find_first_xml_file(directory: Path = DATA_EVENTS_PATH) -> Path:
-    """
-    Encuentra el primer archivo XML en el directorio indicado.
-    """
-    xml_files = list(directory.glob("*.xml"))
-    if not xml_files:
-        raise FileNotFoundError(f"No XML files found in {directory}")
-    
-    return xml_files[0]
+def _xml_files(directory: Path, pattern: str) -> list[Path]:
+    """Returns the sorted Opta feeds in one simulator input directory."""
+    if not directory.is_dir():
+        raise FileNotFoundError(f"XML directory not found: {directory}")
+    return sorted(path for path in directory.glob(pattern) if path.is_file())
 
 
-def find_first_stats_xml_file() -> Path:
-    """
-    Encuentra el primer archivo XML en data/stats.
-    """
-    return find_first_xml_file(DATA_STATS_PATH)
+def _match_id_from_file_name(xml_file: Path) -> str:
+    """Extracts the Opta match id embedded in an F24/F9 filename."""
+    match = MATCH_ID_FROM_FEED_NAME.match(xml_file.name)
+    if match is None:
+        raise ValueError(
+            "Invalid Opta feed name "
+            f"{xml_file.name!r}; expected f24/f9-<season>-<year>-<match-id>-...xml"
+        )
+    return match.group("match_id")
+
+
+def _feeds_by_match_id(directory: Path, pattern: str) -> dict[str, Path]:
+    feeds: dict[str, Path] = {}
+    for xml_file in _xml_files(directory, pattern):
+        match_id = _match_id_from_file_name(xml_file)
+        if match_id in feeds:
+            raise ValueError(
+                f"More than one feed found for match {match_id} in {directory}"
+            )
+        feeds[match_id] = xml_file
+    return feeds
+
+
+def _matching_simulation_feeds(
+    events_directory: Path,
+    stats_directory: Path,
+) -> list[tuple[str, Path, Path]]:
+    """Pairs simulated F24 and F9 files by their match id."""
+    events = _feeds_by_match_id(events_directory, F24_FILE_PATTERN)
+    stats = _feeds_by_match_id(stats_directory, F9_FILE_PATTERN)
+
+    missing_stats = sorted(set(events) - set(stats))
+    missing_events = sorted(set(stats) - set(events))
+    if missing_stats or missing_events:
+        details = []
+        if missing_stats:
+            details.append(f"missing F9 for {', '.join(missing_stats)}")
+        if missing_events:
+            details.append(f"missing F24 for {', '.join(missing_events)}")
+        raise ValueError("Simulated feeds must be paired by match id: " + "; ".join(details))
+
+    if not events:
+        raise ValueError("No simulated F24/F9 feed pairs found")
+
+    return [
+        (match_id, events[match_id], stats[match_id])
+        for match_id in sorted(events)
+    ]
 
 
 def extract_game_attributes(source_xml: Path) -> dict:
@@ -689,101 +718,154 @@ def create_new_stats_streaming(
     print(f"📊 Iteraciones de stats procesadas: {simulated_minute}")
 
 
+def _copy_static_feeds(
+    source_directory: Path,
+    output_directory: Path,
+    pattern: str,
+) -> int:
+    """Publishes completed matches without intermediate simulated updates."""
+    feeds = _xml_files(source_directory, pattern)
+    for source_file in feeds:
+        copy_static_xml_atomic(source_file, output_directory / source_file.name)
+    return len(feeds)
+
+
+def _simulate_match(
+    match_id: str,
+    source_events_xml: Path,
+    source_stats_xml: Path,
+    output_events_directory: Path,
+    output_stats_directory: Path,
+    simulation_speed: float,
+    write_interval_seconds: float | None,
+) -> None:
+    """Runs the F24 and F9 streams for one match using its own minute trigger."""
+    output_events_xml = output_events_directory / source_events_xml.name
+    output_stats_xml = output_stats_directory / source_stats_xml.name
+    stats_trigger = StatsMinuteTrigger()
+
+    print(f"\n[MATCH {match_id}] F24: {source_events_xml.name} -> {output_events_xml}")
+    print(f"[MATCH {match_id}] F9:  {source_stats_xml.name} -> {output_stats_xml}")
+
+    events_thread = threading.Thread(
+        target=create_new_xml_streaming,
+        args=(
+            source_events_xml,
+            output_events_xml,
+            stats_trigger,
+            simulation_speed,
+            write_interval_seconds,
+        ),
+        daemon=True,
+        name=f"f24-{match_id}",
+    )
+    stats_thread = threading.Thread(
+        target=create_new_stats_streaming,
+        args=(
+            source_stats_xml,
+            output_stats_xml,
+            stats_trigger,
+            simulation_speed,
+            None,
+        ),
+        daemon=True,
+        name=f"f9-{match_id}",
+    )
+
+    events_thread.start()
+    stats_thread.start()
+    events_thread.join()
+    stats_trigger.mark_events_finished()
+    stats_thread.join()
+
+
 def main():
-    """
-    Función principal que ejecuta el script.
-    """
-    print("🏟️  Pitch Simulator - Real-time Event & Stats Generator\n")
+    """Publishes static feeds and simulates every F24/F9 pair in parallel."""
+    print("Pitch Simulator - Multi-match Event & Stats Generator\n")
     print("=" * 60)
-    
-    try:
-        # Se mantiene por compatibilidad aunque hoy no se use para nombrado.
-        _ = get_today_date_formatted()
 
-        source_events_xml = resolve_source_xml_path(
-            "SOURCE_EVENTS_XML_PATH",
-            "SOURCE_XML_PATH",
-            default_dir=DATA_EVENTS_PATH,
-        )
-        source_stats_xml = resolve_source_xml_path(
-            "SOURCE_STATS_XML_PATH",
-            default_dir=DATA_STATS_PATH,
-        )
-        output_events_xml = resolve_output_xml_path(
-            "OUTPUT_EVENTS_XML_PATH",
-            "OUTPUT_XML_PATH",
-            default_file_name=DEFAULT_EVENTS_OUTPUT_FILE_NAME,
-        )
-        output_stats_xml = resolve_output_xml_path(
-            "OUTPUT_STATS_XML_PATH",
-            default_file_name=DEFAULT_STATS_OUTPUT_FILE_NAME,
-        )
-        f40_source_xml = _env_path("F40_SOURCE_XML_PATH") or DATA_ROOT / DEFAULT_F40_FILE_NAME
-        f40_output_xml = (
-            _env_path("F40_OUTPUT_XML_PATH")
-            or output_events_xml.parent / DEFAULT_F40_FILE_NAME
-        )
-        f42_source_xml = _env_path("F42_SOURCE_XML_PATH") or DATA_ROOT / DEFAULT_F42_FILE_NAME
-        f42_output_xml = (
-            _env_path("F42_OUTPUT_XML_PATH")
-            or output_events_xml.parent / DEFAULT_F42_FILE_NAME
-        )
-        simulation_speed = simulation_speed_from_env()
-        write_interval_seconds = write_interval_from_env()
+    simulated_events_directory = (
+        _env_path("SIMULATE_EVENTS_DIR") or DATA_EVENTS_SIMULATE_PATH
+    )
+    simulated_stats_directory = (
+        _env_path("SIMULATE_STATS_DIR") or DATA_STATS_SIMULATE_PATH
+    )
+    static_events_directory = _env_path("STATIC_EVENTS_DIR") or DATA_EVENTS_STATIC_PATH
+    static_stats_directory = _env_path("STATIC_STATS_DIR") or DATA_STATS_STATIC_PATH
+    output_events_directory = _env_path("OUTPUT_EVENTS_DIR") or DEFAULT_EVENTS_OUTPUT_DIR
+    output_stats_directory = _env_path("OUTPUT_STATS_DIR") or DEFAULT_STATS_OUTPUT_DIR
+    f40_source_xml = (
+        _env_path("F40_SOURCE_XML_PATH")
+        or DATA_PLAYERS_PATH / DEFAULT_F40_FILE_NAME
+    )
+    f40_output_xml = (
+        _env_path("F40_OUTPUT_XML_PATH")
+        or OUTPUT_PATH / "players" / DEFAULT_F40_FILE_NAME
+    )
+    f42_source_xml = (
+        _env_path("F42_SOURCE_XML_PATH")
+        or DATA_SCHEDULE_PATH / DEFAULT_F42_FILE_NAME
+    )
+    f42_output_xml = (
+        _env_path("F42_OUTPUT_XML_PATH")
+        or OUTPUT_PATH / "schedule" / DEFAULT_F42_FILE_NAME
+    )
+    simulation_speed = simulation_speed_from_env()
+    write_interval_seconds = write_interval_from_env()
 
-        print(f"📁 Fuente eventos: {source_events_xml.name}")
-        print(f"📁 Fuente stats:   {source_stats_xml.name}\n")
+    simulations = _matching_simulation_feeds(
+        simulated_events_directory,
+        simulated_stats_directory,
+    )
 
-        print(f"Output eventos: {output_events_xml}")
-        print(f"Output stats:   {output_stats_xml}")
-        print(f"Output F40:     {f40_output_xml}")
-        print(f"Output F42:     {f42_output_xml}")
-        print(f"Velocidad:      x{simulation_speed}")
-        if write_interval_seconds is not None:
-            print(f"Intervalo fijo: {write_interval_seconds}s")
-        print()
+    static_events_count = _copy_static_feeds(
+        static_events_directory,
+        output_events_directory,
+        F24_FILE_PATTERN,
+    )
+    static_stats_count = _copy_static_feeds(
+        static_stats_directory,
+        output_stats_directory,
+        F9_FILE_PATTERN,
+    )
+    copy_static_xml_atomic(f40_source_xml, f40_output_xml)
+    copy_static_xml_atomic(f42_source_xml, f42_output_xml)
 
-        copy_static_xml_atomic(f40_source_xml, f40_output_xml)
-        copy_static_xml_atomic(f42_source_xml, f42_output_xml)
+    print(f"Simulated matches: {', '.join(match_id for match_id, _, _ in simulations)}")
+    print(f"Static F24 feeds published: {static_events_count}")
+    print(f"Static F9 feeds published:  {static_stats_count}")
+    print(f"F24 output directory: {output_events_directory}")
+    print(f"F9 output directory:  {output_stats_directory}")
+    print(f"Output F40: {f40_output_xml}")
+    print(f"Output F42: {f42_output_xml}")
+    print(f"Simulation speed: x{simulation_speed}")
+    if write_interval_seconds is not None:
+        print(f"Fixed interval: {write_interval_seconds}s")
 
-        stats_trigger = StatsMinuteTrigger()
-
-        events_thread = threading.Thread(
-            target=create_new_xml_streaming,
+    match_threads = [
+        threading.Thread(
+            target=_simulate_match,
             args=(
+                match_id,
                 source_events_xml,
-                output_events_xml,
-                stats_trigger,
+                source_stats_xml,
+                output_events_directory,
+                output_stats_directory,
                 simulation_speed,
                 write_interval_seconds,
             ),
             daemon=True,
+            name=f"match-{match_id}",
         )
-        stats_thread = threading.Thread(
-            target=create_new_stats_streaming,
-            args=(
-                source_stats_xml,
-                output_stats_xml,
-                stats_trigger,
-                simulation_speed,
-                None,
-            ),
-            daemon=True,
-        )
+        for match_id, source_events_xml, source_stats_xml in simulations
+    ]
+    for thread in match_threads:
+        thread.start()
+    for thread in match_threads:
+        thread.join()
 
-        events_thread.start()
-        stats_thread.start()
-
-        events_thread.join()
-        stats_trigger.mark_events_finished()
-        stats_thread.join()
-        
-        print("\n" + "=" * 60)
-        print("✨ Proceso completado exitosamente")
-        
-    except Exception as e:
-        print(f"\n❌ Error: {e}")
-        raise
+    print("\n" + "=" * 60)
+    print("Process completed successfully")
 
 
 if __name__ == "__main__":

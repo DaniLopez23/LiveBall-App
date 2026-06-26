@@ -4,6 +4,7 @@ import type {
 	PassNetworkEdge,
 	PassNetworkNode,
 	PassNetworkStatistics,
+	PassNetworkTemporalPayload,
 	SnapshotPassNetworks,
 } from "@/types/passNetwork";
 import type { MatchStatsUpdateData } from "@/types/stats";
@@ -46,6 +47,7 @@ export type PassNetworkUpdatedWsMessage = {
 	nodes: PassNetworkNode[];
 	edges: PassNetworkEdge[];
 	statistics: PassNetworkStatistics;
+	temporal?: PassNetworkTemporalPayload;
 };
 
 export type MatchStatsUpdatedWsMessage = {

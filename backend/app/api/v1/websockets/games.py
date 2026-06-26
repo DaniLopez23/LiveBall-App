@@ -2,6 +2,7 @@ import logging
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
+from app.services.events.pass_network_update_service import PassNetworkUpdateService
 from app.websockets.websocket_manager import ConnectionManager
 
 logger = logging.getLogger(__name__)
@@ -43,12 +44,16 @@ async def game_websocket(websocket: WebSocket, game_id: str) -> None:
                     bucket["momentum"] = points_by_minute.get(bucket.get("minute"))
 
             pass_networks_data = {}
+            match_time_seconds = PassNetworkUpdateService._get_match_time_seconds(game)
             for (g_id, team_id), network_svc in cache.pass_networks.items():
                 if g_id == game_id:
                     pass_networks_data[str(team_id)] = {
                         "nodes": network_svc.get_nodes(),
                         "edges": network_svc.get_edges(),
                         "statistics": cache.get_pass_network_statistics(g_id, team_id),
+                        "temporal": network_svc.get_temporal_payload(
+                            match_time_seconds=match_time_seconds,
+                        ),
                     }
 
             await websocket.send_json(

@@ -363,13 +363,25 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     const endCoordinates = isPassEvent(event)
       ? { x: event.end_x, y: event.end_y }
       : { x: null, y: null };
+    const hasEndCoordinates =
+      endCoordinates.x != null &&
+      endCoordinates.y != null &&
+      Number.isFinite(endCoordinates.x) &&
+      Number.isFinite(endCoordinates.y);
 
-    return [
+    const lines = [
       `${sequence}. ${getEventLabel(event)} - ${formatEventTime(event.min, event.sec)}`,
       `Dorsal ${playerDorsal} - ${playerName}`,
       `Coordenadas inicio (${formatCoord(event.x)}, ${formatCoord(event.y)})`,
-      `Coordenadas fin (${formatCoord(endCoordinates.x)}, ${formatCoord(endCoordinates.y)})`,
     ];
+
+    if (hasEndCoordinates) {
+      lines.push(
+        `Coordenadas fin (${formatCoord(endCoordinates.x)}, ${formatCoord(endCoordinates.y)})`,
+      );
+    }
+
+    return lines;
   };
 
   const renderHoverMarker = (
@@ -458,17 +470,6 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
           fill="transparent"
           pointerEvents="all"
         />
-        {hoveredEventId === event.id ? (
-          <EventTooltip
-            anchorX={anchorX}
-            anchorY={anchorY}
-            color={color}
-            lines={getTooltipLines(event, sequence)}
-            viewBoxWidth={viewBoxWidth}
-            viewBoxHeight={viewBoxHeight}
-            scale={tooltipScale}
-          />
-        ) : null}
       </g>
     );
   };
@@ -753,7 +754,41 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     return null;
   });
 
-  return animated ? <AnimatePresence>{markers}</AnimatePresence> : markers;
+  const hoveredEventTooltip = (() => {
+    if (!hoveredEventId) return null;
+
+    const hoveredIndex = renderableEvents.findIndex(
+      ({ event }) => event.id === hoveredEventId,
+    );
+    if (hoveredIndex < 0) return null;
+
+    const event = renderableEvents[hoveredIndex].event;
+    const { x, y } = transformOptaToSvg(event.x!, event.y!);
+    const color =
+      eventColors[event.id] ??
+      (event.team_id && teamColors[event.team_id]
+        ? teamColors[event.team_id]
+        : "#ffffff");
+
+    return (
+      <EventTooltip
+        anchorX={x}
+        anchorY={y}
+        color={color}
+        lines={getTooltipLines(event, hoveredIndex + 1)}
+        viewBoxWidth={viewBoxWidth}
+        viewBoxHeight={viewBoxHeight}
+        scale={tooltipScale}
+      />
+    );
+  })();
+
+  return (
+    <>
+      {animated ? <AnimatePresence>{markers}</AnimatePresence> : markers}
+      {hoveredEventTooltip}
+    </>
+  );
 };
 
 export default OptaMarkers;

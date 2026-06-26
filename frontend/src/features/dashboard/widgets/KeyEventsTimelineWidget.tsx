@@ -3,20 +3,21 @@ import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import KeyEventsTimeline, {
 	ALL_KEY_EVENT_KINDS,
-	getAvailableTimelineMinute,
 	getScoreAtTimelineSecond,
+	getTimelineEndMinute,
 	type KeyEventKind,
 	type KeyEventsTimelineTeamFilter,
 } from "@/components/stats/KeyEventsTimeline";
+import { formatMatchTime, getMaxEventSecond } from "@/lib/matchTime";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
+import useMatchSelectionStore from "@/store/matchSelectionStore";
 import type {
 	WidgetComponentProps,
 	WidgetPanelProps,
 } from "@/features/dashboard/types/dashboard.types";
 import {
 	CheckboxList,
-	MinuteRangeField,
 	SectionTitle,
 	SelectField,
 	SwitchField,
@@ -79,15 +80,8 @@ function getSafeEventKinds(value: KeyEventKind[] | undefined): KeyEventKind[] {
 	);
 }
 
-function clampMinuteRange(
-	value: [number, number],
-	maxMinute: number,
-): [number, number] {
-	const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
-	const start = Math.min(boundedMaxMinute, Math.max(0, value[0]));
-	const end = Math.min(boundedMaxMinute, Math.max(start, value[1]));
-
-	return [start, end];
+function hasFinishedMatchState(events: ReturnType<typeof useEventsStore.getState>["events"]) {
+	return events.some((event) => event.match_state === "match_finished");
 }
 
 export function KeyEventsTimelineWidget({
@@ -96,19 +90,28 @@ export function KeyEventsTimelineWidget({
 }: WidgetComponentProps<KeyEventsTimelineConfig, KeyEventsTimelineFilters>) {
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
+	const gameId = game?.game_id ?? null;
+	const selectedMatchStatus = useMatchSelectionStore((state) => {
+		const selectedGameId = state.selectedGameId ?? gameId;
+		return state.matches.find((match) => match.game_id === selectedGameId)?.status ?? null;
+	});
 	const homeTeamId = game?.home_team.team_id ?? null;
 	const awayTeamId = game?.away_team.team_id ?? null;
-	const maxMinute = useMemo(() => getAvailableTimelineMinute(events), [events]);
-	const minuteRange = clampMinuteRange(filters.minuteRange, maxMinute);
-	const currentMinute = minuteRange[1];
-	const showCurrentMarker = config.showCurrentMarker ?? false;
+	const timelineEndMinute = useMemo(() => getTimelineEndMinute(events, 90), [events]);
+	const minuteRange: [number, number] = [0, timelineEndMinute];
+	const isMatchFinished =
+		selectedMatchStatus === "finished" || hasFinishedMatchState(events);
+	const latestEventSecond = events.length > 0 ? getMaxEventSecond(events) : null;
+	const markerSecond = !isMatchFinished ? latestEventSecond : null;
+	const scoreLimitSecond =
+		markerSecond ?? Math.max(0, timelineEndMinute * 60 + 59);
 	const score =
 		homeTeamId && awayTeamId
 			? getScoreAtTimelineSecond(
 					events,
 					homeTeamId,
 					awayTeamId,
-					currentMinute * 60 + 59,
+					scoreLimitSecond,
 				)
 			: { home: 0, away: 0 };
 	const eventKinds = getSafeEventKinds(filters.eventKinds);
@@ -118,7 +121,12 @@ export function KeyEventsTimelineWidget({
 			: filters.team === "home"
 				? game?.home_team.team_name ?? "Local"
 				: game?.away_team.team_name ?? "Visitante",
-		`${minuteRange[0]}'-${minuteRange[1]}'`,
+		`0'-${timelineEndMinute}'`,
+		isMatchFinished
+			? "Finalizado"
+			: markerSecond != null
+				? `Actual ${formatMatchTime(markerSecond)}`
+				: "Sin eventos",
 	];
 
 	return (
@@ -145,7 +153,7 @@ export function KeyEventsTimelineWidget({
 					awayTeamId={awayTeamId}
 					homeTeamName={game?.home_team.team_name ?? "Local"}
 					awayTeamName={game?.away_team.team_name ?? "Visitante"}
-					currentMinute={showCurrentMarker ? currentMinute : undefined}
+					currentSecond={markerSecond ?? undefined}
 					homeScore={score.home}
 					awayScore={score.away}
 					eventKinds={eventKinds}
@@ -153,7 +161,7 @@ export function KeyEventsTimelineWidget({
 					minuteRange={minuteRange}
 					showScore={config.showScore ?? true}
 					showLegend={config.showLegend ?? true}
-					showCurrentMarker={showCurrentMarker}
+					showCurrentMarker={markerSecond != null}
 					className="w-full"
 				/>
 			</div>
@@ -190,12 +198,6 @@ export function KeyEventsTimelineWidgetConfig({
 				checked={config.showLegend}
 				onChange={(showLegend) => onChange({ ...config, showLegend })}
 			/>
-			<SwitchField
-				label="Minuto seleccionado"
-				description="Muestra el indicador del final de la ventana temporal."
-				checked={config.showCurrentMarker}
-				onChange={(showCurrentMarker) => onChange({ ...config, showCurrentMarker })}
-			/>
 		</div>
 	);
 }
@@ -205,8 +207,6 @@ export function KeyEventsTimelineWidgetFilters({
 	onChange,
 }: WidgetPanelProps<KeyEventsTimelineFilters, KeyEventsTimelineConfig>) {
 	const game = useGameStore((state) => state.game);
-	const events = useEventsStore((state) => state.events);
-	const maxMinute = useMemo(() => getAvailableTimelineMinute(events), [events]);
 	const filters = {
 		...DEFAULT_KEY_EVENTS_TIMELINE_FILTERS,
 		...value,
@@ -228,12 +228,6 @@ export function KeyEventsTimelineWidgetFilters({
 					{ value: "home", label: game?.home_team.team_name ?? "Local" },
 					{ value: "away", label: game?.away_team.team_name ?? "Visitante" },
 				]}
-			/>
-			<MinuteRangeField
-				label="Eventos visibles"
-				value={filters.minuteRange}
-				maxMinute={maxMinute}
-				onChange={(minuteRange) => onChange({ ...filters, minuteRange })}
 			/>
 			<CheckboxList
 				options={EVENT_KIND_OPTIONS}

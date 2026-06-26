@@ -1,6 +1,7 @@
 import { useMemo, useRef, type PointerEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { getEventMatchSecond } from "@/lib/matchTime";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 import { isShotEvent } from "@/types/event";
@@ -91,13 +92,7 @@ function getEventTeamSide(
 }
 
 function getEventSeconds(event: Event): number | null {
-	if (!isFiniteNumber(event.min)) return null;
-	const minute = Math.max(0, Math.floor(event.min));
-	const second = isFiniteNumber(event.sec)
-		? Math.min(59, Math.max(0, Math.floor(event.sec)))
-		: 0;
-
-	return minute * 60 + second;
+	return getEventMatchSecond(event);
 }
 
 function formatMatchTime(totalSeconds: number): string {

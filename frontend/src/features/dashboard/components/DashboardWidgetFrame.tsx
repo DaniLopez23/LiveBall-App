@@ -62,6 +62,7 @@ export function DashboardWidgetFrame({
 	const handleFilterChange = (filters: DashboardWidget["filters"]) => {
 		if (mode === "view") {
 			setRuntimeFilters(filters);
+			onUpdateWidget(widget.id, { filters });
 			return;
 		}
 

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 import type { OptaEvent } from "@/components/pitch/figures/OptaMarkers";
 import type { Orientation } from "@/store/optaPitchConfigStore";
@@ -318,7 +319,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
       {renderSequenceRestartControl()}
       <EventsPitchAttackDirectionFooter game={game} />
 
-      {isFullscreenOpen ? (
+      {isFullscreenOpen && typeof document !== "undefined" ? createPortal(
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4"
           role="dialog"
@@ -369,7 +370,8 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
               <EventsPitchAttackDirectionFooter game={game} />
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       ) : null}
 
       <EventsPitchCaptureModal

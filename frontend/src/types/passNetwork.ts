@@ -70,12 +70,47 @@ export interface PassNetworkStatisticsBucket {
 export interface PassNetworkStatistics {
 	buckets: PassNetworkStatisticsBucket[];
 	team_id: string | number;
+	deprecated?: boolean;
+}
+
+export interface PassNetworkBucketNode {
+	player_id: string;
+	player_name: string;
+	team_id: string;
+	pass_count: number;
+	passes_given: number;
+	passes_received: number;
+	position_given: MinutePositionStat;
+	position_received: MinutePositionStat;
+	position_total: MinutePositionStat;
+}
+
+export interface PassNetworkBucketEdge {
+	from_player_id: string;
+	to_player_id: string;
+	pass_count: number;
+	position: MinutePositionStat;
+}
+
+export interface PassNetworkTemporalBucket {
+	bucketIndex: number;
+	startSecond: number;
+	endSecond: number;
+	nodes: PassNetworkBucketNode[];
+	edges: PassNetworkBucketEdge[];
+}
+
+export interface PassNetworkTemporalPayload {
+	bucketSizeSeconds: number;
+	matchTimeSeconds: number;
+	buckets: PassNetworkTemporalBucket[];
 }
 
 export interface TeamPassNetwork {
 	nodes: PassNetworkNode[];
 	edges: PassNetworkEdge[];
 	statistics: PassNetworkStatistics;
+	temporal?: PassNetworkTemporalPayload;
 }
 
 export type SnapshotPassNetworks = Record<string, TeamPassNetwork>;

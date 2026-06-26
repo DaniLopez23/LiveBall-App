@@ -15,10 +15,14 @@ Este documento resume el entorno Docker local de LiveBall preparado para parecer
 
 Archivos esperados en `/shared`:
 
-- `/shared/f24-simulated-data.xml`: eventos F24 generados por el simulador.
-- `/shared/f9-simulated-data.xml`: estadisticas F9 generadas por el simulador.
-- `/shared/F40-squad-23.xml`: plantilla F40 copiada por el simulador.
-- `/shared/f42-23-2023-results.xml`: catalogo F42 copiado por el simulador.
+- `/shared/events/f24-23-2023-<match-id>-eventdetails.xml`: un F24 por partido.
+- `/shared/stats/f9-23-2023-<match-id>-matchresults.xml`: un F9 por partido.
+- `/shared/players/F40-squad-23.xml`: plantilla F40 copiada por el simulador.
+- `/shared/schedule/f42-23-2023-results.xml`: catalogo F42 copiado por el simulador.
+
+Los XML de `static` se copian completos y los de `simulate` se actualizan en
+paralelo. El backend inspecciona ambos directorios y conserva el estado por ID
+de partido.
 
 ## Variables de entorno
 
@@ -34,8 +38,8 @@ Backend:
 - `APP_PORT`: puerto de Uvicorn dentro del contenedor.
 - `LOG_LEVEL`: nivel de logs.
 - `CORS_ORIGINS`: origenes permitidos para el frontend.
-- `LIVE_XML_PATH` / `F24_XML_PATH`: XML F24 leido por FastAPI.
-- `F9_XML_PATH`: XML F9 leido por FastAPI.
+- `F24_XML_DIR`: directorio de XML F24 leido por FastAPI.
+- `F9_XML_DIR`: directorio de XML F9 leido por FastAPI.
 - `F40_XML_PATH`: XML F40 leido por FastAPI.
 - `F42_XML_PATH`: XML F42 leido por FastAPI.
 - `XML_POLL_INTERVAL_SECONDS`: intervalo de lectura de eventos F24.
@@ -43,10 +47,9 @@ Backend:
 
 Simulador:
 
-- `SOURCE_XML_PATH`: XML F24 fuente dentro del contenedor.
-- `SOURCE_STATS_XML_PATH`: XML F9 fuente dentro del contenedor.
-- `OUTPUT_XML_PATH`: XML F24 de salida en el volumen compartido.
-- `OUTPUT_STATS_XML_PATH`: XML F9 de salida en el volumen compartido.
+- `SIMULATE_EVENTS_DIR` / `SIMULATE_STATS_DIR`: directorios fuente de F24/F9 en vivo.
+- `STATIC_EVENTS_DIR` / `STATIC_STATS_DIR`: directorios fuente de F24/F9 finalizados.
+- `OUTPUT_EVENTS_DIR` / `OUTPUT_STATS_DIR`: directorios de salida en el volumen compartido.
 - `F40_SOURCE_XML_PATH` / `F40_OUTPUT_XML_PATH`: F40 fuente y destino.
 - `F42_SOURCE_XML_PATH` / `F42_OUTPUT_XML_PATH`: F42 fuente y destino.
 - `SIMULATION_SPEED`: multiplicador de velocidad.
@@ -83,13 +86,13 @@ Respuesta esperada:
 Comprobar que el simulador escribe XML en el volumen:
 
 ```bash
-docker compose exec match-simulator ls -lh /shared
+docker compose exec match-simulator find /shared -type f
 ```
 
 Comprobar que el backend ve los mismos archivos:
 
 ```bash
-docker compose exec backend-fastapi ls -lh /shared
+docker compose exec backend-fastapi find /shared -type f
 ```
 
 Comprobar logs relevantes:
@@ -114,7 +117,7 @@ El frontend usa `VITE_API_URL` y `VITE_WS_BASE_URL` desde el navegador, asi que 
 Cuando se migre a ECS Fargate + EFS, la pieza a sustituir es `shared-volume`:
 
 - Montar EFS en ambos contenedores en la misma ruta, por ejemplo `/shared`.
-- Mantener las mismas variables `F24_XML_PATH`, `F9_XML_PATH`, `F40_XML_PATH`, `F42_XML_PATH`, `OUTPUT_XML_PATH` y `OUTPUT_STATS_XML_PATH`.
+- Mantener las mismas variables `F24_XML_DIR`, `F9_XML_DIR`, `F40_XML_PATH`, `F42_XML_PATH`, `OUTPUT_EVENTS_DIR` y `OUTPUT_STATS_DIR`.
 - Configurar `VITE_API_URL` y `VITE_WS_BASE_URL` con el dominio publico real del backend.
 - Mantener el healthcheck de FastAPI en `/health`.
 

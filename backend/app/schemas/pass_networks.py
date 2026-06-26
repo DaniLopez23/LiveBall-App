@@ -2,6 +2,14 @@ from pydantic import BaseModel, Field
 from typing import Dict, Set, Tuple
 
 # ------------------------------------------------------------------ #
+# Temporal bucket helpers                                             #
+# ------------------------------------------------------------------ #
+
+# New pass-network timeline payloads are differential buckets. Each bucket
+# contains only the passes inside [startSecond, endSecond).
+PASS_NETWORK_BUCKET_SIZE_SECONDS: int = 60
+
+# ------------------------------------------------------------------ #
 # 5-minute bucket helpers                                              #
 # ------------------------------------------------------------------ #
 
@@ -33,12 +41,12 @@ def minute_to_bucket(minute: int | None) -> int:
 
 
 def _minute_buckets() -> list[int]:
-    """Creates a fixed 0..90 minute bucket array."""
+    """Creates the legacy per-minute array used by old clients."""
     return [0] * 91
 
 
 def _minute_position_stats() -> list[dict[str, float]]:
-    """Creates 0..90 per-minute accumulators for count/x/y sums."""
+    """Creates legacy per-minute accumulators for count/x/y sums."""
     return [{"count": 0.0, "x_sum": 0.0, "y_sum": 0.0} for _ in range(91)]
 
 

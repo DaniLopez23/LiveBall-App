@@ -31,6 +31,20 @@ def _game_id(parsed_root: Any) -> str:
     return str(value or "unknown")
 
 
+def discover_feed_files(input_path: str | Path, feed_name: str) -> list[Path]:
+    """Returns the configured feed file, or every matching file in a directory."""
+    xml_path = Path(input_path)
+    if xml_path.is_file():
+        return [xml_path]
+    if xml_path.is_dir():
+        return sorted(
+            path
+            for path in xml_path.glob(f"{feed_name}-*.xml")
+            if path.is_file()
+        )
+    return []
+
+
 async def _run_xml_watcher(
     poll_interval: int = 3,
     on_new_data: Callable[[List[Dict[str, Any]]], Any] | None = None,
@@ -46,43 +60,57 @@ async def _run_xml_watcher(
         raise ValueError("parser and process_service are required")
 
     reader = XmlReaderService()
-    xml_file = Path(file_path)
     feed_name = _feed_name(watcher_name)
 
     logger.info(
-        "WORKER %s started file=%s interval=%ss",
+        "WORKER %s started path=%s interval=%ss",
         feed_name,
-        xml_file,
+        file_path,
         poll_interval,
     )
 
     while True:
-        try:
-            content = reader.read_if_changed(str(xml_file))
-            if content is None:
-                await asyncio.sleep(poll_interval + 5)
-                continue
-
-            parsed_root = parser.parse_xml_string(content)
-            if parsed_root is None:
-                logger.warning("WORKER %s failed to parse file=%s", feed_name, xml_file)
-                await asyncio.sleep(poll_interval + 5)
-                continue
-
-            logger.info(
-                "WORKER %s received new data game=%s file=%s",
+        xml_files = discover_feed_files(file_path, feed_name)
+        if not xml_files:
+            logger.debug(
+                "WORKER %s found no feeds at path=%s",
                 feed_name,
-                _game_id(parsed_root),
-                xml_file.name,
+                file_path,
             )
-            messages = process_service.process_game(parsed_root)
-            if messages and on_new_data is not None:
-                result = on_new_data(messages)
-                if inspect.isawaitable(result):
-                    await result
 
-        except Exception:
-            logger.exception("WORKER %s unexpected error", feed_name)
+        for xml_file in xml_files:
+            try:
+                content = reader.read_if_changed(str(xml_file))
+                if content is None:
+                    continue
+
+                parsed_root = parser.parse_xml_string(content)
+                if parsed_root is None:
+                    logger.warning(
+                        "WORKER %s failed to parse file=%s",
+                        feed_name,
+                        xml_file,
+                    )
+                    continue
+
+                logger.info(
+                    "WORKER %s received new data game=%s file=%s",
+                    feed_name,
+                    _game_id(parsed_root),
+                    xml_file.name,
+                )
+                messages = process_service.process_game(parsed_root)
+                if messages and on_new_data is not None:
+                    result = on_new_data(messages)
+                    if inspect.isawaitable(result):
+                        await result
+
+            except Exception:
+                logger.exception(
+                    "WORKER %s unexpected error while reading file=%s",
+                    feed_name,
+                    xml_file,
+                )
 
         await asyncio.sleep(poll_interval)
 
@@ -93,7 +121,7 @@ async def f24_events_xml_watcher(
     file_path: str = "data",
     process_service: Optional[ProcessEventsService] = None,
 ) -> None:
-    """Watches an F24 events XML file and emits parsed event updates."""
+    """Watches one F24 file or a directory of F24 feeds."""
     if process_service is None:
         from app.state.game_state import GameStateCache
 
@@ -115,7 +143,7 @@ async def f9_stats_xml_watcher(
     file_path: str = "data",
     process_service: Optional[ProcessStatsService] = None,
 ) -> None:
-    """Watches an F9 stats XML file and emits parsed stats updates."""
+    """Watches one F9 file or a directory of F9 feeds."""
     if process_service is None:
         process_service = ProcessStatsService()
 

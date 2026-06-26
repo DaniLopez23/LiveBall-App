@@ -91,7 +91,7 @@ export default function DashboardSummaryPage() {
 				onSaveTemplate={saveActiveTemplate}
 			/>
 
-			<main className="mx-auto w-full max-w-[118rem] flex-1 p-4">
+			<main className="w-full flex-1 p-4">
 				<DashboardGrid
 					template={activeTemplate}
 					mode={mode}

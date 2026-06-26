@@ -12,14 +12,16 @@ import {
 	type EventMapFilters,
 } from "@/features/dashboard/widgets/EventMapWidget";
 import {
-	DEFAULT_PASS_NETWORK_CONFIG,
-	DEFAULT_PASS_NETWORK_WIDGET_FILTERS,
 	PassNetworkWidget,
 	PassNetworkWidgetConfig,
 	PassNetworkWidgetFilters,
+} from "@/features/dashboard/widgets/PassNetworkWidget";
+import {
+	DEFAULT_PASS_NETWORK_CONFIG,
+	DEFAULT_PASS_NETWORK_WIDGET_FILTERS,
 	type PassNetworkConfig,
 	type PassNetworkWidgetFilters as PassNetworkWidgetFiltersState,
-} from "@/features/dashboard/widgets/PassNetworkWidget";
+} from "@/features/dashboard/widgets/PassNetworkWidget.defaults";
 import {
 	DEFAULT_SHOT_MAP_CONFIG,
 	DEFAULT_SHOT_MAP_FILTERS,

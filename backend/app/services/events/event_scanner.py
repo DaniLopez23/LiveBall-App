@@ -42,6 +42,7 @@ class EventScanner:
         updated_events_flat: List[Dict[str, Any]] = []
         deleted_events_flat: List[Dict[str, Any]] = []
         pass_candidates_by_team: DefaultDict[str, Dict[str, Event]] = defaultdict(dict)
+        pass_deletions_by_team: DefaultDict[str, List[str]] = defaultdict(list)
         pending_successful_passes: Dict[str, Event] = {}
         has_event_changes = False
 
@@ -56,6 +57,11 @@ class EventScanner:
             current_event_keys.add((team_key, event_key))
             previous_type = self._cache.get_event_type(game_id, team_key, event_key)
             event_changed = previous_type is None or previous_type != event.type_id
+            self._queue_pass_deletion_if_needed(
+                game_id,
+                event,
+                pass_deletions_by_team,
+            )
 
             if event_changed:
                 current_match_state = self._update_match_state(
@@ -97,6 +103,12 @@ class EventScanner:
                 else:
                     pending_successful_passes[event.team_id] = event
 
+        deleted_keys = previous_event_keys - current_event_keys
+        self._queue_deleted_passes(
+            game_id,
+            deleted_keys,
+            pass_deletions_by_team,
+        )
         deleted_events_flat = self._delete_missing_events(
             game_id,
             previous_event_keys,
@@ -116,6 +128,7 @@ class EventScanner:
                 team_id: list(events_by_id.values())
                 for team_id, events_by_id in pass_candidates_by_team.items()
             },
+            pass_deletions_by_team=dict(pass_deletions_by_team),
             has_event_changes=has_event_changes,
         )
 
@@ -172,9 +185,45 @@ class EventScanner:
         if (
             self._is_successful_pass_event(event)
             and event.player_receiver_id
-            and not self._pass_already_processed(game_id, event)
         ):
             by_team[event.team_id][event.event_id] = event
+
+    def _queue_pass_deletion_if_needed(
+        self,
+        game_id: str,
+        event: Event,
+        by_team: DefaultDict[str, List[str]],
+    ) -> None:
+        if not event.team_id or not event.event_id:
+            return
+
+        service = self._cache.get_pass_network(game_id, event.team_id)
+        if not service or not service.has_processed_event(event.event_id):
+            return
+
+        is_pending_successful_pass = (
+            event.type_id == "1"
+            and event.outcome == 1
+            and not event.player_receiver_id
+        )
+        if self._is_successful_pass_event(event) or is_pending_successful_pass:
+            return
+
+        by_team[event.team_id].append(event.event_id)
+
+    def _queue_deleted_passes(
+        self,
+        game_id: str,
+        deleted_keys: set[tuple[str, str]],
+        by_team: DefaultDict[str, List[str]],
+    ) -> None:
+        for team_key, event_key in sorted(deleted_keys):
+            if team_key == "__match__":
+                continue
+
+            service = self._cache.get_pass_network(game_id, team_key)
+            if service and service.has_processed_event(event_key):
+                by_team[team_key].append(event_key)
 
     def _resolve_pending_pass(
         self,

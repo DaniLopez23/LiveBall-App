@@ -10,6 +10,7 @@ import {
 	RefreshCw,
 	Trophy,
 } from "lucide-react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
 	DialogTitle,
 	DialogTrigger,
 } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import useMatchSelectionStore from "@/store/matchSelectionStore";
 import type {
@@ -40,6 +42,16 @@ const STATUS_LABELS: Record<AvailableMatchStatus, string> = {
 	cancelled: "Cancelado",
 	abandoned: "Abandonado",
 	unknown: "Estado desconocido",
+};
+
+type MatchStatusFilter = "all" | "live" | "finished";
+
+const isLiveMatch = (match: AvailableMatch): boolean => {
+	return match.status === "live" || match.status === "paused";
+};
+
+const isFinishedMatch = (match: AvailableMatch): boolean => {
+	return match.status === "finished";
 };
 
 const statusBadgeClassName = (status: AvailableMatchStatus): string => {
@@ -195,6 +207,46 @@ function MatchCard({
 	);
 }
 
+function MatchListSection({
+	title,
+	icon,
+	matches,
+	selectedGameId,
+	onSelect,
+	className,
+}: {
+	title: string;
+	icon: React.ReactNode;
+	matches: AvailableMatch[];
+	selectedGameId: string | null;
+	onSelect: (gameId: string) => void;
+	className?: string;
+}) {
+	return (
+		<section className={cn("flex flex-col gap-3", className)} aria-label={title}>
+			<div className="flex items-center gap-2">
+				<span className="text-muted-foreground">{icon}</span>
+				<h3 className="text-sm font-semibold uppercase text-muted-foreground">
+					{title}
+				</h3>
+				<Badge variant="secondary" className="tabular-nums">
+					{matches.length}
+				</Badge>
+			</div>
+			<div className="flex flex-col gap-3">
+				{matches.map((match) => (
+					<MatchCard
+						key={match.game_id}
+						match={match}
+						isSelected={match.game_id === selectedGameId}
+						onSelect={() => onSelect(match.game_id)}
+					/>
+				))}
+			</div>
+		</section>
+	);
+}
+
 function MatchHelpDialog() {
 	return (
 		<Dialog>
@@ -226,6 +278,7 @@ function MatchHelpDialog() {
 
 export default function HomePage() {
 	const navigate = useNavigate();
+	const [statusFilter, setStatusFilter] = useState<MatchStatusFilter>("all");
 	const matches = useMatchSelectionStore((state) => state.matches);
 	const selectedGameId = useMatchSelectionStore((state) => state.selectedGameId);
 	const loadStatus = useMatchSelectionStore((state) => state.loadStatus);
@@ -239,6 +292,22 @@ export default function HomePage() {
 		selectMatch(gameId);
 		navigate("/dashboard");
 	};
+
+	const handleStatusFilterChange = (value: string) => {
+		if (value === "all" || value === "live" || value === "finished") {
+			setStatusFilter(value);
+		}
+	};
+
+	const liveMatches = matches.filter(isLiveMatch);
+	const finishedMatches = matches.filter(isFinishedMatch);
+	const otherMatches = matches.filter(
+		(match) => !isLiveMatch(match) && !isFinishedMatch(match),
+	);
+	const hasVisibleMatches =
+		(statusFilter === "all" && matches.length > 0) ||
+		(statusFilter === "live" && liveMatches.length > 0) ||
+		(statusFilter === "finished" && finishedMatches.length > 0);
 
 	return (
 		<div className="flex w-full flex-col gap-6">
@@ -282,6 +351,58 @@ export default function HomePage() {
 					) : null}
 				</div>
 
+				{loadStatus === "loaded" && matches.length > 0 ? (
+					<div className="flex flex-col gap-3 border-y border-border/70 py-3 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<p className="text-sm font-medium">Filtrar partidos</p>
+							<p className="text-xs text-muted-foreground">
+								Organiza la lista por el estado actual del encuentro.
+							</p>
+						</div>
+						<Tabs
+							value={statusFilter}
+							onValueChange={handleStatusFilterChange}
+							className="min-w-0"
+						>
+							<TabsList
+								aria-label="Filtrar partidos por estado"
+								className="w-full sm:w-auto"
+							>
+								<TabsTrigger value="all" className="min-w-0 px-2 text-xs sm:min-w-20 sm:text-sm">
+									Todos
+									<span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
+										{matches.length}
+									</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="live"
+									aria-label="Mostrar partidos en directo"
+									className="min-w-0 px-2 text-xs sm:min-w-24 sm:text-sm"
+								>
+									<Radio className="size-3.5 text-red-500" />
+									<span className="sm:hidden">En vivo</span>
+									<span className="hidden sm:inline">En directo</span>
+									<span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
+										{liveMatches.length}
+									</span>
+								</TabsTrigger>
+								<TabsTrigger
+									value="finished"
+									aria-label="Mostrar partidos finalizados"
+									className="min-w-0 px-2 text-xs sm:min-w-24 sm:text-sm"
+								>
+									<CheckCircle2 className="size-3.5 text-slate-500" />
+									<span className="sm:hidden">Final</span>
+									<span className="hidden sm:inline">Finalizados</span>
+									<span className="hidden text-xs tabular-nums text-muted-foreground sm:inline">
+										{finishedMatches.length}
+									</span>
+								</TabsTrigger>
+							</TabsList>
+						</Tabs>
+					</div>
+				) : null}
+
 				{loadStatus === "loading" || loadStatus === "idle" ? (
 					<div className="flex min-h-48 items-center justify-center gap-2 text-sm text-muted-foreground">
 						<LoaderCircle className="size-4 animate-spin" />
@@ -312,16 +433,49 @@ export default function HomePage() {
 					</Card>
 				) : null}
 
-				{loadStatus === "loaded" && matches.length > 0
-					? matches.map((match) => (
-							<MatchCard
-								key={match.game_id}
-								match={match}
-								isSelected={match.game_id === selectedGameId}
-								onSelect={() => handleSelect(match.game_id)}
+				{loadStatus === "loaded" && matches.length > 0 && hasVisibleMatches ? (
+					<div className="flex flex-col gap-7">
+						{(statusFilter === "all" || statusFilter === "live") &&
+						liveMatches.length > 0 ? (
+							<MatchListSection
+								title="Partidos en directo"
+								icon={<Radio className="size-4 text-red-500" />}
+								matches={liveMatches}
+								selectedGameId={selectedGameId}
+								onSelect={handleSelect}
 							/>
-						))
-					: null}
+						) : null}
+
+						{(statusFilter === "all" || statusFilter === "finished") &&
+						finishedMatches.length > 0 ? (
+							<MatchListSection
+								title="Partidos finalizados"
+								icon={<CheckCircle2 className="size-4 text-slate-500" />}
+								matches={finishedMatches}
+								selectedGameId={selectedGameId}
+								onSelect={handleSelect}
+								className="border-t border-border/70 pt-6"
+							/>
+						) : null}
+
+						{statusFilter === "all" && otherMatches.length > 0 ? (
+							<MatchListSection
+								title="Próximos y otros estados"
+								icon={<Clock3 className="size-4" />}
+								matches={otherMatches}
+								selectedGameId={selectedGameId}
+								onSelect={handleSelect}
+								className="border-t border-border/70 pt-6"
+							/>
+						) : null}
+					</div>
+				) : null}
+
+				{loadStatus === "loaded" && matches.length > 0 && !hasVisibleMatches ? (
+					<div className="border border-dashed p-6 text-center text-sm text-muted-foreground">
+						No hay partidos {statusFilter === "live" ? "en directo" : "finalizados"}.
+					</div>
+				) : null}
 			</section>
 		</div>
 	);

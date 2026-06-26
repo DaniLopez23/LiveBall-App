@@ -32,6 +32,7 @@ import {
 	getTeamName,
 } from "@/components/pitch/eventsPitch/eventDisplay";
 import MapShotPitch, { GoalShotMap } from "@/components/pitch/MapShotPitch";
+import ShotMapTeamSwitcher from "@/components/pitch/ShotMapTeamSwitcher";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import useStatsStore from "@/store/statsStore";
@@ -596,10 +597,16 @@ function StatsSummaryBars({
 					<BarChart3 className="size-4" />
 					Stats principales
 				</div>
-				<div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-3 text-[11px] font-medium text-muted-foreground">
-					<span className="truncate text-right">{homeTeamName}</span>
-					<span className="h-px w-10 bg-border" />
-					<span className="truncate">{awayTeamName}</span>
+				<div className="mt-2 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 text-sm font-semibold">
+					<span className="flex min-w-0 items-center justify-end gap-1.5 text-right text-blue-700 dark:text-blue-400">
+						<span className="size-2 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+						<span className="truncate">{homeTeamName}</span>
+					</span>
+					<span className="h-px w-10 bg-border" aria-hidden="true" />
+					<span className="flex min-w-0 items-center gap-1.5 text-rose-700 dark:text-rose-400">
+						<span className="truncate">{awayTeamName}</span>
+						<span className="size-2 shrink-0 rounded-full bg-rose-500" aria-hidden="true" />
+					</span>
 				</div>
 			</header>
 
@@ -706,6 +713,10 @@ function ShotMapPanel({
 	game,
 	homeTeamId,
 	awayTeamId,
+	homeTeamName,
+	awayTeamName,
+	selectedTeam,
+	onTeamChange,
 }: {
 	shots: ShotEvent[];
 	selectedShot: ShotEvent | null;
@@ -714,6 +725,10 @@ function ShotMapPanel({
 	game: Game | null;
 	homeTeamId: string;
 	awayTeamId: string;
+	homeTeamName: string;
+	awayTeamName: string;
+	selectedTeam: TeamSide;
+	onTeamChange: (team: TeamSide) => void;
 }) {
 	return (
 		<section className="rounded-md border bg-background shadow-sm">
@@ -731,6 +746,13 @@ function ShotMapPanel({
 
 			<div className="p-3">
 				<div className="grid gap-3">
+					<ShotMapTeamSwitcher
+						value={selectedTeam}
+						homeTeamName={homeTeamName}
+						awayTeamName={awayTeamName}
+						onValueChange={onTeamChange}
+						className="grid w-full grid-cols-2"
+					/>
 					<div className="aspect-[1.46/1] overflow-hidden rounded-md border bg-emerald-900">
 						{shots.length > 0 ? (
 							<MapShotPitch
@@ -831,6 +853,7 @@ export default function StatsPage() {
 		DEFAULT_TIMELINE_METRIC.id,
 	);
 	const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
+	const [selectedShotTeam, setSelectedShotTeam] = useState<TeamSide>("home");
 	const timelineMetricOptions = useMemo(
 		() => getTimelineMetricOptions(statsData?.timeline),
 		[statsData?.timeline],
@@ -876,8 +899,13 @@ export default function StatsPage() {
 		timelineMetricOptions.find((option) => option.id === DEFAULT_TIMELINE_METRIC.id) ??
 		timelineMetricOptions[0] ??
 		DEFAULT_TIMELINE_METRIC;
+	const selectedTeamId =
+		selectedShotTeam === "home" ? current.home.teamId : current.away.teamId;
+	const selectedTeamShots = shotEvents.filter((shot) => shot.team_id === selectedTeamId);
 	const selectedShot =
-		shotEvents.find((shot) => shot.id === selectedShotId) ?? shotEvents[0] ?? null;
+		selectedTeamShots.find((shot) => shot.id === selectedShotId) ??
+		selectedTeamShots[0] ??
+		null;
 	const eventMarkers = getStatsEventMarkers(
 		events,
 		current.home.teamId,
@@ -886,23 +914,12 @@ export default function StatsPage() {
 
 	return (
 		<div className="mx-auto flex w-full max-w-[112rem] flex-col gap-3 p-3 lg:p-4">
-			<header className="rounded-md border bg-background px-3 py-2 shadow-sm">
-				<div className="flex flex-wrap items-center justify-between gap-3">
-					<div className="flex min-w-0 items-center gap-3">
-						<span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
-							<Activity className="size-4" />
-						</span>
-						<div className="min-w-0">
-							<div className="text-[11px] font-medium uppercase tracking-normal text-muted-foreground">
-								Estadísticas del partido
-							</div>
-							<h1 className="truncate text-base font-semibold text-foreground">
-								{homeTeamName} vs {awayTeamName}
-							</h1>
-						</div>
-					</div>
+			<header className="flex flex-wrap items-center justify-between gap-3 px-1 py-1">
+				<h1 className="text-lg font-semibold text-foreground">
+					{"Estad\u00edsticas del partido"}
+				</h1>
 
-					<div className="flex flex-wrap items-center gap-2 text-xs">
+				<div className="hidden" aria-hidden="true">
 						<span className="inline-flex min-w-0 items-center gap-1.5 rounded-md border px-2 py-1">
 							<span
 								className="size-2 rounded-full"
@@ -927,7 +944,6 @@ export default function StatsPage() {
 						<Badge variant="secondary" className="rounded-md">
 							{timeline.buckets.length} buckets · {timeline.intervalMinutes}'
 						</Badge>
-					</div>
 				</div>
 			</header>
 
@@ -973,13 +989,20 @@ export default function StatsPage() {
 					</section>
 
 					<ShotMapPanel
-						shots={shotEvents}
+						shots={selectedTeamShots}
 						selectedShot={selectedShot}
 						selectedShotId={selectedShot?.id ?? null}
 						onSelectShot={setSelectedShotId}
 						game={game}
 						homeTeamId={current.home.teamId}
 						awayTeamId={current.away.teamId}
+						homeTeamName={homeTeamName}
+						awayTeamName={awayTeamName}
+						selectedTeam={selectedShotTeam}
+						onTeamChange={(team) => {
+							setSelectedShotTeam(team);
+							setSelectedShotId(null);
+						}}
 					/>
 				</aside>
 

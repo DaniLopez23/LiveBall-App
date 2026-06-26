@@ -67,6 +67,7 @@ export const applyWebsocketMessageToStores = (
 				nodes: message.nodes,
 				edges: message.edges,
 				statistics: message.statistics,
+				temporal: message.temporal,
 			});
 			return;
 		}

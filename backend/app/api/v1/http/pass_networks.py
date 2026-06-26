@@ -15,6 +15,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, HTTPException, Request
 
 from app.schemas.pass_networks import N_5MIN_BUCKETS
+from app.services.events.pass_network_update_service import PassNetworkUpdateService
 
 router = APIRouter()
 
@@ -50,6 +51,39 @@ async def get_pass_network_stats(
 
     service = cache.pass_networks[key]
     return service.get_bucket_statistics(bucket=None)
+
+
+@router.get(
+    "/{game_id}/pass-network/{team_id}/temporal",
+    summary="Differential pass-network buckets",
+    response_description=(
+        "Independent pass-network buckets. Each bucket contains only the "
+        "additive node and edge metrics inside [startSecond, endSecond)."
+    ),
+)
+async def get_pass_network_temporal(
+    game_id: str,
+    team_id: str,
+    request: Request,
+) -> Dict[str, Any]:
+    """Return independent 60-second buckets for frontend range aggregation."""
+    cache = request.app.state.cache
+    key = (game_id, team_id)
+
+    if key not in cache.pass_networks:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No pass network found for game '{game_id}', team '{team_id}'.",
+        )
+
+    game = cache.games.get(game_id)
+    match_time_seconds = (
+        PassNetworkUpdateService._get_match_time_seconds(game)
+        if game is not None
+        else None
+    )
+    service = cache.pass_networks[key]
+    return service.get_temporal_payload(match_time_seconds=match_time_seconds)
 
 
 @router.get(

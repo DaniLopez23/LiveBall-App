@@ -11,6 +11,10 @@ import {
 	type EventSequence,
 	type EventSequenceEndReason,
 } from "@/components/pitch/eventsPitch/eventSequences";
+import {
+	buildPlayerOptions,
+	eventMatchesPlayerFilter,
+} from "@/components/pitch/eventsPitch/eventPlayerFilters";
 import { getActionLabel } from "@/components/pitch/eventsPitch/eventDisplay";
 import { NumberInput } from "@/components/ui/number-input";
 import { Badge } from "@/components/ui/badge";
@@ -45,7 +49,9 @@ export type EventMapConfig = {
 export type EventMapFilters = {
 	lastCount: number;
 	team: "home" | "away" | "both";
+	selectedPlayerIds: string[];
 	sequenceEndTypeIds: string[];
+	sequencePrecedingTypeIds: string[];
 	sequenceEndReasons?: EventSequenceEndReason[];
 	sequencePassCountMode: SequencePassCountMode;
 	sequencePassCount: number;
@@ -76,7 +82,9 @@ export const DEFAULT_EVENT_MAP_CONFIG: EventMapConfig = {
 export const DEFAULT_EVENT_MAP_FILTERS: EventMapFilters = {
 	lastCount: 10,
 	team: "both",
+	selectedPlayerIds: [],
 	sequenceEndTypeIds: DEFAULT_SEQUENCE_END_TYPE_IDS,
+	sequencePrecedingTypeIds: [],
 	sequencePassCountMode: "any",
 	sequencePassCount: 3,
 	selectedEventType: "all",
@@ -111,6 +119,8 @@ function normalizeEventMapFilters(filters: Partial<EventMapFilters>): EventMapFi
 		...DEFAULT_EVENT_MAP_FILTERS,
 		...filters,
 		sequenceEndTypeIds: getNormalizedSequenceEndTypeIds(filters),
+		selectedPlayerIds: filters.selectedPlayerIds ?? [],
+		sequencePrecedingTypeIds: filters.sequencePrecedingTypeIds ?? [],
 		selectedOutcomes: filters.selectedOutcomes ?? [],
 		selectedSubtypes: filters.selectedSubtypes ?? [],
 		minuteRange: filters.minuteRange ?? DEFAULT_EVENT_MAP_FILTERS.minuteRange,
@@ -221,6 +231,26 @@ function getSequenceEndTypeOptions(sequences: EventSequence[]) {
 	);
 }
 
+function getSequencePrecedingTypeOptions(sequences: EventSequence[]) {
+	const optionsById = new Map<string, SequenceEndTypeOption>();
+
+	for (const sequence of sequences) {
+		const precedingEvent = sequence.precedingEvent;
+		if (!precedingEvent?.type_id) continue;
+
+		const option = getSequenceEndTypeOption(precedingEvent);
+		if (!optionsById.has(option.id)) {
+			optionsById.set(option.id, option);
+		}
+	}
+
+	return Array.from(optionsById.values()).sort(
+		(left, right) =>
+			left.label.localeCompare(right.label, "es", { sensitivity: "base" }) ||
+			left.id.localeCompare(right.id),
+	);
+}
+
 function selectionsMatch(selectedIds: string[], availableIds: string[]) {
 	return (
 		selectedIds.length === availableIds.length &&
@@ -260,15 +290,45 @@ function getSelectedSequenceEndRawTypeIds(
 	);
 }
 
+function getSelectedSequencePrecedingRawTypeIds(
+	filters: EventMapFilters,
+	availableSequencePrecedingTypes: SequenceEndTypeOption[],
+) {
+	if (filters.sequencePrecedingTypeIds.length === 0) return null;
+
+	return new Set(
+		availableSequencePrecedingTypes
+			.filter((option) => filters.sequencePrecedingTypeIds.includes(option.id))
+			.flatMap((option) => option.typeIds),
+	);
+}
+
 function sequenceMatchesFilters(
 	sequence: EventSequence,
 	filters: EventMapFilters,
 	selectedSequenceEndRawTypeIds: Set<string>,
+	selectedSequencePrecedingRawTypeIds: Set<string> | null,
 	homeTeamId?: string,
 	awayTeamId?: string,
 ) {
 	const teamId = getTeamId(filters.team, homeTeamId, awayTeamId);
 	if (teamId && sequence.teamId !== teamId) return false;
+	if (
+		filters.selectedPlayerIds.length > 0 &&
+		!sequence.events.some((event) =>
+			eventMatchesPlayerFilter(event, filters.selectedPlayerIds),
+		)
+	) {
+		return false;
+	}
+
+	if (
+		selectedSequencePrecedingRawTypeIds &&
+		(!sequence.precedingEvent ||
+			!selectedSequencePrecedingRawTypeIds.has(sequence.precedingEvent.type_id))
+	) {
+		return false;
+	}
 
 	const endEvent = getSequenceEndEvent(sequence);
 	if (!endEvent || !selectedSequenceEndRawTypeIds.has(endEvent.type_id)) {
@@ -299,6 +359,12 @@ function filterAllEvents(
 
 	if (teamId) {
 		result = result.filter((event) => event.team_id === teamId);
+	}
+
+	if (filters.selectedPlayerIds.length > 0) {
+		result = result.filter((event) =>
+			eventMatchesPlayerFilter(event, filters.selectedPlayerIds),
+		);
 	}
 
 	if (filters.selectedEventType !== "all") {
@@ -366,7 +432,6 @@ function EventPitchSurface({
 				mode={mode}
 				teamColors={getTeamColors(game)}
 				orientation="horizontal"
-				showHeader={false}
 				noDataMessage={noDataMessage}
 				markerScaleMultiplier={1.55}
 				game={game}
@@ -376,7 +441,16 @@ function EventPitchSurface({
 }
 
 function LiveEventMap({ events, filters }: { events: PitchEvent[]; filters: EventMapFilters }) {
-	const visibleEvents = events.slice(-Math.max(1, filters.lastCount));
+	const game = useGameStore((state) => state.game);
+	const teamId = getTeamId(
+		filters.team,
+		game?.home_team.team_id,
+		game?.away_team.team_id,
+	);
+	const visibleEvents = events
+		.filter((event) => !teamId || event.team_id === teamId)
+		.filter((event) => eventMatchesPlayerFilter(event, filters.selectedPlayerIds))
+		.slice(-Math.max(1, filters.lastCount));
 
 	return (
 		<div className="flex h-full min-h-0 flex-col gap-2">
@@ -412,15 +486,25 @@ function SequenceEventMap({
 		() => getSequenceEndTypeOptions(eventSequences),
 		[eventSequences],
 	);
+	const sequencePrecedingTypeOptions = useMemo(
+		() => getSequencePrecedingTypeOptions(eventSequences),
+		[eventSequences],
+	);
 	const selectedSequenceEndRawTypeIds = useMemo(
 		() => getSelectedSequenceEndRawTypeIds(filters, sequenceEndTypeOptions),
 		[filters, sequenceEndTypeOptions],
+	);
+	const selectedSequencePrecedingRawTypeIds = useMemo(
+		() =>
+			getSelectedSequencePrecedingRawTypeIds(filters, sequencePrecedingTypeOptions),
+		[filters, sequencePrecedingTypeOptions],
 	);
 	const sequences = eventSequences.filter((sequence) =>
 		sequenceMatchesFilters(
 			sequence,
 			filters,
 			selectedSequenceEndRawTypeIds,
+			selectedSequencePrecedingRawTypeIds,
 			game?.home_team.team_id,
 			game?.away_team.team_id,
 		),
@@ -528,6 +612,36 @@ function AllEventMap({
 	);
 }
 
+function PlayerFilterList({
+	selectedPlayerIds,
+	availablePlayers,
+	onChange,
+}: {
+	selectedPlayerIds: string[];
+	availablePlayers: ReturnType<typeof buildPlayerOptions>;
+	onChange: (selectedPlayerIds: string[]) => void;
+}) {
+	return (
+		<div className="grid gap-3">
+			<SectionTitle>Jugadores</SectionTitle>
+			{availablePlayers.length > 0 ? (
+				<CheckboxList
+					options={availablePlayers.map((player) => ({
+						value: player.id,
+						label: player.label,
+					}))}
+					value={selectedPlayerIds}
+					onChange={onChange}
+				/>
+			) : (
+				<p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+					No hay jugadores disponibles.
+				</p>
+			)}
+		</div>
+	);
+}
+
 export function EventMapWidget({
 	config,
 	filters,
@@ -597,6 +711,10 @@ export function EventMapWidgetFilters({
 		() => getSequenceEndTypeOptions(eventSequences),
 		[eventSequences],
 	);
+	const availableSequencePrecedingTypes = useMemo(
+		() => getSequencePrecedingTypeOptions(eventSequences),
+		[eventSequences],
+	);
 	const availableSequenceEndTypeIds = useMemo(
 		() => availableSequenceEndTypes.map((option) => option.id),
 		[availableSequenceEndTypes],
@@ -605,6 +723,14 @@ export function EventMapWidgetFilters({
 	const selectedSequenceEndTypeIdsKey = filters.sequenceEndTypeIds.join("|");
 	const availableSequenceEndTypeIdsKey = availableSequenceEndTypeIds.join("|");
 	const maxMinute = getMaxMinute(pitchEvents);
+	const availablePlayers = useMemo(
+		() => buildPlayerOptions(pitchEvents, filters.team, game),
+		[pitchEvents, filters.team, game],
+	);
+	const availablePlayerIds = useMemo(
+		() => availablePlayers.map((player) => player.id),
+		[availablePlayers],
+	);
 	const availableTypeIds: string[] = Array.from(
 		new Set(pitchEvents.map((event) => String(event.type_id))),
 	);
@@ -622,6 +748,22 @@ export function EventMapWidgetFilters({
 	const validSelectedSequenceEndTypeIds = filters.sequenceEndTypeIds.filter((id) =>
 		availableSequenceEndTypeIds.includes(id),
 	);
+	const validSelectedSequencePrecedingTypeIds = filters.sequencePrecedingTypeIds.filter(
+		(id) => availableSequencePrecedingTypes.some((option) => option.id === id),
+	);
+	const validSelectedPlayerIds = filters.selectedPlayerIds.filter((id) =>
+		availablePlayerIds.includes(id),
+	);
+
+	useEffect(() => {
+		if (selectionsMatch(filters.selectedPlayerIds, validSelectedPlayerIds)) return;
+
+		onChange({
+			...filters,
+			selectedPlayerIds: validSelectedPlayerIds,
+			selectedSequenceId: null,
+		});
+	}, [filters, onChange, validSelectedPlayerIds]);
 
 	useEffect(() => {
 		const previousIds = previousSequenceEndTypeIdsRef.current;
@@ -682,6 +824,25 @@ export function EventMapWidgetFilters({
 		return (
 			<div className="grid gap-3">
 				<SectionTitle>Live</SectionTitle>
+				<SelectField
+					label="Equipo"
+					value={filters.team}
+					onChange={(team) => {
+						if (team === "home" || team === "away" || team === "both") {
+							onChange({ ...filters, team, selectedPlayerIds: [] });
+						}
+					}}
+					options={[
+						{ value: "both", label: "Ambos" },
+						{ value: "home", label: game?.home_team.team_name ?? "Local" },
+						{ value: "away", label: game?.away_team.team_name ?? "Visitante" },
+					]}
+				/>
+				<PlayerFilterList
+					selectedPlayerIds={validSelectedPlayerIds}
+					availablePlayers={availablePlayers}
+					onChange={(selectedPlayerIds) => onChange({ ...filters, selectedPlayerIds })}
+				/>
 				<Field label="Ultimos eventos">
 					<NumberInput
 						value={filters.lastCount}
@@ -703,7 +864,12 @@ export function EventMapWidgetFilters({
 					value={filters.team}
 					onChange={(team) => {
 						if (team === "home" || team === "away" || team === "both") {
-							onChange({ ...filters, team, selectedSequenceId: null });
+							onChange({
+								...filters,
+								team,
+								selectedPlayerIds: [],
+								selectedSequenceId: null,
+							});
 						}
 					}}
 					options={[
@@ -712,6 +878,36 @@ export function EventMapWidgetFilters({
 						{ value: "away", label: game?.away_team.team_name ?? "Visitante" },
 					]}
 				/>
+				<PlayerFilterList
+					selectedPlayerIds={validSelectedPlayerIds}
+					availablePlayers={availablePlayers}
+					onChange={(selectedPlayerIds) =>
+						onChange({ ...filters, selectedPlayerIds, selectedSequenceId: null })
+					}
+				/>
+				<div className="grid gap-3">
+					<SectionTitle>Evento precedente</SectionTitle>
+					<CheckboxList
+						options={availableSequencePrecedingTypes.map((option) => ({
+							value: option.id,
+							label: option.label,
+						}))}
+						value={validSelectedSequencePrecedingTypeIds}
+						onChange={(sequencePrecedingTypeIds) =>
+							onChange({
+								...filters,
+								sequencePrecedingTypeIds,
+								selectedSequenceId: null,
+							})
+						}
+					/>
+					{availableSequencePrecedingTypes.length === 0 ? (
+						<p className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
+							No hay eventos precedentes disponibles.
+						</p>
+					) : null}
+				</div>
+				<SectionTitle>Final de secuencia</SectionTitle>
 				<CheckboxList
 					options={availableSequenceEndTypes.map((option) => ({
 						value: option.id,
@@ -783,7 +979,7 @@ export function EventMapWidgetFilters({
 					value={filters.team}
 					onChange={(team) => {
 						if (team === "home" || team === "away" || team === "both") {
-							onChange({ ...filters, team });
+							onChange({ ...filters, team, selectedPlayerIds: [] });
 						}
 					}}
 					options={[
@@ -791,6 +987,11 @@ export function EventMapWidgetFilters({
 						{ value: "home", label: game?.home_team.team_name ?? "Local" },
 						{ value: "away", label: game?.away_team.team_name ?? "Visitante" },
 					]}
+				/>
+				<PlayerFilterList
+					selectedPlayerIds={validSelectedPlayerIds}
+					availablePlayers={availablePlayers}
+					onChange={(selectedPlayerIds) => onChange({ ...filters, selectedPlayerIds })}
 				/>
 				<SelectField
 					label="Tipo de evento"

@@ -12,7 +12,7 @@ RUN python -m pip install --no-cache-dir -r requirements.txt
 COPY match-simulator/src ./src
 COPY match-simulator/data/events ./data/events
 COPY match-simulator/data/stats ./data/stats
-COPY match-simulator/data/F40-squad-23.xml ./data/F40-squad-23.xml
-COPY match-simulator/data/f42-23-2023-results.xml ./data/f42-23-2023-results.xml
+COPY match-simulator/data/players ./data/players
+COPY match-simulator/data/schedule ./data/schedule
 
 CMD ["python", "src/main.py"]

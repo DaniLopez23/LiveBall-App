@@ -21,6 +21,9 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider-14";
 import { cn } from "@/lib/utils";
+import type { PlayerFilterOption } from "./eventPlayerFilters";
+
+export type { PlayerFilterOption } from "./eventPlayerFilters";
 import {
   type PitchEventType,
   PITCH_EVENT_TYPES_CONFIG,
@@ -35,12 +38,6 @@ export interface SequenceEndTypeOption {
   id: string;
   label: string;
   typeIds: string[];
-}
-
-export interface PlayerFilterOption {
-  id: string;
-  label: string;
-  teamId?: string | null;
 }
 
 export interface EventsFilters {

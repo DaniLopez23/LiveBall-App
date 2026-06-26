@@ -85,10 +85,16 @@ export default function StatsComparisonBars({
 			</header>
 
 			<div id={panelId} hidden={!isOpen} className="divide-y">
-				<div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3 px-4 py-2 text-[11px] font-medium text-muted-foreground">
-					<span className="truncate text-right">{home.teamName}</span>
-					<span className="h-px w-10 bg-border" />
-					<span className="truncate">{away.teamName}</span>
+				<div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-4 py-2.5 text-sm font-semibold">
+					<span className="flex min-w-0 items-center justify-end gap-1.5 text-right text-blue-700 dark:text-blue-400">
+						<span className="size-2 shrink-0 rounded-full bg-blue-500" aria-hidden="true" />
+						<span className="truncate">{home.teamName}</span>
+					</span>
+					<span className="h-px w-10 bg-border" aria-hidden="true" />
+					<span className="flex min-w-0 items-center gap-1.5 text-rose-700 dark:text-rose-400">
+						<span className="truncate">{away.teamName}</span>
+						<span className="size-2 shrink-0 rounded-full bg-rose-500" aria-hidden="true" />
+					</span>
 				</div>
 
 				{metrics.map((metric) => {

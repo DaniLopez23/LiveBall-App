@@ -4,6 +4,7 @@ import type {
 	PassNetworkEdge,
 	PassNetworkNode,
 	PassNetworkStatistics,
+	PassNetworkTemporalPayload,
 	SnapshotPassNetworks,
 	TeamPassNetwork,
 } from "@/types/passNetwork";
@@ -21,6 +22,7 @@ interface PassNetworksStoreState {
 		nodes: PassNetworkNode[];
 		edges: PassNetworkEdge[];
 		statistics: PassNetworkStatistics;
+		temporal?: PassNetworkTemporalPayload;
 	}) => void;
 	reset: () => void;
 }
@@ -59,10 +61,14 @@ const mergeEdges = (
 	return Array.from(map.values());
 };
 
-const defaultTeamNetwork = (statistics: PassNetworkStatistics): TeamPassNetwork => ({
+const defaultTeamNetwork = (
+	statistics: PassNetworkStatistics,
+	temporal?: PassNetworkTemporalPayload,
+): TeamPassNetwork => ({
 	nodes: [],
 	edges: [],
 	statistics,
+	temporal,
 });
 
 const mergeStatistics = (
@@ -86,6 +92,33 @@ const mergeStatistics = (
 	};
 };
 
+const mergeTemporal = (
+	currentTemporal: PassNetworkTemporalPayload | undefined,
+	incomingTemporal: PassNetworkTemporalPayload | undefined,
+): PassNetworkTemporalPayload | undefined => {
+	if (!incomingTemporal) return currentTemporal;
+
+	const bucketsByIndex = new Map(
+		(currentTemporal?.buckets ?? []).map((bucket) => [bucket.bucketIndex, bucket]),
+	);
+
+	for (const bucket of incomingTemporal.buckets) {
+		bucketsByIndex.set(bucket.bucketIndex, bucket);
+	}
+
+	return {
+		bucketSizeSeconds:
+			incomingTemporal.bucketSizeSeconds ?? currentTemporal?.bucketSizeSeconds ?? 60,
+		matchTimeSeconds: Math.max(
+			currentTemporal?.matchTimeSeconds ?? 0,
+			incomingTemporal.matchTimeSeconds ?? 0,
+		),
+		buckets: Array.from(bucketsByIndex.values()).sort(
+			(a, b) => a.bucketIndex - b.bucketIndex,
+		),
+	};
+};
+
 const baseState = {
 	gameId: null,
 	byTeamId: {},
@@ -99,23 +132,25 @@ const usePassNetworksStore = create<PassNetworksStoreState>((set, get) => ({
 			byTeamId: passNetworks,
 		});
 	},
-	applyIncrementalUpdate: ({ gameId, teamId, nodes, edges, statistics }) => {
+	applyIncrementalUpdate: ({ gameId, teamId, nodes, edges, statistics, temporal }) => {
 		const { gameId: currentGameId, byTeamId } = get();
 		const shouldReset = currentGameId !== gameId;
 		const baseByTeamId = shouldReset ? {} : { ...byTeamId };
 		const teamKey = String(teamId);
 
 		const currentTeamNetwork =
-			baseByTeamId[teamKey] ?? defaultTeamNetwork(statistics);
+			baseByTeamId[teamKey] ?? defaultTeamNetwork(statistics, temporal);
 		const mergedStatistics = mergeStatistics(
 			currentTeamNetwork.statistics,
 			statistics,
 		);
+		const mergedTemporal = mergeTemporal(currentTeamNetwork.temporal, temporal);
 
 		baseByTeamId[teamKey] = {
 			nodes: mergeNodes(currentTeamNetwork.nodes, nodes),
 			edges: mergeEdges(currentTeamNetwork.edges, edges),
 			statistics: mergedStatistics,
+			temporal: mergedTemporal,
 		};
 
 		set({

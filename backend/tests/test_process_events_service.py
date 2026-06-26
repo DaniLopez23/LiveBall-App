@@ -110,6 +110,15 @@ class ProcessEventsServiceTests(unittest.TestCase):
             pass_network_message["edges"][0]["to_player_id"],
             "p2",
         )
+        self.assertEqual(pass_network_message["temporal"]["bucketSizeSeconds"], 60)
+        self.assertEqual(
+            pass_network_message["temporal"]["buckets"][0]["startSecond"],
+            60,
+        )
+        self.assertEqual(
+            pass_network_message["temporal"]["buckets"][0]["edges"][0]["pass_count"],
+            1,
+        )
         nodes_by_id = {
             node["player_id"]: node
             for node in pass_network_message["nodes"]

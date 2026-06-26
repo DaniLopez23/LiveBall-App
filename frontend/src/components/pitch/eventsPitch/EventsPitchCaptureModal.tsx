@@ -1,4 +1,5 @@
 import React from "react";
+import { createPortal } from "react-dom";
 import { Camera, Download, X } from "lucide-react";
 
 import EventsPitchBoard from "@/components/pitch/eventsPitch/EventsPitchBoard";
@@ -298,9 +299,9 @@ const EventsPitchCaptureModal: React.FC<EventsPitchCaptureModalProps> = ({
     }
   }, [events.length, mode, summary]);
 
-  if (!open) return null;
+  if (!open || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       role="dialog"
@@ -375,7 +376,8 @@ const EventsPitchCaptureModal: React.FC<EventsPitchCaptureModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };
 

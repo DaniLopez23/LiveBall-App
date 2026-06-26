@@ -1,462 +1,383 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { SlidersHorizontal } from "lucide-react";
-import useGameStore from "@/store/gameStore";
-import usePassNetworksStore from "@/store/passNetworksStore";
-import useEventsStore from "@/store/eventsStore";
+
 import PassNetworkPitch from "@/components/pitch/passNetworkPitch/PassNetworkPitch";
 import PassNetworkTabs from "@/components/pitch/passNetworkPitch/PassNetworkTabs";
+import { usePassNetworkPlayback } from "@/components/pitch/passNetworkPitch/usePassNetworkPlayback";
+import {
+	DEFAULT_PASS_NETWORK_FILTERS,
+	type PassNetworkFiltersState,
+} from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
 import { Button } from "@/components/ui/button";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
+	Sheet,
+	SheetContent,
+	SheetHeader,
+	SheetTitle,
 } from "@/components/ui/sheet";
-import type {
-  NodePositionMode,
-  PassNetworkFiltersState,
-} from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
-import { DEFAULT_PASS_NETWORK_FILTERS } from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
-import type {
-  MinutePositionStat,
-  PassNetworkEdge,
-  PassNetworkNode,
-  TeamPassNetwork,
-} from "@/types/passNetwork";
+import {
+	buildPassingNetworkForRange,
+	type BuiltPassNetwork,
+} from "@/lib/passNetworkAggregation";
+import {
+	BUCKET_SIZE_SECONDS,
+	clamp,
+	derivePassingNetworkRange,
+	formatMatchTime,
+	getEventMatchSecond,
+	getMaxEventSecond,
+} from "@/lib/matchTime";
+import useEventsStore from "@/store/eventsStore";
+import useGameStore from "@/store/gameStore";
+import usePassNetworksStore from "@/store/passNetworksStore";
 import { isShotEvent } from "@/types/event";
+import type { Event } from "@/types/event";
+import type { SnapshotPassNetworks, TeamPassNetwork } from "@/types/passNetwork";
 
 const HOME_COLOR = "#3b82f6";
 const AWAY_COLOR = "#f43f5e";
-const PLAYBACK_TICK_MS = 650;
 
-const clampMinute = (
-  minute: number,
-  [minMinute, maxMinute]: [number, number],
-): number => Math.min(maxMinute, Math.max(minMinute, minute));
+const getNetworksMaxSecond = (byTeamId: SnapshotPassNetworks): number =>
+	Object.values(byTeamId).reduce(
+		(maxSecond, network) =>
+			Math.max(maxSecond, network.temporal?.matchTimeSeconds ?? 0),
+		0,
+	);
 
-const clampMinuteRange = (
-  [minMinute, maxMinute]: [number, number],
-  availableMaxMinute: number,
+const normalizePassNetworkFilters = (
+	filters: Partial<PassNetworkFiltersState>,
+	maxSecond: number,
+): PassNetworkFiltersState => {
+	const merged = {
+		...DEFAULT_PASS_NETWORK_FILTERS,
+		...filters,
+	};
+	const availableSecond = Math.max(0, Math.floor(maxSecond));
+	const fallbackEndSecond =
+		typeof merged.rangeEndSecond === "number"
+			? merged.rangeEndSecond
+			: (merged.momentMinute ?? merged.minuteRange?.[1] ?? 0) * 60;
+	const fallbackStartSecond =
+		typeof merged.rangeStartSecond === "number"
+			? merged.rangeStartSecond
+			: (merged.minuteRange?.[0] ?? 0) * 60;
+	const rangeEndSecond = clamp(fallbackEndSecond, 0, availableSecond);
+	const rangeStartSecond = clamp(fallbackStartSecond, 0, rangeEndSecond);
+	const windowDurationSeconds = clamp(
+		Math.max(BUCKET_SIZE_SECONDS, merged.windowDurationSeconds),
+		BUCKET_SIZE_SECONDS,
+		Math.max(BUCKET_SIZE_SECONDS, availableSecond || BUCKET_SIZE_SECONDS),
+	);
+	const mode = merged.mode === "sliding" ? "sliding" : "cumulative";
+	const selectedRange = derivePassingNetworkRange({
+		mode,
+		startSecond: rangeStartSecond,
+		endSecond: merged.followLive ? availableSecond : rangeEndSecond,
+		windowDurationSeconds,
+	});
+	const momentSecond =
+		typeof merged.momentSecond === "number"
+			? clamp(merged.momentSecond, selectedRange[0], selectedRange[1])
+			: undefined;
+	const displayRange =
+		mode === "cumulative"
+			? [selectedRange[0], momentSecond ?? selectedRange[1]]
+			: selectedRange;
+
+	return {
+		...merged,
+		mode,
+		windowDurationSeconds,
+		windowDurationMode: merged.windowDurationMode === "custom" ? "custom" : "preset",
+		rangeStartSecond,
+		rangeEndSecond,
+		momentSecond,
+		followLive: merged.followLive ?? true,
+		minuteRange: [
+			Math.floor(displayRange[0] / 60),
+			Math.floor(displayRange[1] / 60),
+		],
+	};
+};
+
+const getSelectedRange = (
+	filters: PassNetworkFiltersState,
+	maxSecond: number,
 ): [number, number] => {
-  const boundedMaxMinute = Math.max(0, Math.floor(availableMaxMinute));
-  const nextMinMinute = Math.min(boundedMaxMinute, Math.max(0, minMinute));
-  const nextMaxMinute = Math.min(boundedMaxMinute, Math.max(0, maxMinute));
+	const endSecond = filters.followLive
+		? maxSecond
+		: clamp(filters.rangeEndSecond ?? maxSecond, 0, maxSecond);
 
-  return [
-    Math.min(nextMinMinute, nextMaxMinute),
-    Math.max(nextMinMinute, nextMaxMinute),
-  ];
+	return derivePassingNetworkRange({
+		mode: filters.mode,
+		startSecond: filters.rangeStartSecond ?? 0,
+		endSecond,
+		windowDurationSeconds: filters.windowDurationSeconds,
+	});
 };
 
-const sumMinuteStats = (
-  stats: MinutePositionStat[],
-  [minMinute, maxMinute]: [number, number],
-): MinutePositionStat => {
-  const start = Math.max(0, minMinute);
-  const end = Math.min(Math.max(0, stats.length - 1), Math.max(start, maxMinute));
-  let count = 0;
-  let x_sum = 0;
-  let y_sum = 0;
+const getDisplayRange = (
+	filters: PassNetworkFiltersState,
+	maxSecond: number,
+): [number, number] => {
+	const selectedRange = getSelectedRange(filters, maxSecond);
+	if (filters.mode !== "cumulative") return selectedRange;
 
-  for (let minute = start; minute <= end; minute += 1) {
-    const stat = stats[minute];
-    if (!stat) continue;
-    count += stat.count ?? 0;
-    x_sum += stat.x_sum ?? 0;
-    y_sum += stat.y_sum ?? 0;
-  }
-
-  return { count, x_sum, y_sum };
+	return [
+		selectedRange[0],
+		clamp(filters.momentSecond ?? selectedRange[1], selectedRange[0], selectedRange[1]),
+	];
 };
 
-const filterNetworkByFilters = (
-  network: TeamPassNetwork | null,
-  filters: PassNetworkFiltersState,
-): { nodes: PassNetworkNode[]; edges: PassNetworkEdge[] } | null => {
-  if (!network) return null;
+function getScoreAtSecond(
+	events: Event[],
+	homeTeamId: string | undefined,
+	awayTeamId: string | undefined,
+	limitSecond: number,
+) {
+	let home = 0;
+	let away = 0;
 
-  const filteredEdges: PassNetworkEdge[] = network.edges
-    .map((edge) => {
-      const stat = sumMinuteStats(edge.minute_position_stats, filters.minuteRange);
-      if (stat.count < filters.minPasses) return null;
+	if (!homeTeamId || !awayTeamId) return { home, away };
 
-      return {
-        ...edge,
-        pass_count: stat.count,
-        avg_position: {
-          x: stat.count > 0 ? stat.x_sum / stat.count : edge.avg_position.x,
-          y: stat.count > 0 ? stat.y_sum / stat.count : edge.avg_position.y,
-        },
-      };
-    })
-    .filter((edge): edge is PassNetworkEdge => edge !== null);
+	for (const event of events) {
+		if (!isShotEvent(event) || event.type_id !== "16") continue;
+		const eventSecond = getEventMatchSecond(event);
+		if (eventSecond == null || eventSecond > limitSecond) continue;
+		const teamId = event.team_id ? String(event.team_id) : null;
 
-  const connectedPlayerIds = new Set<string>();
-  for (const edge of filteredEdges) {
-    connectedPlayerIds.add(edge.from_player_id);
-    connectedPlayerIds.add(edge.to_player_id);
-  }
+		if (event.own_goal) {
+			if (teamId === homeTeamId) away += 1;
+			if (teamId === awayTeamId) home += 1;
+			continue;
+		}
 
-  const filteredNodes = network.nodes
-    .filter((node) => connectedPlayerIds.has(node.player_id))
-    .map((node) => {
-      const given = sumMinuteStats(node.minute_given_stats, filters.minuteRange);
-      const received = sumMinuteStats(node.minute_received_stats, filters.minuteRange);
-      const totalCount = given.count + received.count;
+		if (teamId === homeTeamId) home += 1;
+		if (teamId === awayTeamId) away += 1;
+	}
 
-      return {
-        ...node,
-        passes_given: given.count,
-        passes_received: received.count,
-        pass_count: given.count,
-        avg_position_given: {
-          x: given.count > 0 ? given.x_sum / given.count : node.avg_position_given.x,
-          y: given.count > 0 ? given.y_sum / given.count : node.avg_position_given.y,
-        },
-        avg_position_received: {
-          x:
-            received.count > 0
-              ? received.x_sum / received.count
-              : node.avg_position_received.x,
-          y:
-            received.count > 0
-              ? received.y_sum / received.count
-              : node.avg_position_received.y,
-        },
-        avg_position_total: {
-          x:
-            totalCount > 0
-              ? (given.x_sum + received.x_sum) / totalCount
-              : node.avg_position_total.x,
-          y:
-            totalCount > 0
-              ? (given.y_sum + received.y_sum) / totalCount
-              : node.avg_position_total.y,
-        },
-      };
-    })
-    .map((node) => applyNodePositionMode(node, filters.nodePositionMode));
+	return { home, away };
+}
 
-  return {
-    nodes: filteredNodes,
-    edges: filteredEdges,
-  };
-};
+const buildDisplayNetwork = (
+	network: TeamPassNetwork | null,
+	range: [number, number],
+	filters: PassNetworkFiltersState,
+): BuiltPassNetwork | null =>
+	buildPassingNetworkForRange(network, range[0], range[1], {
+		minPasses: filters.minPasses,
+		nodePositionMode: filters.nodePositionMode,
+	});
 
-const applyNodePositionMode = (
-  node: PassNetworkNode,
-  mode: NodePositionMode,
-): PassNetworkNode => {
-  if (mode === "given") {
-    return {
-      ...node,
-      avg_position_total: node.avg_position_given,
-    };
-  }
-
-  if (mode === "received") {
-    return {
-      ...node,
-      avg_position_total: node.avg_position_received,
-    };
-  }
-
-  return node;
-};
+function formatRangeLabel(range: [number, number]): string {
+	return `Min ${formatMatchTime(range[0])} - ${formatMatchTime(range[1])}`;
+}
 
 const PassNetworkPage: React.FC = () => {
-  const game = useGameStore((s) => s.game);
-  const byTeamId = usePassNetworksStore((s) => s.byTeamId);
-  const events = useEventsStore((s) => s.events);
-  const [isPanelOpen, setIsPanelOpen] = useState(true);
-  const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
-  const [filters, setFilters] = useState<PassNetworkFiltersState>(
-    DEFAULT_PASS_NETWORK_FILTERS,
-  );
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentMinute, setCurrentMinute] = useState(
-    DEFAULT_PASS_NETWORK_FILTERS.minuteRange[1],
-  );
+	const game = useGameStore((state) => state.game);
+	const byTeamId = usePassNetworksStore((state) => state.byTeamId);
+	const events = useEventsStore((state) => state.events);
+	const [isPanelOpen, setIsPanelOpen] = useState(true);
+	const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
+	const [filters, setFilters] = useState<PassNetworkFiltersState>(
+		DEFAULT_PASS_NETWORK_FILTERS,
+	);
 
-  const [rangeStart, rangeEnd] = filters.minuteRange;
+	const maxSecond = Math.max(getMaxEventSecond(events), getNetworksMaxSecond(byTeamId));
+	const normalizedFilters = normalizePassNetworkFilters(filters, maxSecond);
+	const selectedRangeSeconds = getSelectedRange(normalizedFilters, maxSecond);
+	const displayRangeSeconds = getDisplayRange(normalizedFilters, maxSecond);
+	const currentSecond = displayRangeSeconds[1];
+	const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
+	const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
+	const filteredHomeNetwork = useMemo(
+		() => buildDisplayNetwork(homeNetwork, displayRangeSeconds, normalizedFilters),
+		[displayRangeSeconds, homeNetwork, normalizedFilters],
+	);
+	const filteredAwayNetwork = useMemo(
+		() => buildDisplayNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
+		[awayNetwork, displayRangeSeconds, normalizedFilters],
+	);
+	const homeNodes = filteredHomeNetwork?.nodes ?? [];
+	const homeEdges = filteredHomeNetwork?.edges ?? [];
+	const awayNodes = filteredAwayNetwork?.nodes ?? [];
+	const awayEdges = filteredAwayNetwork?.edges ?? [];
+	const scoreAtSecond = useMemo(
+		() =>
+			getScoreAtSecond(
+				events,
+				game?.home_team.team_id,
+				game?.away_team.team_id,
+				currentSecond,
+			),
+		[events, game?.away_team.team_id, game?.home_team.team_id, currentSecond],
+	);
+	const networkRangeLabel = formatRangeLabel(displayRangeSeconds);
 
-  const lastEventMinute = useMemo(() => {
-    if (events.length === 0) return 0;
+	const handleFiltersChange = (nextFilters: PassNetworkFiltersState) => {
+		setFilters(normalizePassNetworkFilters(nextFilters, maxSecond));
+	};
 
-    return events.reduce(
-      (maxMinute, event) => Math.max(maxMinute, Math.floor(event.min ?? 0)),
-      0,
-    );
-  }, [events]);
+	const handleRangeChange = (
+		range: [number, number],
+		options?: { followLive?: boolean },
+	) => {
+		handleFiltersChange({
+			...normalizedFilters,
+			rangeStartSecond: range[0],
+			rangeEndSecond: range[1],
+			followLive: options?.followLive ?? false,
+		});
+	};
+	const handleCurrentSecondChange = (second: number) => {
+		handleFiltersChange({
+			...normalizedFilters,
+			momentSecond: clamp(second, selectedRangeSeconds[0], selectedRangeSeconds[1]),
+			followLive: false,
+		});
+	};
 
-  const previousMaxMinuteRef = useRef(lastEventMinute);
+	const playback = usePassNetworkPlayback({
+		mode: normalizedFilters.mode,
+		selectedRangeSeconds,
+		currentSecond,
+		maxSecond,
+		onRangeChange: handleRangeChange,
+		onCurrentSecondChange: handleCurrentSecondChange,
+	});
 
-  useEffect(() => {
-    const previousMaxMinute = previousMaxMinuteRef.current;
-    previousMaxMinuteRef.current = lastEventMinute;
+	const handleReturnToLive = () => {
+		playback.pause();
+		handleFiltersChange({
+			...normalizedFilters,
+			rangeEndSecond: maxSecond,
+			momentSecond: undefined,
+			followLive: true,
+		});
+	};
 
-    setFilters((currentFilters) => {
-      const wasPinnedToLatestMinute = currentFilters.minuteRange[1] >= previousMaxMinute;
-      const targetRange: [number, number] = wasPinnedToLatestMinute
-        ? [currentFilters.minuteRange[0], lastEventMinute]
-        : currentFilters.minuteRange;
-      const nextMinuteRange = clampMinuteRange(targetRange, lastEventMinute);
+	return (
+		<div className="flex min-h-full flex-col gap-4 p-4">
+			<div className="flex flex-wrap items-center gap-2">
+				<h1 className="text-2xl font-bold">Redes de Pases</h1>
+				<Button
+					type="button"
+					variant="outline"
+					size="sm"
+					onClick={() => setIsMobilePanelOpen(true)}
+					className="ml-auto xl:hidden"
+				>
+					<SlidersHorizontal className="size-4" />
+					Filtros
+				</Button>
+			</div>
 
-      if (
-        nextMinuteRange[0] === currentFilters.minuteRange[0] &&
-        nextMinuteRange[1] === currentFilters.minuteRange[1]
-      ) {
-        return currentFilters;
-      }
+			<div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2 xl:h-150 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)_minmax(0,1fr)]">
+				<div className="flex h-[min(72svh,34rem)] min-h-0 flex-col rounded-lg bg-slate-100 p-2 dark:bg-slate-800 xl:h-auto">
+					<div className="min-h-0 flex-1">
+						<PassNetworkPitch
+							nodes={homeNodes}
+							edges={homeEdges}
+							color={HOME_COLOR}
+							orientation="vertical"
+							animated
+							noDataMessage={homeNodes.length > 0 ? undefined : "No hay datos suficientes"}
+							teamName={game?.home_team.team_name ?? "Equipo Local"}
+							rangeLabel={networkRangeLabel}
+						/>
+					</div>
+				</div>
 
-      return {
-        ...currentFilters,
-        minuteRange: nextMinuteRange,
-      };
-    });
+				<div className="hidden min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 xl:flex">
+					<PassNetworkTabs
+						isOpen={isPanelOpen}
+						onToggle={() => setIsPanelOpen((current) => !current)}
+						filters={normalizedFilters}
+						onFiltersChange={handleFiltersChange}
+						currentSecond={currentSecond}
+						selectedRangeSeconds={selectedRangeSeconds}
+						onRangeChange={playback.handleRangeChange}
+						onCurrentSecondChange={playback.handleCurrentSecondChange}
+						onReturnToLive={handleReturnToLive}
+						isPlaying={playback.isPlaying}
+						onPlay={playback.play}
+						onPause={playback.pause}
+						onResetPlayback={playback.reset}
+						canPlay={playback.canPlay}
+						events={events}
+						homeTeamId={game?.home_team.team_id ?? null}
+						awayTeamId={game?.away_team.team_id ?? null}
+						homeScoreAtMinute={scoreAtSecond.home}
+						awayScoreAtMinute={scoreAtSecond.away}
+						homeNetwork={filteredHomeNetwork}
+						awayNetwork={filteredAwayNetwork}
+						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
+						awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
+						homeColor={HOME_COLOR}
+						awayColor={AWAY_COLOR}
+						maxMinute={Math.ceil(maxSecond / 60)}
+					/>
+				</div>
 
-    setCurrentMinute((minute) => {
-      const wasAtLatestMinute = minute >= previousMaxMinute;
-      return wasAtLatestMinute
-        ? lastEventMinute
-        : Math.min(lastEventMinute, Math.max(0, minute));
-    });
-  }, [lastEventMinute]);
+				<div className="flex h-[min(72svh,34rem)] min-h-0 flex-col rounded-lg bg-slate-100 p-2 dark:bg-slate-800 xl:h-auto">
+					<div className="min-h-0 flex-1">
+						<PassNetworkPitch
+							nodes={awayNodes}
+							edges={awayEdges}
+							color={AWAY_COLOR}
+							orientation="vertical"
+							mirrorX
+							animated
+							noDataMessage={awayNodes.length > 0 ? undefined : "No hay datos suficientes"}
+							teamName={game?.away_team.team_name ?? "Equipo Visitante"}
+							rangeLabel={networkRangeLabel}
+						/>
+					</div>
+				</div>
+			</div>
 
-  useEffect(() => {
-    if (!isPlaying) return;
-
-    const intervalId = window.setInterval(() => {
-      setCurrentMinute((minute) => {
-        const normalizedMinute = clampMinute(minute, [rangeStart, rangeEnd]);
-
-        if (normalizedMinute >= rangeEnd) {
-          setIsPlaying(false);
-          return rangeEnd;
-        }
-
-        return Math.min(rangeEnd, normalizedMinute + 1);
-      });
-    }, PLAYBACK_TICK_MS);
-
-    return () => window.clearInterval(intervalId);
-  }, [isPlaying, rangeStart, rangeEnd]);
-
-  const handleFiltersChange = (nextFilters: PassNetworkFiltersState) => {
-    const boundedNextFilters: PassNetworkFiltersState = {
-      ...nextFilters,
-      minuteRange: clampMinuteRange(nextFilters.minuteRange, lastEventMinute),
-    };
-
-    setFilters(boundedNextFilters);
-    setIsPlaying(false);
-    setCurrentMinute(clampMinute(currentMinute, boundedNextFilters.minuteRange));
-  };
-
-  const handlePlay = () => {
-    if (rangeStart === rangeEnd) return;
-
-    setCurrentMinute((minute) =>
-      minute >= rangeEnd || minute < rangeStart ? rangeStart : minute,
-    );
-    setIsPlaying(true);
-  };
-
-  const handlePause = () => {
-    setIsPlaying(false);
-  };
-
-  const handleResetPlayback = () => {
-    setIsPlaying(false);
-    setCurrentMinute(rangeStart);
-  };
-
-  const handleCurrentMinuteChange = (minute: number) => {
-    setIsPlaying(false);
-    setCurrentMinute(clampMinute(minute, [rangeStart, rangeEnd]));
-  };
-
-  const playbackMinute = clampMinute(currentMinute, [rangeStart, rangeEnd]);
-
-  const effectiveFilters: PassNetworkFiltersState = {
-    ...filters,
-    // The selected range controls playback bounds, but the rendered network
-    // should represent the real match state at each instant (0' -> current').
-    minuteRange: [0, playbackMinute],
-  };
-
-  const scoreAtMinute = useMemo(() => {
-    if (!game) return { home: 0, away: 0 };
-
-    const homeTeamId = String(game.home_team.team_id);
-    const awayTeamId = String(game.away_team.team_id);
-    const limitMinute = effectiveFilters.minuteRange[1];
-
-    let homeScore = 0;
-    let awayScore = 0;
-
-    for (const event of events) {
-      if (!isShotEvent(event) || event.type_id !== "16") continue;
-
-      const minute = event.min ?? 0;
-      if (minute > limitMinute) continue;
-
-      const teamId = event.team_id ? String(event.team_id) : null;
-      if (!teamId) continue;
-
-      if (event.own_goal) {
-        if (teamId === homeTeamId) awayScore += 1;
-        if (teamId === awayTeamId) homeScore += 1;
-        continue;
-      }
-
-      if (teamId === homeTeamId) homeScore += 1;
-      if (teamId === awayTeamId) awayScore += 1;
-    }
-
-    return { home: homeScore, away: awayScore };
-  }, [events, game, effectiveFilters.minuteRange]);
-
-  const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
-  const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
-  const filteredHomeNetwork = filterNetworkByFilters(homeNetwork, effectiveFilters);
-  const filteredAwayNetwork = filterNetworkByFilters(awayNetwork, effectiveFilters);
-  const homeNodes = filteredHomeNetwork?.nodes ?? [];
-  const homeEdges = filteredHomeNetwork?.edges ?? [];
-  const awayNodes = filteredAwayNetwork?.nodes ?? [];
-  const awayEdges = filteredAwayNetwork?.edges ?? [];
-  const homeHasEnoughData = homeNodes.length > 0;
-  const awayHasEnoughData = awayNodes.length > 0;
-
-  return (
-    <div className="flex flex-col p-4 gap-4 min-h-full">
-      {/* Header */}
-      <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-2xl font-bold">Redes de Pases</h1>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={() => setIsMobilePanelOpen(true)}
-          className="ml-auto xl:hidden"
-        >
-          <SlidersHorizontal className="size-4" />
-          Filtros
-        </Button>
-      </div>
-
-      {/* 3-column layout */}
-      <div className="grid flex-1 grid-cols-1 gap-3 min-h-0 md:grid-cols-2 xl:h-150 xl:grid-cols-[minmax(0,1fr)_minmax(18rem,0.85fr)_minmax(0,1fr)]">
-
-        {/* Column 1: Home team pass network */}
-        <div className="flex h-[min(72svh,34rem)] flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0 xl:h-auto">
-          <p
-            className="text-xs font-semibold mb-2 truncate"
-            style={{ color: HOME_COLOR }}
-          >
-            {game?.home_team.team_name ?? "Equipo Local"}
-          </p>
-          <div className="flex-1 min-h-0">
-            <PassNetworkPitch
-              nodes={homeNodes}
-              edges={homeEdges}
-              color={HOME_COLOR}
-              orientation="vertical"
-              animated
-              noDataMessage={homeHasEnoughData ? undefined : "No hay datos suficientes"}
-            />
-          </div>
-        </div>
-
-        {/* Column 2: Stats / filters (placeholder) */}
-        <div className="hidden flex-col bg-slate-100 dark:bg-slate-800 rounded-lg min-h-0 overflow-hidden xl:flex">
-          <PassNetworkTabs
-            isOpen={isPanelOpen}
-            onToggle={() => setIsPanelOpen((current) => !current)}
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            currentMinute={effectiveFilters.minuteRange[1]}
-            isPlaying={isPlaying}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onResetPlayback={handleResetPlayback}
-            onCurrentMinuteChange={handleCurrentMinuteChange}
-            events={events}
-            homeTeamId={game?.home_team.team_id ?? null}
-            awayTeamId={game?.away_team.team_id ?? null}
-            homeScoreAtMinute={scoreAtMinute.home}
-            awayScoreAtMinute={scoreAtMinute.away}
-            homeNetwork={homeNetwork}
-            awayNetwork={awayNetwork}
-            homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
-            awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
-            homeColor={HOME_COLOR}
-            awayColor={AWAY_COLOR}
-            maxMinute={lastEventMinute}
-          />
-        </div>
-
-        {/* Column 3: Away team pass network */}
-        <div className="flex h-[min(72svh,34rem)] flex-col bg-slate-100 dark:bg-slate-800 rounded-lg p-2 min-h-0 xl:h-auto">
-          <p
-            className="text-xs font-semibold mb-2 truncate"
-            style={{ color: AWAY_COLOR }}
-          >
-            {game?.away_team.team_name ?? "Equipo Visitante"}
-          </p>
-          <div className="flex-1 min-h-0">
-            <PassNetworkPitch
-              nodes={awayNodes}
-              edges={awayEdges}
-              color={AWAY_COLOR}
-              orientation="vertical"
-              mirrorX
-              animated
-              noDataMessage={awayHasEnoughData ? undefined : "No hay datos suficientes"}
-            />
-          </div>
-        </div>
-
-      </div>
-
-      <Sheet open={isMobilePanelOpen} onOpenChange={setIsMobilePanelOpen}>
-        <SheetContent
-          side="bottom"
-          className="h-[85svh] max-h-[46rem] gap-0 rounded-t-lg p-0"
-        >
-          <SheetHeader className="sr-only">
-            <SheetTitle>Panel de red de pases</SheetTitle>
-          </SheetHeader>
-          <PassNetworkTabs
-            isOpen
-            showToggle={false}
-            defaultValue="filters"
-            onToggle={() => setIsMobilePanelOpen(false)}
-            filters={filters}
-            onFiltersChange={handleFiltersChange}
-            currentMinute={effectiveFilters.minuteRange[1]}
-            isPlaying={isPlaying}
-            onPlay={handlePlay}
-            onPause={handlePause}
-            onResetPlayback={handleResetPlayback}
-            onCurrentMinuteChange={handleCurrentMinuteChange}
-            events={events}
-            homeTeamId={game?.home_team.team_id ?? null}
-            awayTeamId={game?.away_team.team_id ?? null}
-            homeScoreAtMinute={scoreAtMinute.home}
-            awayScoreAtMinute={scoreAtMinute.away}
-            homeNetwork={homeNetwork}
-            awayNetwork={awayNetwork}
-            homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
-            awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
-            homeColor={HOME_COLOR}
-            awayColor={AWAY_COLOR}
-            maxMinute={lastEventMinute}
-          />
-        </SheetContent>
-      </Sheet>
-    </div>
-  );
+			<Sheet open={isMobilePanelOpen} onOpenChange={setIsMobilePanelOpen}>
+				<SheetContent
+					side="bottom"
+					className="h-[85svh] max-h-[46rem] gap-0 rounded-t-lg p-0"
+				>
+					<SheetHeader className="sr-only">
+						<SheetTitle>Panel de red de pases</SheetTitle>
+					</SheetHeader>
+					<PassNetworkTabs
+						isOpen
+						showToggle={false}
+						defaultValue="filters"
+						onToggle={() => setIsMobilePanelOpen(false)}
+						filters={normalizedFilters}
+						onFiltersChange={handleFiltersChange}
+						currentSecond={currentSecond}
+						selectedRangeSeconds={selectedRangeSeconds}
+						onRangeChange={playback.handleRangeChange}
+						onCurrentSecondChange={playback.handleCurrentSecondChange}
+						onReturnToLive={handleReturnToLive}
+						isPlaying={playback.isPlaying}
+						onPlay={playback.play}
+						onPause={playback.pause}
+						onResetPlayback={playback.reset}
+						canPlay={playback.canPlay}
+						events={events}
+						homeTeamId={game?.home_team.team_id ?? null}
+						awayTeamId={game?.away_team.team_id ?? null}
+						homeScoreAtMinute={scoreAtSecond.home}
+						awayScoreAtMinute={scoreAtSecond.away}
+						homeNetwork={filteredHomeNetwork}
+						awayNetwork={filteredAwayNetwork}
+						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
+						awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
+						homeColor={HOME_COLOR}
+						awayColor={AWAY_COLOR}
+						maxMinute={Math.ceil(maxSecond / 60)}
+					/>
+				</SheetContent>
+			</Sheet>
+		</div>
+	);
 };
 
 export default PassNetworkPage;

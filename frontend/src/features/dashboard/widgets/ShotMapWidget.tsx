@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { Crosshair } from "lucide-react";
 
 import MapShotPitch, { GoalShotMap } from "@/components/pitch/MapShotPitch";
+import ShotMapTeamSwitcher from "@/components/pitch/ShotMapTeamSwitcher";
 import {
 	formatEventTime,
 	formatPlayerLabel,
@@ -214,18 +215,24 @@ export function ShotMapWidget({
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
 	const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
+	const [selectedTeam, setSelectedTeam] = useState<TeamSide>("home");
 	const shots = useMemo(() => events.filter(isShotEvent), [events]);
 	const normalizedFilters = normalizeShotMapFilters(filters);
 	const maxMinute = getMaxMinute(shots);
 	const filteredShots = filterShots(
 		shots,
-		normalizedFilters,
+		{ ...normalizedFilters, team: "both" },
 		maxMinute,
 		game?.home_team.team_id,
 		game?.away_team.team_id,
 	);
+	const activeTeam =
+		normalizedFilters.team === "both" ? selectedTeam : normalizedFilters.team;
+	const activeTeamId =
+		activeTeam === "home" ? game?.home_team.team_id : game?.away_team.team_id;
+	const visibleShots = filteredShots.filter((shot) => shot.team_id === activeTeamId);
 	const selectedShot =
-		filteredShots.find((shot) => shot.id === selectedShotId) ?? filteredShots[0] ?? null;
+		visibleShots.find((shot) => shot.id === selectedShotId) ?? visibleShots[0] ?? null;
 	const activeShotId = selectedShot?.id ?? null;
 	const homeTeamId = game?.home_team.team_id ?? "";
 	const awayTeamId = game?.away_team.team_id ?? "";
@@ -247,13 +254,26 @@ export function ShotMapWidget({
 				</div>
 				<div className="flex shrink-0 items-center gap-2">
 					<Badge variant="outline" className="rounded-md">
-						{filteredShots.length} tiros
+						{visibleShots.length} tiros
 					</Badge>
 					<Badge variant="secondary" className="rounded-md">
 						{VIEW_MODE_OPTIONS.find((option) => option.value === config.viewMode)?.label}
 					</Badge>
 				</div>
 			</div>
+
+			{normalizedFilters.team === "both" ? (
+				<ShotMapTeamSwitcher
+					value={selectedTeam}
+					homeTeamName={game.home_team.team_name}
+					awayTeamName={game.away_team.team_name}
+					onValueChange={(team) => {
+						setSelectedTeam(team);
+						setSelectedShotId(null);
+					}}
+					className="grid w-full grid-cols-2"
+				/>
+			) : null}
 
 			<div
 				className={
@@ -265,7 +285,7 @@ export function ShotMapWidget({
 				{showGoal ? (
 					<ShotMapSurface
 						type="goal"
-						shots={filteredShots}
+						shots={visibleShots}
 						selectedShotId={activeShotId}
 						homeTeamId={homeTeamId}
 						awayTeamId={awayTeamId}
@@ -275,7 +295,7 @@ export function ShotMapWidget({
 				{showField ? (
 					<ShotMapSurface
 						type="field"
-						shots={filteredShots}
+						shots={visibleShots}
 						selectedShotId={activeShotId}
 						homeTeamId={homeTeamId}
 						awayTeamId={awayTeamId}

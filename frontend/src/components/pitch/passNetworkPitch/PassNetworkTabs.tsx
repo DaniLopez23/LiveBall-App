@@ -4,30 +4,39 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
-import type { TeamPassNetwork } from "@/types/passNetwork";
+import type { PassNetworkEdge, PassNetworkNode } from "@/types/passNetwork";
 import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
 
 import PassNetworkFilters from "./PassNetworkFilters";
 import PassNetworkStats from "./PassNetworkStats";
+
+interface DisplayNetwork {
+	nodes: PassNetworkNode[];
+	edges: PassNetworkEdge[];
+}
 
 interface PassNetworkTabsProps {
 	isOpen: boolean;
 	onToggle: () => void;
 	filters: PassNetworkFiltersState;
 	onFiltersChange: (filters: PassNetworkFiltersState) => void;
-	currentMinute: number;
+	currentSecond: number;
+	selectedRangeSeconds: [number, number];
+	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onCurrentSecondChange: (second: number) => void;
+	onReturnToLive: () => void;
 	isPlaying: boolean;
 	onPlay: () => void;
 	onPause: () => void;
 	onResetPlayback: () => void;
-	onCurrentMinuteChange: (minute: number) => void;
+	canPlay: boolean;
 	events: Event[];
 	homeTeamId: string | null;
 	awayTeamId: string | null;
 	homeScoreAtMinute: number;
 	awayScoreAtMinute: number;
-	homeNetwork: TeamPassNetwork | null;
-	awayNetwork: TeamPassNetwork | null;
+	homeNetwork: DisplayNetwork | null;
+	awayNetwork: DisplayNetwork | null;
 	homeTeamName: string;
 	awayTeamName: string;
 	homeColor: string;
@@ -48,12 +57,16 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	onToggle,
 	filters,
 	onFiltersChange,
-	currentMinute,
+	currentSecond,
+	selectedRangeSeconds,
+	onRangeChange,
+	onCurrentSecondChange,
+	onReturnToLive,
 	isPlaying,
 	onPlay,
 	onPause,
 	onResetPlayback,
-	onCurrentMinuteChange,
+	canPlay,
 	events,
 	homeTeamId,
 	awayTeamId,
@@ -121,7 +134,6 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 
 			<TabsContent value="stats" className="flex-1 overflow-auto p-3">
 				<PassNetworkStats
-					filters={filters}
 					homeNetwork={homeNetwork}
 					awayNetwork={awayNetwork}
 					homeTeamName={homeTeamName}
@@ -135,12 +147,16 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 				<PassNetworkFilters
 					filters={filters}
 					onChange={onFiltersChange}
-					currentMinute={currentMinute}
+					currentSecond={currentSecond}
+					selectedRangeSeconds={selectedRangeSeconds}
+					onRangeChange={onRangeChange}
+					onCurrentSecondChange={onCurrentSecondChange}
+					onReturnToLive={onReturnToLive}
 					isPlaying={isPlaying}
 					onPlay={onPlay}
 					onPause={onPause}
 					onResetPlayback={onResetPlayback}
-					onCurrentMinuteChange={onCurrentMinuteChange}
+					canPlay={canPlay}
 					events={events}
 					homeTeamId={homeTeamId}
 					awayTeamId={awayTeamId}
@@ -150,7 +166,7 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 					awayColor={awayColor}
 					homeScoreAtMinute={homeScoreAtMinute}
 					awayScoreAtMinute={awayScoreAtMinute}
-					maxMinute={maxMinute}
+					maxSecond={maxMinute * 60}
 				/>
 			</TabsContent>
 		</Tabs>
