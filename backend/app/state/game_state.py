@@ -1,0 +1,297 @@
+"""
+Centralized in-memory cache for all game state.
+
+Stores the current known state of each game, its events, and its pass
+networks so that services can detect new/updated information and avoid
+re-sending unchanged data.
+"""
+
+from typing import Any, Dict, Optional, Tuple
+
+from app.schemas.games import ParsedGame
+from app.schemas.momentum import MatchMomentumPayload, MomentumEvent
+from app.schemas.stats import MatchStatsTimeline, MatchStatsUpdateData, ParsedMatchStats
+from app.services.pass_networks.service import PassNetworkService
+
+
+class GameStateCache:
+    """
+    Single source of truth for what the application already knows.
+
+    Three kinds of state are tracked:
+
+    - **Games**: full ``ParsedGame`` objects + comparable snapshots for
+      change detection.
+    - **Events**: per-game mapping of ``(team_id, event_id) → type_id``
+      so that new/updated events can be distinguished.
+        - **Stats**: parsed F9 stats payload, bucket timeline, and comparable
+          snapshot per game.
+    - **Pass networks**: one ``PassNetworkService`` instance per
+      ``(game_id, team_id)`` pair.
+    """
+
+    def __init__(self) -> None:
+        # game_id → full ParsedGame (latest ingested version)
+        self.games: Dict[str, ParsedGame] = {}
+        # game_id → comparable snapshot dict used for change detection
+        self._game_snapshots: Dict[str, Dict[str, Any]] = {}
+        # game_id → { (team_id, event_id) → type_id }
+        self._event_states: Dict[str, Dict[Tuple[str, str], str]] = {}
+        # game_id → { (team_id,event_id) → exported/enriched event payload }
+        self._exported_events: Dict[str, Dict[Tuple[str, str], Dict[str, Any]]] = {}
+        # game_id → latest inferred match state (pre_match, first_period_active, ...)
+        self._match_states: Dict[str, str] = {}
+        # game_id → full ParsedMatchStats (latest ingested version)
+        self.stats: Dict[str, ParsedMatchStats] = {}
+        self.match_stats_updates: Dict[str, MatchStatsUpdateData] = {}
+        self.match_stats_timelines: Dict[str, MatchStatsTimeline] = {}
+        # game_id → comparable snapshot dict used for stats change detection
+        self._stats_snapshots: Dict[str, Dict[str, Any]] = {}
+        # (game_id, team_id) → PassNetworkService
+        self.pass_networks: Dict[Tuple[str, str], PassNetworkService] = {}
+        # (game_id, team_id) → latest bucket statistics dict
+        self._pass_network_statistics: Dict[Tuple[str, str], Dict[str, Any]] = {}
+        self._momentum_events: Dict[str, Dict[str, MomentumEvent]] = {}
+        self._momentum_payloads: Dict[str, MatchMomentumPayload] = {}
+
+    # ------------------------------------------------------------------ #
+    # Game helpers                                                         #
+    # ------------------------------------------------------------------ #
+
+    def has_game(self, game_id: str) -> bool:
+        """Returns True if the game has been seen before."""
+        return game_id in self._game_snapshots
+
+    def get_game_snapshot(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Returns the stored snapshot for *game_id*, or None."""
+        return self._game_snapshots.get(game_id)
+
+    def store_game(self, game: ParsedGame, snapshot: Dict[str, Any]) -> None:
+        """Persists the full game and its comparable snapshot."""
+        self.games[game.game_id] = game
+        self._game_snapshots[game.game_id] = snapshot
+
+    # ------------------------------------------------------------------ #
+    # Event helpers                                                        #
+    # ------------------------------------------------------------------ #
+
+    def has_event(self, game_id: str, team_id: str, event_id: str) -> bool:
+        """Returns True if the event has been seen before inside *game_id*."""
+        return (team_id, event_id) in self._event_states.get(game_id, {})
+
+    def get_event_type(
+        self, game_id: str, team_id: str, event_id: str
+    ) -> Optional[str]:
+        """Returns the last seen type_id for the event, or None."""
+        return self._event_states.get(game_id, {}).get((team_id, event_id))
+
+    def store_event_type(
+        self, game_id: str, team_id: str, event_id: str, type_id: str
+    ) -> None:
+        """Stores or updates the type_id for an event inside *game_id*."""
+        if game_id not in self._event_states:
+            self._event_states[game_id] = {}
+        self._event_states[game_id][(team_id, event_id)] = type_id
+
+    def get_event_keys(self, game_id: str) -> set[Tuple[str, str]]:
+        """Returns the cached event keys for *game_id*."""
+        return set(self._event_states.get(game_id, {}))
+
+    def remove_event(
+        self,
+        game_id: str,
+        team_id: str,
+        event_id: str,
+    ) -> Optional[Dict[str, Any]]:
+        """Removes one event from cache and returns its exported payload if present."""
+        event_key = (team_id, event_id)
+        event_states = self._event_states.get(game_id)
+        if event_states is not None:
+            event_states.pop(event_key, None)
+            if not event_states:
+                self._event_states.pop(game_id, None)
+
+        exported_events = self._exported_events.get(game_id)
+        if exported_events is None:
+            return None
+
+        payload = exported_events.pop(event_key, None)
+        if not exported_events:
+            self._exported_events.pop(game_id, None)
+        return payload
+
+    def store_exported_event(
+        self,
+        game_id: str,
+        team_id: str,
+        event_id: str,
+        payload: Dict[str, Any],
+    ) -> None:
+        """Stores or updates one exported/enriched event payload in insertion order."""
+        if game_id not in self._exported_events:
+            self._exported_events[game_id] = {}
+        self._exported_events[game_id][(team_id, event_id)] = payload
+
+    def get_exported_events(self, game_id: str) -> list[Dict[str, Any]]:
+        """Returns exported/enriched events for snapshot and replay purposes."""
+        return list(self._exported_events.get(game_id, {}).values())
+
+    def get_match_state(self, game_id: str) -> Optional[str]:
+        """Returns the latest inferred match state for *game_id*, or None."""
+        return self._match_states.get(game_id)
+
+    def store_match_state(self, game_id: str, state: str) -> None:
+        """Stores the inferred match state for *game_id*."""
+        self._match_states[game_id] = state
+
+    # ------------------------------------------------------------------ #
+    # Stats helpers                                                       #
+    # ------------------------------------------------------------------ #
+
+    def has_stats(self, game_id: str) -> bool:
+        """Returns True if stats have been seen before for the game."""
+        return game_id in self._stats_snapshots
+
+    def get_stats(self, game_id: str) -> Optional[ParsedMatchStats]:
+        """Returns the stored parsed stats payload for *game_id*, or None."""
+        return self.stats.get(game_id)
+
+    def get_stats_snapshot(self, game_id: str) -> Optional[Dict[str, Any]]:
+        """Returns the stored stats snapshot for *game_id*, or None."""
+        return self._stats_snapshots.get(game_id)
+
+    def store_stats(self, parsed_stats: ParsedMatchStats, snapshot: Dict[str, Any]) -> None:
+        """Persists the full stats payload and its comparable snapshot."""
+        self.stats[parsed_stats.game_id] = parsed_stats
+        self._stats_snapshots[parsed_stats.game_id] = snapshot
+
+    def get_match_stats_update(self, game_id: str) -> Optional[MatchStatsUpdateData]:
+        """Returns the latest frontend-oriented stats payload for *game_id*."""
+        return self.match_stats_updates.get(game_id)
+
+    def get_match_stats_timeline(self, game_id: str) -> Optional[MatchStatsTimeline]:
+        """Returns the latest bucket timeline stored for *game_id*, if any."""
+        return self.match_stats_timelines.get(game_id)
+
+    def store_match_stats_timeline(
+        self,
+        game_id: str,
+        timeline: MatchStatsTimeline,
+    ) -> None:
+        """Persists the bucket timeline used by stats snapshots."""
+        self.match_stats_timelines[game_id] = timeline
+
+    def store_match_stats_update(
+        self,
+        game_id: str,
+        payload: MatchStatsUpdateData,
+    ) -> None:
+        """Persists the latest frontend-oriented stats payload for *game_id*."""
+        self.match_stats_updates[game_id] = payload
+        self.store_match_stats_timeline(game_id, payload.timeline)
+
+    # ------------------------------------------------------------------ #
+    # Pass network helpers                                                 #
+    # ------------------------------------------------------------------ #
+
+    def get_or_create_pass_network(
+        self, game_id: str, team_id: str
+    ) -> PassNetworkService:
+        """Returns the existing ``PassNetworkService`` for ``(game_id, team_id)``,
+        creating one if it does not yet exist."""
+        key = (game_id, team_id)
+        if key not in self.pass_networks:
+            self.pass_networks[key] = PassNetworkService(team_id=int(team_id))
+        return self.pass_networks[key]
+
+    def get_pass_network(
+        self, game_id: str, team_id: str
+    ) -> Optional[PassNetworkService]:
+        """Returns the existing pass-network service without creating it."""
+        return self.pass_networks.get((game_id, team_id))
+
+    def store_pass_network_statistics(
+        self, game_id: str, team_id: str, statistics: Dict[str, Any]
+    ) -> None:
+        """Persists the latest computed bucket statistics for ``(game_id, team_id)``."""
+        self._pass_network_statistics[(game_id, team_id)] = statistics
+
+    def merge_pass_network_statistics(
+        self,
+        game_id: str,
+        team_id: str,
+        statistics: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        Merges partial bucket statistics into the cached full snapshot.
+
+        WebSocket deltas can carry only changed buckets, but reconnecting
+        clients still need the complete latest statistics in their snapshot.
+        """
+        key = (game_id, team_id)
+        current = self._pass_network_statistics.get(key)
+        if not current:
+            self._pass_network_statistics[key] = statistics
+            return statistics
+
+        buckets_by_index = {
+            bucket["bucket_index"]: bucket
+            for bucket in current.get("buckets", [])
+        }
+        for bucket in statistics.get("buckets", []):
+            buckets_by_index[bucket["bucket_index"]] = bucket
+
+        merged = {
+            **current,
+            "team_id": statistics.get("team_id", current.get("team_id")),
+            "buckets": [
+                buckets_by_index[index]
+                for index in sorted(buckets_by_index)
+            ],
+        }
+        self._pass_network_statistics[key] = merged
+        return merged
+
+    def get_pass_network_statistics(
+        self, game_id: str, team_id: str
+    ) -> Dict[str, Any]:
+        """Returns the last stored bucket statistics, or an empty dict if not yet computed."""
+        return self._pass_network_statistics.get((game_id, team_id), {})
+
+    # ------------------------------------------------------------------ #
+    # Momentum helpers                                                     #
+    # ------------------------------------------------------------------ #
+
+    def upsert_momentum_events(
+        self,
+        game_id: str,
+        events: list[MomentumEvent],
+    ) -> bool:
+        """Stores normalized xT momentum events and returns True if anything changed."""
+        if game_id not in self._momentum_events:
+            self._momentum_events[game_id] = {}
+
+        changed = False
+        for event in events:
+            previous = self._momentum_events[game_id].get(event.event_id)
+            if previous is None or previous.model_dump() != event.model_dump():
+                self._momentum_events[game_id][event.event_id] = event
+                changed = True
+
+        return changed
+
+    def get_momentum_events(self, game_id: str) -> list[MomentumEvent]:
+        """Returns cached normalized xT momentum events for *game_id*."""
+        return list(self._momentum_events.get(game_id, {}).values())
+
+    def get_momentum_payload(self, game_id: str) -> Optional[MatchMomentumPayload]:
+        """Returns the latest xT momentum payload for *game_id*."""
+        return self._momentum_payloads.get(game_id)
+
+    def store_momentum_payload(
+        self,
+        game_id: str,
+        payload: MatchMomentumPayload,
+    ) -> None:
+        """Stores the latest xT momentum payload for *game_id*."""
+        self._momentum_payloads[game_id] = payload

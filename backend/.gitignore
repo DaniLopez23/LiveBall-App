@@ -26,7 +26,8 @@ logs/
 *.egg
 
 # Data files
-data/
+**/data/docs/
+**/data/events/
 
 # Env
 .env.*

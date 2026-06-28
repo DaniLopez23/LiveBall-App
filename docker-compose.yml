@@ -1,0 +1,79 @@
+services:
+  frontend-react:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
+        VITE_WS_URL: ${VITE_WS_URL:-ws://localhost:8000/api/v1}
+        VITE_WS_BASE_URL: ${VITE_WS_BASE_URL:-ws://localhost:8000/api/v1}
+    ports:
+      - "${FRONTEND_PORT:-5173}:80"
+    depends_on:
+      backend-fastapi:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  backend-fastapi:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    environment:
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      APP_HOST: ${APP_HOST:-0.0.0.0}
+      APP_PORT: ${APP_PORT:-8000}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:5173,http://127.0.0.1:5173}
+      F24_XML_DIR: ${F24_XML_DIR:-/shared/events}
+      F9_XML_DIR: ${F9_XML_DIR:-/shared/stats}
+      F40_XML_PATH: ${F40_XML_PATH:-/shared/players/F40-squad-23.xml}
+      F42_XML_PATH: ${F42_XML_PATH:-/shared/schedule/f42-23-2023-results.xml}
+      XML_POLL_INTERVAL_SECONDS: ${XML_POLL_INTERVAL_SECONDS:-3}
+      STATS_XML_POLL_INTERVAL_SECONDS: ${STATS_XML_POLL_INTERVAL_SECONDS:-60}
+    ports:
+      - "${BACKEND_PORT:-8000}:${APP_PORT:-8000}"
+    volumes:
+      - shared-volume:/shared
+    depends_on:
+      match-simulator:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('APP_PORT', '8000') + '/health', timeout=2).read()\""]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
+
+  match-simulator:
+    build:
+      context: .
+      dockerfile: match-simulator/Dockerfile
+    environment:
+      SIMULATE_EVENTS_DIR: ${SIMULATE_EVENTS_DIR:-/app/data/events/simulate}
+      SIMULATE_STATS_DIR: ${SIMULATE_STATS_DIR:-/app/data/stats/simulate}
+      STATIC_EVENTS_DIR: ${STATIC_EVENTS_DIR:-/app/data/events/static}
+      STATIC_STATS_DIR: ${STATIC_STATS_DIR:-/app/data/stats/static}
+      OUTPUT_EVENTS_DIR: ${OUTPUT_EVENTS_DIR:-/shared/events}
+      OUTPUT_STATS_DIR: ${OUTPUT_STATS_DIR:-/shared/stats}
+      F40_SOURCE_XML_PATH: ${F40_SOURCE_XML_PATH:-/app/data/players/F40-squad-23.xml}
+      F40_OUTPUT_XML_PATH: ${F40_OUTPUT_XML_PATH:-/shared/players/F40-squad-23.xml}
+      F42_SOURCE_XML_PATH: ${F42_SOURCE_XML_PATH:-/app/data/schedule/f42-23-2023-results.xml}
+      F42_OUTPUT_XML_PATH: ${F42_OUTPUT_XML_PATH:-/shared/schedule/f42-23-2023-results.xml}
+      SIMULATION_SPEED: ${SIMULATION_SPEED:-1}
+      WRITE_INTERVAL_SECONDS: ${WRITE_INTERVAL_SECONDS:-3}
+    volumes:
+      - shared-volume:/shared
+    healthcheck:
+      test: ["CMD-SHELL", "find /shared/events -maxdepth 1 -type f -name 'f24-*.xml' -size +0c | grep -q . && find /shared/stats -maxdepth 1 -type f -name 'f9-*.xml' -size +0c | grep -q . && test -s \"$${F40_OUTPUT_XML_PATH}\" && test -s \"$${F42_OUTPUT_XML_PATH}\""]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+
+volumes:
+  shared-volume:

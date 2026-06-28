@@ -122,3 +122,62 @@
     @apply bg-background text-foreground;
     }
 }
+
+@layer components {
+  .dashboard-grid {
+    @apply min-h-[24rem];
+  }
+
+  .dashboard-grid .react-grid-item {
+    @apply transition-shadow;
+    touch-action: none;
+  }
+
+  .dashboard-grid .react-grid-item.react-draggable-dragging,
+  .dashboard-grid .react-grid-item.react-resizable-resizing {
+    @apply z-30 shadow-lg;
+  }
+
+  .dashboard-grid .react-grid-item.react-grid-placeholder {
+    @apply rounded-md bg-primary/15 opacity-100;
+  }
+
+  .dashboard-grid .react-resizable-handle {
+    @apply z-20 rounded-sm border border-primary/40 bg-background/90 opacity-0 shadow-sm transition-opacity;
+    background-image: none;
+  }
+
+  .dashboard-grid .react-grid-item:hover .react-resizable-handle,
+  .dashboard-grid .react-grid-item.react-resizable-resizing .react-resizable-handle {
+    @apply opacity-100;
+  }
+
+  .dashboard-grid .react-resizable-handle-se {
+    width: 22px;
+    height: 22px;
+    right: 4px;
+    bottom: 4px;
+  }
+
+  .dashboard-grid .react-resizable-handle-e {
+    width: 12px;
+    height: 48px;
+    right: 0;
+    top: 50%;
+    margin-top: -24px;
+    cursor: ew-resize;
+  }
+
+  .dashboard-grid .react-resizable-handle-s {
+    width: 48px;
+    height: 12px;
+    left: 50%;
+    bottom: 0;
+    margin-left: -24px;
+    cursor: ns-resize;
+  }
+
+  .dashboard-grid .react-resizable-handle::after {
+    @apply border-primary/70;
+  }
+}
