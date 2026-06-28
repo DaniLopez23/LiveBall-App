@@ -57,3 +57,5 @@ docker compose up --build
 El backend queda en `http://localhost:8000`, el frontend en `http://localhost:5173` y el health check en `http://localhost:8000/health`.
 
 Detalles de variables, rutas XML y volumen compartido: [docs/deployment-local.md](docs/deployment-local.md).
+
+Despliegue sencillo en una unica EC2 Free Tier: [docs/deploy-ec2-free-tier.md](docs/deploy-ec2-free-tier.md).

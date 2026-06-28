@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -32,6 +32,9 @@ BASE_DIR_SIMULATED_DATA = BASE_DIR / "simulated-real-time-data"
 
 DEFAULT_F24_EVENTS_XML_PATH = BASE_DIR_SIMULATED_DATA / "events"
 DEFAULT_F9_STATS_XML_PATH = BASE_DIR_SIMULATED_DATA / "stats"
+DEFAULT_F40_PLAYERS_XML_PATH = (
+    BASE_DIR_SIMULATED_DATA / "players" / "F40-squad-23.xml"
+)
 DEFAULT_F42_MATCHES_XML_PATH = (
     BASE_DIR_SIMULATED_DATA / "schedule" / "f42-23-2023-results.xml"
 )
@@ -57,14 +60,30 @@ def _int_from_env(name: str, default: int) -> int:
 
 
 def _cors_origins() -> list[str]:
-    defaults = [
+    configured = os.getenv("CORS_ORIGINS") or os.getenv("FRONTEND_URL", "")
+    origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
+    environment = os.getenv("ENVIRONMENT", "development").lower()
+    if environment not in {"development", "dev", "local"}:
+        return list(dict.fromkeys(origins))
+
+    local_origins = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
     ]
-    configured = os.getenv("CORS_ORIGINS") or os.getenv("FRONTEND_URL", "")
-    origins = [origin.strip() for origin in configured.split(",") if origin.strip()]
-    return list(dict.fromkeys([*origins, *defaults]))
+    return list(dict.fromkeys([*origins, *local_origins]))
+
+
+def _xml_source_available(path_value: str, pattern: str) -> bool:
+    path = Path(path_value)
+    try:
+        if path.is_file():
+            return path.stat().st_size > 0
+        if not path.is_dir():
+            return False
+        return any(file.stat().st_size > 0 for file in path.glob(pattern) if file.is_file())
+    except OSError:
+        return False
 
 
 F24_EVENTS_XML_PATH = _path_from_env(
@@ -78,6 +97,10 @@ F9_STATS_XML_PATH = _path_from_env(
     "F9_XML_PATH",
     "STATS_XML_PATH",
     default=DEFAULT_F9_STATS_XML_PATH,
+)
+F40_PLAYERS_XML_PATH = _path_from_env(
+    "F40_XML_PATH",
+    default=DEFAULT_F40_PLAYERS_XML_PATH,
 )
 F42_MATCHES_XML_PATH = _path_from_env(
     "F42_XML_PATH",
@@ -189,6 +212,22 @@ app.include_router(api_router, prefix="/api/v1")
 @app.get("/health", tags=["health"])
 async def health_check():
     return {"status": "ok"}
+
+
+@app.get("/ready", tags=["health"])
+async def readiness_check():
+    checks = {
+        "f24": _xml_source_available(F24_EVENTS_XML_PATH, "f24-*.xml"),
+        "f9": _xml_source_available(F9_STATS_XML_PATH, "f9-*.xml"),
+        "f40": _xml_source_available(F40_PLAYERS_XML_PATH, "*.xml"),
+        "f42": _xml_source_available(F42_MATCHES_XML_PATH, "*.xml"),
+    }
+    if not all(checks.values()):
+        raise HTTPException(
+            status_code=503,
+            detail={"status": "not_ready", "checks": checks},
+        )
+    return {"status": "ready", "checks": checks}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level=get_log_level().lower())

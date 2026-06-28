@@ -1,2 +1,4 @@
 /simulated-real-time-data/
 .env*
+!.env.example
+!.env.ec2.example
