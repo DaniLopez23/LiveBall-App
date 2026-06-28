@@ -1,9 +1,9 @@
 import type { AvailableMatch } from "@/types/availableMatch";
 
-const DEFAULT_API_BASE_URL = "http://localhost:8000";
+const getDefaultApiBaseUrl = (): string => window.location.origin;
 
 const normalizeBaseHttpUrl = (rawBase?: string): string => {
-	const base = rawBase?.trim() || DEFAULT_API_BASE_URL;
+	const base = rawBase?.trim() || getDefaultApiBaseUrl();
 	return base.endsWith("/") ? base.slice(0, -1) : base;
 };
 

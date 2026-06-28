@@ -7,13 +7,16 @@ export interface WsClientHandlers {
 	onMessage?: (message: IncomingWsMessage) => void;
 }
 
-const DEFAULT_WS_BASE_URL = "ws://localhost:8000/api/v1";
+const getDefaultWsBaseUrl = (): string => {
+	const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+	return `${protocol}//${window.location.host}/api/v1`;
+};
 
 const getConfiguredWsBaseUrl = (): string | undefined =>
 	import.meta.env.VITE_WS_BASE_URL || import.meta.env.VITE_WS_URL;
 
 const normalizeBaseWsUrl = (rawBase?: string): string => {
-	const base = rawBase?.trim() || DEFAULT_WS_BASE_URL;
+	const base = rawBase?.trim() || getDefaultWsBaseUrl();
 	return base.endsWith("/") ? base.slice(0, -1) : base;
 };
 

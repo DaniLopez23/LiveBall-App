@@ -26,10 +26,13 @@ de partido.
 
 ## Variables de entorno
 
-Frontend, compiladas en la imagen durante `docker compose build`:
+Frontend, overrides opcionales compilados durante `docker compose build`:
 
 - `VITE_API_URL`: URL HTTP publica del backend para el navegador.
 - `VITE_WS_URL` / `VITE_WS_BASE_URL`: URL WebSocket publica base.
+
+Si se dejan vacias, React usa el mismo origen que sirve la pagina y Nginx
+reenvia `/api` al backend. Este es el modo recomendado para una unica EC2.
 
 Backend:
 
@@ -104,13 +107,14 @@ docker compose logs backend-fastapi
 
 En los logs del simulador deberias ver las rutas de salida F24, F9, F40 y F42. En los logs del backend deberias ver los watchers programados y mensajes `WORKER f24 received new data` / `WORKER f9 received new data` cuando detecte cambios.
 
-Comprobar conectividad frontend-backend:
+Comprobar conectividad frontend-backend a traves de Nginx:
 
 ```bash
-curl http://localhost:8000/api/v1/games
+curl http://localhost:5173/api/v1/games
 ```
 
-El frontend usa `VITE_API_URL` y `VITE_WS_BASE_URL` desde el navegador, asi que para Docker local deben apuntar a `localhost`, no al nombre interno `backend-fastapi`.
+El frontend usa el host actual del navegador. `backend-fastapi` solo se usa
+como nombre interno de Docker dentro de Nginx.
 
 ## Sustitucion futura en AWS
 
@@ -118,7 +122,7 @@ Cuando se migre a ECS Fargate + EFS, la pieza a sustituir es `shared-volume`:
 
 - Montar EFS en ambos contenedores en la misma ruta, por ejemplo `/shared`.
 - Mantener las mismas variables `F24_XML_DIR`, `F9_XML_DIR`, `F40_XML_PATH`, `F42_XML_PATH`, `OUTPUT_EVENTS_DIR` y `OUTPUT_STATS_DIR`.
-- Configurar `VITE_API_URL` y `VITE_WS_BASE_URL` con el dominio publico real del backend.
+- Mantener same-origin o configurar `VITE_API_URL` y `VITE_WS_BASE_URL` si frontend y backend usan dominios distintos.
 - Mantener el healthcheck de FastAPI en `/health`.
 
 No hace falta cambiar el codigo para distinguir local/cloud si las rutas y URLs se inyectan por entorno.
