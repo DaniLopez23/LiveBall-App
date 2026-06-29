@@ -7,6 +7,7 @@ interface ShotMapTeamSwitcherProps {
 	awayTeamName: string;
 	onValueChange: (team: TeamSide) => void;
 	className?: string;
+	ariaLabel?: string;
 }
 
 export default function ShotMapTeamSwitcher({
@@ -15,6 +16,7 @@ export default function ShotMapTeamSwitcher({
 	awayTeamName,
 	onValueChange,
 	className,
+	ariaLabel = "Equipo cuyos tiros se muestran",
 }: ShotMapTeamSwitcherProps) {
 	return (
 		<ToggleGroup
@@ -23,7 +25,7 @@ export default function ShotMapTeamSwitcher({
 			variant="outline"
 			size="sm"
 			className={className}
-			aria-label="Equipo cuyos tiros se muestran"
+			aria-label={ariaLabel}
 			onValueChange={(nextValue) => {
 				if (nextValue === "home" || nextValue === "away") {
 					onValueChange(nextValue);

@@ -33,14 +33,16 @@ import {
 } from "@/components/pitch/eventsPitch/eventDisplay";
 import MapShotPitch, { GoalShotMap } from "@/components/pitch/MapShotPitch";
 import ShotMapTeamSwitcher from "@/components/pitch/ShotMapTeamSwitcher";
+import {
+	getRankedKeyPlayers,
+	type KeyPlayerStats,
+} from "@/lib/keyPlayerRanking";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import useStatsStore from "@/store/statsStore";
 import useWebsocketStore from "@/store/websocketStore";
 import type { Game } from "@/types/game";
 import {
-	isDefensiveEvent,
-	isPassEvent,
 	isShotEvent,
 	type Event,
 	type ShotEvent,
@@ -63,30 +65,13 @@ interface SummaryMetricConfig extends StatMetricConfig {
 	group: StatGroupName;
 }
 
-interface PlayerScores {
-	id: string;
-	name: string;
-	teamName: string;
-	side: TeamSide | null;
-	passes: number;
-	accuratePasses: number;
-	forwardPasses: number;
-	progressivePasses: number;
-	defensiveActions: number;
-	shots: number;
-	goals: number;
-}
-
-type AttackDirection = "left" | "right";
-
 interface KeyPlayer {
 	role: "defense" | "midfield" | "attack";
 	title: string;
 	icon: ComponentType<{ className?: string }>;
-	player: PlayerScores | null;
+	player: KeyPlayerStats | null;
 	score: number;
-	primary: string;
-	secondary: string;
+	metrics: Array<{ label: string; value: string }>;
 }
 
 const TEAM_COLORS: Record<TeamSide, string> = {
@@ -320,16 +305,6 @@ function getBarWidth(value: number | null, totalValue: number): string {
 	return `${Math.max(4, Math.min(100, (value / totalValue) * 100))}%`;
 }
 
-function getTeamSideFromGame(
-	game: Game | null | undefined,
-	teamId: string | null | undefined,
-): TeamSide | null {
-	if (!teamId) return null;
-	if (game?.home_team.team_id === teamId) return "home";
-	if (game?.away_team.team_id === teamId) return "away";
-	return null;
-}
-
 function sortEventsByTime<T extends Event>(events: T[]): T[] {
 	return [...events].sort((a, b) => {
 		const aValue = (a.period_id ?? 0) * 10_000 + (a.min ?? 0) * 60 + (a.sec ?? 0);
@@ -340,205 +315,82 @@ function sortEventsByTime<T extends Event>(events: T[]): T[] {
 	});
 }
 
-function getPlayerName(event: Event): string {
-	const dorsal = event.player?.dorsal?.trim();
-	const name = event.player?.name?.trim();
+function getKeyPlayers(
+	events: Event[],
+	teamId: string | null | undefined,
+): KeyPlayer[] {
+	return getRankedKeyPlayers(events, teamId).map((ranking) => {
+		const player = ranking.player;
 
-	if (dorsal && name) return `${dorsal} - ${name}`;
-	if (name) return name;
-	if (dorsal) return dorsal;
-	return event.player_id ? `Jugador ${event.player_id}` : "Jugador sin identificar";
-}
-
-function getPlayerKey(event: Event): string | null {
-	return event.player_id ?? event.player?.id ?? null;
-}
-
-function getAttackDirectionResolver(events: Event[], game: Game | null) {
-	const byTeam = new Map<string, { count: number; totalX: number }>();
-	const byTeamPeriod = new Map<string, { count: number; totalX: number }>();
-
-	for (const event of events) {
-		if (!isShotEvent(event) || !event.team_id || event.x == null) continue;
-
-		const teamSample = byTeam.get(event.team_id) ?? { count: 0, totalX: 0 };
-		teamSample.count += 1;
-		teamSample.totalX += event.x;
-		byTeam.set(event.team_id, teamSample);
-
-		const periodKey = `${event.team_id}.${event.period_id ?? "match"}`;
-		const periodSample = byTeamPeriod.get(periodKey) ?? { count: 0, totalX: 0 };
-		periodSample.count += 1;
-		periodSample.totalX += event.x;
-		byTeamPeriod.set(periodKey, periodSample);
-	}
-
-	return (event: Event): AttackDirection => {
-		const teamId = event.team_id;
-		if (!teamId) return "right";
-
-		const periodSample = byTeamPeriod.get(`${teamId}.${event.period_id ?? "match"}`);
-		const teamSample = byTeam.get(teamId);
-		const sample = periodSample?.count ? periodSample : teamSample;
-
-		if (sample?.count) {
-			return sample.totalX / sample.count >= 50 ? "right" : "left";
+		if (ranking.role === "defense") {
+			return {
+				...ranking,
+				title: "Defensa",
+				icon: ShieldCheck,
+				metrics: [
+					{
+						label: "Duelos ganados",
+						value: player ? String(player.duelsWon) : "-",
+					},
+					{
+						label: "Entradas",
+						value: player
+							? `${player.successfulTackles}/${player.tackles} exitosas`
+							: "-",
+					},
+					{
+						label: "Acc. defensivas",
+						value: player
+							? `${player.successfulDefensiveActions}/${player.defensiveActions} exitosas`
+							: "-",
+					},
+				],
+			};
 		}
 
-		const side = getTeamSideFromGame(game, teamId);
-		return side === "away" ? "left" : "right";
-	};
-}
-
-function getForwardPassDistance(
-	event: Event,
-	resolveAttackDirection: (event: Event) => AttackDirection,
-): number {
-	if (!isPassEvent(event) || event.x == null || event.end_x == null) return 0;
-
-	const direction = resolveAttackDirection(event);
-	return direction === "right" ? event.end_x - event.x : event.x - event.end_x;
-}
-
-function getPlayerScores(events: Event[], game: Game | null): PlayerScores[] {
-	const players = new Map<string, PlayerScores>();
-	const resolveAttackDirection = getAttackDirectionResolver(events, game);
-
-	for (const event of events) {
-		const playerId = getPlayerKey(event);
-		if (!playerId) continue;
-
-		const player =
-			players.get(playerId) ??
-			({
-				id: playerId,
-				name: getPlayerName(event),
-				teamName: getTeamName(game, event.team_id),
-				side: getTeamSideFromGame(game, event.team_id),
-				passes: 0,
-				accuratePasses: 0,
-				forwardPasses: 0,
-				progressivePasses: 0,
-				defensiveActions: 0,
-				shots: 0,
-				goals: 0,
-			} satisfies PlayerScores);
-
-		if (isPassEvent(event)) {
-			player.passes += 1;
-
-			if (String(event.outcome) === "1") {
-				player.accuratePasses += 1;
-			}
-
-			const forwardDistance = getForwardPassDistance(event, resolveAttackDirection);
-			if (forwardDistance > 0) {
-				player.forwardPasses += 1;
-
-				if (forwardDistance >= 10) {
-					player.progressivePasses += 1;
-				}
-			}
+		if (ranking.role === "midfield") {
+			return {
+				...ranking,
+				title: "Mediocentro",
+				icon: Send,
+				metrics: [
+					{
+						label: "Pases",
+						value: player
+							? `${player.successfulPasses}/${player.passes} exitosos`
+							: "-",
+					},
+					{
+						label: "Duelos ganados",
+						value: player ? String(player.duelsWon) : "-",
+					},
+					{
+						label: "Regates",
+						value: player
+							? `${player.successfulDribbles}/${player.dribbles} exitosos`
+							: "-",
+					},
+				],
+			};
 		}
-
-		if (isDefensiveEvent(event)) {
-			player.defensiveActions += 1;
-		}
-
-		if (isShotEvent(event)) {
-			player.shots += 1;
-
-			if (event.type_id === "16" || event.outcome === "Goal") {
-				player.goals += 1;
-			}
-		}
-
-		players.set(playerId, player);
-	}
-
-	return [...players.values()];
-}
-
-function getKeyPlayers(events: Event[], game: Game | null): KeyPlayer[] {
-	const players = getPlayerScores(events, game);
-	const byScore = (
-		score: (player: PlayerScores) => number,
-		tieBreaker: (player: PlayerScores) => number,
-	) => {
-		const sortedPlayers = [...players].sort((a, b) => {
-			const scoreDiff = score(b) - score(a);
-			if (scoreDiff !== 0) return scoreDiff;
-
-			return tieBreaker(b) - tieBreaker(a);
-		});
 
 		return {
-			player: sortedPlayers[0] ?? null,
-			score: sortedPlayers[0] ? score(sortedPlayers[0]) : 0,
-		};
-	};
-	const defense = byScore(
-		(player) => player.defensiveActions * 3 + player.accuratePasses * 0.35,
-		(player) => player.defensiveActions + player.passes,
-	);
-	const midfield = byScore(
-		(player) =>
-			player.passes * 1.15 +
-			player.accuratePasses +
-			player.forwardPasses * 1.8 +
-			player.progressivePasses * 3,
-		(player) => player.passes,
-	);
-	const attack = byScore(
-		(player) =>
-			player.shots * 7 +
-			player.goals * 5 +
-			player.progressivePasses * 1.75 +
-			player.forwardPasses * 0.6,
-		(player) => player.shots + player.forwardPasses,
-	);
-
-	return [
-		{
-			role: "defense",
-			title: "Defensa",
-			icon: ShieldCheck,
-			player: defense.player,
-			score: defense.score,
-			primary: defense.player
-				? `${defense.player.defensiveActions} acciones defensivas`
-				: "Sin datos",
-			secondary: defense.player
-				? `${defense.player.accuratePasses} pases acertados`
-				: "-",
-		},
-		{
-			role: "midfield",
-			title: "Mediocampo",
-			icon: Send,
-			player: midfield.player,
-			score: midfield.score,
-			primary: midfield.player
-				? `${midfield.player.accuratePasses} pases acertados`
-				: "Sin datos",
-			secondary: midfield.player
-				? `${midfield.player.forwardPasses} pases hacia delante`
-				: "-",
-		},
-		{
-			role: "attack",
-			title: "Ataque",
+			...ranking,
+			title: "Delantero",
 			icon: Crosshair,
-			player: attack.player,
-			score: attack.score,
-			primary: attack.player
-				? `${attack.player.shots} tiros · ${attack.player.goals} goles`
-				: "Sin datos",
-			secondary: attack.player
-				? `${attack.player.progressivePasses} pases progresivos`
-				: "-",
-		},
-	];
+			metrics: [
+				{ label: "Tiros", value: player ? String(player.shots) : "-" },
+				{
+					label: "A puerta · bloq.",
+					value: player ? `${player.shotsOnTarget} · ${player.blockedShots}` : "-",
+				},
+				{
+					label: "Goles · asist.",
+					value: player ? `${player.goals} · ${player.assists}` : "-",
+				},
+			],
+		};
+	});
 }
 
 function getShotTags(shot: ShotEvent): string[] {
@@ -660,14 +512,25 @@ function StatsSummaryBars({
 	);
 }
 
-function KeyPlayerCard({ item }: { item: KeyPlayer }) {
+function KeyPlayerCard({
+	item,
+	teamName,
+	side,
+}: {
+	item: KeyPlayer;
+	teamName: string;
+	side: TeamSide;
+}) {
 	const Icon = item.icon;
-	const sideColor = item.player?.side ? TEAM_COLORS[item.player.side] : "#64748b";
+	const sideColor = TEAM_COLORS[side];
 
 	return (
 		<article className="rounded-md border bg-background p-3 shadow-sm">
 			<div className="flex items-start gap-3">
-				<span className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground">
+				<span
+					className="inline-flex size-8 shrink-0 items-center justify-center rounded-md bg-muted text-foreground"
+					style={{ color: sideColor }}
+				>
 					<Icon className="size-4" />
 				</span>
 				<div className="min-w-0 flex-1">
@@ -675,9 +538,9 @@ function KeyPlayerCard({ item }: { item: KeyPlayer }) {
 						<h3 className="truncate text-sm font-semibold text-foreground">
 							{item.title}
 						</h3>
-						<span className="text-[11px] font-semibold tabular-nums text-muted-foreground">
-							{formatStatValue(item.score)}
-						</span>
+						<Badge variant="secondary" className="rounded-md text-[10px] tabular-nums">
+							Índice {formatStatValue(item.score)}
+						</Badge>
 					</div>
 					<p className="mt-1 truncate text-sm font-medium text-foreground">
 						{item.player?.name ?? "Sin jugador"}
@@ -687,19 +550,21 @@ function KeyPlayerCard({ item }: { item: KeyPlayer }) {
 							className="size-2 shrink-0 rounded-full"
 							style={{ backgroundColor: sideColor }}
 						/>
-						<span className="truncate">{item.player?.teamName ?? "-"}</span>
+						<span className="truncate">{teamName}</span>
 					</div>
 				</div>
 			</div>
-			<div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-				<div className="rounded-md bg-muted/45 px-2 py-1.5">
-					<span className="block text-muted-foreground">Principal</span>
-					<span className="font-semibold text-foreground">{item.primary}</span>
-				</div>
-				<div className="rounded-md bg-muted/45 px-2 py-1.5">
-					<span className="block text-muted-foreground">Apoyo</span>
-					<span className="font-semibold text-foreground">{item.secondary}</span>
-				</div>
+			<div className="mt-3 grid grid-cols-3 gap-1.5 text-xs">
+				{item.metrics.map((metric) => (
+					<div key={metric.label} className="min-w-0 rounded-md bg-muted/45 px-2 py-1.5">
+						<span className="block truncate text-[10px] text-muted-foreground">
+							{metric.label}
+						</span>
+						<span className="block truncate font-semibold tabular-nums text-foreground">
+							{metric.value}
+						</span>
+					</div>
+				))}
 			</div>
 		</article>
 	);
@@ -854,6 +719,8 @@ export default function StatsPage() {
 	);
 	const [selectedShotId, setSelectedShotId] = useState<string | null>(null);
 	const [selectedShotTeam, setSelectedShotTeam] = useState<TeamSide>("home");
+	const [selectedKeyPlayerTeam, setSelectedKeyPlayerTeam] =
+		useState<TeamSide>("home");
 	const timelineMetricOptions = useMemo(
 		() => getTimelineMetricOptions(statsData?.timeline),
 		[statsData?.timeline],
@@ -862,7 +729,14 @@ export default function StatsPage() {
 		() => sortEventsByTime(events.filter(isShotEvent)),
 		[events],
 	);
-	const keyPlayers = useMemo(() => getKeyPlayers(events, game), [events, game]);
+	const selectedKeyPlayerTeamId =
+		selectedKeyPlayerTeam === "home"
+			? statsData?.current.home.teamId
+			: statsData?.current.away.teamId;
+	const keyPlayers = useMemo(
+		() => getKeyPlayers(events, selectedKeyPlayerTeamId),
+		[events, selectedKeyPlayerTeamId],
+	);
 
 	const isWaitingForStats =
 		!statsData && (wsStatus === "connecting" || wsStatus === "connected");
@@ -894,6 +768,8 @@ export default function StatsPage() {
 	const { current, timeline } = statsData;
 	const homeTeamName = current.home.teamName || game?.home_team.team_name || "Local";
 	const awayTeamName = current.away.teamName || game?.away_team.team_name || "Visitante";
+	const selectedKeyPlayerTeamName =
+		selectedKeyPlayerTeam === "home" ? homeTeamName : awayTeamName;
 	const selectedTimelineMetric =
 		timelineMetricOptions.find((option) => option.id === selectedTimelineMetricId) ??
 		timelineMetricOptions.find((option) => option.id === DEFAULT_TIMELINE_METRIC.id) ??
@@ -981,10 +857,23 @@ export default function StatsPage() {
 					<section className="flex flex-col gap-3">
 						<div className="flex items-center gap-2 px-1 text-sm font-semibold text-foreground">
 							<Activity className="size-4" />
-							Jugadores clave
+							Mejores jugadores
 						</div>
+						<ShotMapTeamSwitcher
+							value={selectedKeyPlayerTeam}
+							homeTeamName={homeTeamName}
+							awayTeamName={awayTeamName}
+							onValueChange={setSelectedKeyPlayerTeam}
+							ariaLabel="Equipo cuyos mejores jugadores se muestran"
+							className="w-full"
+						/>
 						{keyPlayers.map((item) => (
-							<KeyPlayerCard key={item.role} item={item} />
+							<KeyPlayerCard
+								key={item.role}
+								item={item}
+								teamName={selectedKeyPlayerTeamName}
+								side={selectedKeyPlayerTeam}
+							/>
 						))}
 					</section>
 

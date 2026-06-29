@@ -1,7 +1,11 @@
-import { BarChart2, ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+import React from "react";
+import {
+	BarChart2,
+	ChevronDown,
+	SlidersHorizontal,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 import type { PassNetworkEdge, PassNetworkNode } from "@/types/passNetwork";
@@ -16,8 +20,6 @@ interface DisplayNetwork {
 }
 
 interface PassNetworkTabsProps {
-	isOpen: boolean;
-	onToggle: () => void;
 	filters: PassNetworkFiltersState;
 	onFiltersChange: (filters: PassNetworkFiltersState) => void;
 	currentSecond: number;
@@ -42,19 +44,49 @@ interface PassNetworkTabsProps {
 	homeColor: string;
 	awayColor: string;
 	maxMinute: number;
-	defaultValue?: "stats" | "filters";
-	showToggle?: boolean;
 }
 
-const triggerClassName =
-	"bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!";
-
-const toggleButtonClassName =
-	"text-muted-foreground hover:text-foreground hover:bg-muted/60";
+function PanelSection({
+	id,
+	title,
+	icon,
+	open,
+	onToggle,
+	children,
+}: {
+	id: string;
+	title: string;
+	icon: React.ReactNode;
+	open: boolean;
+	onToggle: () => void;
+	children: React.ReactNode;
+}) {
+	return (
+		<section className="overflow-hidden rounded-md border bg-background">
+			<Button
+				type="button"
+				variant="ghost"
+				className="h-11 w-full justify-start rounded-none px-3"
+				onClick={onToggle}
+				aria-expanded={open}
+				aria-controls={id}
+			>
+				{icon}
+				<span className="font-semibold">{title}</span>
+				<ChevronDown
+					className={cn("ml-auto size-4 transition-transform", open && "rotate-180")}
+				/>
+			</Button>
+			{open ? (
+				<div id={id} className="border-t p-3">
+					{children}
+				</div>
+			) : null}
+		</section>
+	);
+}
 
 const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
-	isOpen,
-	onToggle,
 	filters,
 	onFiltersChange,
 	currentSecond,
@@ -79,97 +111,65 @@ const PassNetworkTabs: React.FC<PassNetworkTabsProps> = ({
 	homeColor,
 	awayColor,
 	maxMinute,
-	defaultValue = "stats",
-	showToggle = true,
 }) => {
-	if (!isOpen) {
-		return (
-			<div className="flex h-full items-center justify-center">
-				<Button
-					type="button"
-					variant="ghost"
-					size="icon-xs"
-					onClick={onToggle}
-					className={toggleButtonClassName}
-					aria-label="Mostrar panel"
-				>
-					<ChevronLeft className="size-4" />
-				</Button>
-			</div>
-		);
-	}
+	const [statsOpen, setStatsOpen] = React.useState(true);
+	const [filtersOpen, setFiltersOpen] = React.useState(true);
+	const panelId = React.useId();
 
 	return (
-		<Tabs defaultValue={defaultValue} className="flex h-full flex-col">
-			<div
-				className={cn(
-					"flex flex-wrap items-center border-b shrink-0 px-2 py-1 bg-muted/40",
-					!showToggle && "pr-12",
-				)}
-			>
-				<TabsList className="min-w-0 flex-wrap bg-transparent justify-start rounded-none border-0 p-0 h-auto min-h-10 gap-0">
-					<TabsTrigger value="stats" className={triggerClassName}>
-						<BarChart2 className="size-3.5" />
-						Estadisticas
-					</TabsTrigger>
-					<TabsTrigger value="filters" className={triggerClassName}>
-						<SlidersHorizontal className="size-3.5" />
-						Filtros
-					</TabsTrigger>
-				</TabsList>
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="min-h-0 flex-1 space-y-2 overflow-y-auto p-2">
+				<PanelSection
+					id={`${panelId}-stats`}
+					title="Estadísticas"
+					icon={<BarChart2 className="size-4 text-muted-foreground" />}
+					open={statsOpen}
+					onToggle={() => setStatsOpen((value) => !value)}
+				>
+					<PassNetworkStats
+						homeNetwork={homeNetwork}
+						awayNetwork={awayNetwork}
+						homeTeamName={homeTeamName}
+						awayTeamName={awayTeamName}
+						homeColor={homeColor}
+						awayColor={awayColor}
+					/>
+				</PanelSection>
 
-				{showToggle && (
-					<Button
-						type="button"
-						variant="ghost"
-						size="icon-xs"
-						onClick={onToggle}
-						className={`ml-auto ${toggleButtonClassName}`}
-						aria-label="Ocultar panel"
-					>
-						<ChevronRight className="size-4" />
-					</Button>
-				)}
+				<PanelSection
+					id={`${panelId}-filters`}
+					title="Filtros"
+					icon={<SlidersHorizontal className="size-4 text-muted-foreground" />}
+					open={filtersOpen}
+					onToggle={() => setFiltersOpen((value) => !value)}
+				>
+					<PassNetworkFilters
+						filters={filters}
+						onChange={onFiltersChange}
+						currentSecond={currentSecond}
+						selectedRangeSeconds={selectedRangeSeconds}
+						onRangeChange={onRangeChange}
+						onCurrentSecondChange={onCurrentSecondChange}
+						onReturnToLive={onReturnToLive}
+						isPlaying={isPlaying}
+						onPlay={onPlay}
+						onPause={onPause}
+						onResetPlayback={onResetPlayback}
+						canPlay={canPlay}
+						events={events}
+						homeTeamId={homeTeamId}
+						awayTeamId={awayTeamId}
+						homeTeamName={homeTeamName}
+						awayTeamName={awayTeamName}
+						homeColor={homeColor}
+						awayColor={awayColor}
+						homeScoreAtMinute={homeScoreAtMinute}
+						awayScoreAtMinute={awayScoreAtMinute}
+						maxSecond={maxMinute * 60}
+					/>
+				</PanelSection>
 			</div>
-
-			<TabsContent value="stats" className="flex-1 overflow-auto p-3">
-				<PassNetworkStats
-					homeNetwork={homeNetwork}
-					awayNetwork={awayNetwork}
-					homeTeamName={homeTeamName}
-					awayTeamName={awayTeamName}
-					homeColor={homeColor}
-					awayColor={awayColor}
-				/>
-			</TabsContent>
-
-			<TabsContent value="filters" className="flex-1 overflow-auto p-4">
-				<PassNetworkFilters
-					filters={filters}
-					onChange={onFiltersChange}
-					currentSecond={currentSecond}
-					selectedRangeSeconds={selectedRangeSeconds}
-					onRangeChange={onRangeChange}
-					onCurrentSecondChange={onCurrentSecondChange}
-					onReturnToLive={onReturnToLive}
-					isPlaying={isPlaying}
-					onPlay={onPlay}
-					onPause={onPause}
-					onResetPlayback={onResetPlayback}
-					canPlay={canPlay}
-					events={events}
-					homeTeamId={homeTeamId}
-					awayTeamId={awayTeamId}
-					homeTeamName={homeTeamName}
-					awayTeamName={awayTeamName}
-					homeColor={homeColor}
-					awayColor={awayColor}
-					homeScoreAtMinute={homeScoreAtMinute}
-					awayScoreAtMinute={awayScoreAtMinute}
-					maxSecond={maxMinute * 60}
-				/>
-			</TabsContent>
-		</Tabs>
+		</div>
 	);
 };
 

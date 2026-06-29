@@ -169,6 +169,16 @@ const buildDisplayNetwork = (
 		nodePositionMode: filters.nodePositionMode,
 	});
 
+const buildStatsNetwork = (
+	network: TeamPassNetwork | null,
+	range: [number, number],
+	filters: PassNetworkFiltersState,
+): BuiltPassNetwork | null =>
+	buildPassingNetworkForRange(network, range[0], range[1], {
+		minPasses: 1,
+		nodePositionMode: filters.nodePositionMode,
+	});
+
 function formatRangeLabel(range: [number, number]): string {
 	return `Min ${formatMatchTime(range[0])} - ${formatMatchTime(range[1])}`;
 }
@@ -177,7 +187,6 @@ const PassNetworkPage: React.FC = () => {
 	const game = useGameStore((state) => state.game);
 	const byTeamId = usePassNetworksStore((state) => state.byTeamId);
 	const events = useEventsStore((state) => state.events);
-	const [isPanelOpen, setIsPanelOpen] = useState(true);
 	const [isMobilePanelOpen, setIsMobilePanelOpen] = useState(false);
 	const [filters, setFilters] = useState<PassNetworkFiltersState>(
 		DEFAULT_PASS_NETWORK_FILTERS,
@@ -196,6 +205,14 @@ const PassNetworkPage: React.FC = () => {
 	);
 	const filteredAwayNetwork = useMemo(
 		() => buildDisplayNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
+		[awayNetwork, displayRangeSeconds, normalizedFilters],
+	);
+	const statsHomeNetwork = useMemo(
+		() => buildStatsNetwork(homeNetwork, displayRangeSeconds, normalizedFilters),
+		[displayRangeSeconds, homeNetwork, normalizedFilters],
+	);
+	const statsAwayNetwork = useMemo(
+		() => buildStatsNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
 		[awayNetwork, displayRangeSeconds, normalizedFilters],
 	);
 	const homeNodes = filteredHomeNetwork?.nodes ?? [];
@@ -288,10 +305,8 @@ const PassNetworkPage: React.FC = () => {
 					</div>
 				</div>
 
-				<div className="hidden min-h-0 flex-col overflow-hidden rounded-lg bg-slate-100 dark:bg-slate-800 xl:flex">
+				<div className="hidden min-h-0 flex-col xl:flex">
 					<PassNetworkTabs
-						isOpen={isPanelOpen}
-						onToggle={() => setIsPanelOpen((current) => !current)}
 						filters={normalizedFilters}
 						onFiltersChange={handleFiltersChange}
 						currentSecond={currentSecond}
@@ -309,8 +324,8 @@ const PassNetworkPage: React.FC = () => {
 						awayTeamId={game?.away_team.team_id ?? null}
 						homeScoreAtMinute={scoreAtSecond.home}
 						awayScoreAtMinute={scoreAtSecond.away}
-						homeNetwork={filteredHomeNetwork}
-						awayNetwork={filteredAwayNetwork}
+						homeNetwork={statsHomeNetwork}
+						awayNetwork={statsAwayNetwork}
 						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
 						awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
 						homeColor={HOME_COLOR}
@@ -345,10 +360,6 @@ const PassNetworkPage: React.FC = () => {
 						<SheetTitle>Panel de red de pases</SheetTitle>
 					</SheetHeader>
 					<PassNetworkTabs
-						isOpen
-						showToggle={false}
-						defaultValue="filters"
-						onToggle={() => setIsMobilePanelOpen(false)}
 						filters={normalizedFilters}
 						onFiltersChange={handleFiltersChange}
 						currentSecond={currentSecond}
@@ -366,8 +377,8 @@ const PassNetworkPage: React.FC = () => {
 						awayTeamId={game?.away_team.team_id ?? null}
 						homeScoreAtMinute={scoreAtSecond.home}
 						awayScoreAtMinute={scoreAtSecond.away}
-						homeNetwork={filteredHomeNetwork}
-						awayNetwork={filteredAwayNetwork}
+						homeNetwork={statsHomeNetwork}
+						awayNetwork={statsAwayNetwork}
 						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
 						awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
 						homeColor={HOME_COLOR}

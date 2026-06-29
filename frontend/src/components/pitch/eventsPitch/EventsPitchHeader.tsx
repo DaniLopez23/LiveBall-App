@@ -10,14 +10,59 @@ interface EventsPitchHeaderProps {
   onFullscreenClick?: () => void;
 }
 
+function MarkerExample({
+  shape,
+  color = "#3b82f6",
+}: {
+  shape: "circle" | "square" | "diamond" | "triangle" | "pentagon" | "out" | "colors";
+  color?: string;
+}) {
+  if (shape === "colors") {
+    return (
+      <span className="flex items-center gap-1.5">
+        <span className="size-4 rounded-full border border-black/20 bg-blue-500" />
+        <span className="size-4 rounded-full border border-black/20 bg-red-500" />
+      </span>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 44 32" className="h-8 w-11 overflow-visible">
+      {shape === "circle" ? (
+        <>
+          <circle cx="13" cy="16" r="7" fill={color} />
+          <path d="M20 16H36M31 11L36 16L31 21" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        </>
+      ) : null}
+      {shape === "square" ? <rect x="14" y="7" width="18" height="18" rx="1" fill={color} /> : null}
+      {shape === "diamond" ? <path d="M23 5L34 16L23 27L12 16Z" fill={color} /> : null}
+      {shape === "triangle" ? <path d="M22 5L35 26H9Z" fill={color} /> : null}
+      {shape === "pentagon" ? <path d="M22 4L35 13L30 28H14L9 13Z" fill={color} /> : null}
+      {shape === "out" ? (
+        <g>
+          <rect x="5" y="7" width="34" height="18" rx="9" fill={color} />
+          <text x="22" y="16.5" textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="700" fill="#111827">12 - OUT</text>
+        </g>
+      ) : null}
+      {shape !== "out" && shape !== "circle" ? (
+        <text x="22" y="16.5" textAnchor="middle" dominantBaseline="central" fontSize="9" fontWeight="700" fill="#111827">12</text>
+      ) : null}
+      {shape === "circle" ? (
+        <text x="13" y="16.5" textAnchor="middle" dominantBaseline="central" fontSize="8" fontWeight="700" fill="#111827">12</text>
+      ) : null}
+    </svg>
+  );
+}
+
 const legendItems = [
-  { label: "Circulo", description: "Pase. El texto interior es el dorsal." },
-  { label: "Cuadrado", description: "Tiro." },
-  { label: "Rombo", description: "Falta." },
-  { label: "Triangulo", description: "Evento defensivo." },
-  { label: "OUT", description: "Balon fuera." },
-  { label: "Linea discontinua", description: "Conexion entre eventos consecutivos." },
-  { label: "Numero inferior", description: "Orden del evento dentro de la vista." },
+  { label: "Círculo", description: "Pase. La flecha indica su dirección.", visual: <MarkerExample shape="circle" /> },
+  { label: "Cuadrado", description: "Tiro y trayectoria hacia la portería.", visual: <MarkerExample shape="square" color="#ef4444" /> },
+  { label: "Rombo", description: "Falta cometida.", visual: <MarkerExample shape="diamond" /> },
+  { label: "Triángulo", description: "Acción defensiva, como entrada o recuperación.", visual: <MarkerExample shape="triangle" color="#ef4444" /> },
+  { label: "Pentágono", description: "Regate o duelo individual.", visual: <MarkerExample shape="pentagon" /> },
+  { label: "Etiqueta OUT", description: "El balón ha salido del terreno de juego.", visual: <MarkerExample shape="out" color="#ef4444" /> },
+  { label: "Colores", description: "Azul para el equipo local y rojo para el visitante.", visual: <MarkerExample shape="colors" /> },
+  { label: "Dorsal y orden", description: "El dorsal aparece dentro del marcador y el número de secuencia debajo.", visual: <span className="text-center text-xs font-bold leading-tight">12<br /><span className="text-[10px] text-muted-foreground">3</span></span> },
 ];
 
 export function EventsPitchHeader({
@@ -54,6 +99,7 @@ export function EventsPitchHeader({
         anchorRef={legendButtonRef}
         id="events-pitch-legend"
         ariaLabel="Leyenda del campograma"
+        title="Leyenda de eventos"
         items={legendItems}
         onClose={() => setLegendOpen(false)}
       />

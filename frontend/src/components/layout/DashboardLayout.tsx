@@ -27,7 +27,10 @@ function MobileTrigger() {
 export function DashboardLayout() {
   const location = useLocation();
   const selectedGameId = useMatchSelectionStore((state) => state.selectedGameId);
-  const showMatchHeader = location.pathname !== "/" && selectedGameId !== null;
+  const matchPagePaths = ["/dashboard", "/stats", "/pass-networks", "/events"];
+  const showMatchHeader =
+    selectedGameId !== null &&
+    matchPagePaths.some((path) => location.pathname.startsWith(path));
 
   return (
     <SidebarProvider>

@@ -4,6 +4,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { RequireSelectedMatch } from "@/components/routing/RequireSelectedMatch";
 import DashboardSummaryPage from "@/features/dashboard/pages/DashboardSummaryPage";
 import EventsPage from "@/pages/EventsPage";
+import HelpPage from "@/pages/HelpPage";
 import HomePage from "@/pages/HomePage";
 import PassNetworkPage from "@/pages/PassNetworkPage";
 import StatsPage from "@/pages/StatsPage";
@@ -48,6 +49,10 @@ export const router = createBrowserRouter([
             <EventsPage />
           </RequireSelectedMatch>
         ),
+      },
+      {
+        path: "ayuda",
+        element: <HelpPage />,
       },
     ],
   },

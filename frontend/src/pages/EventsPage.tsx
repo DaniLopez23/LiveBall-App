@@ -7,6 +7,7 @@ import EventsPitchSequencesTable from "@/components/pitch/eventsPitch/EventsPitc
 import EventsPitchTabs from "@/components/pitch/eventsPitch/EventsPitchTabs";
 import EventsPitchTable from "@/components/pitch/eventsPitch/EventsPitchTable";
 import NewEventsAlert from "@/components/pitch/eventsPitch/NewEventsAlert";
+import { PitchInfoPopup } from "@/components/pitch/PitchInfoPopup";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -631,7 +632,6 @@ const EventsPage: React.FC = () => {
             awayTeamName={game?.away_team.team_name}
             isOpen
             showToggle={false}
-            defaultValue="filters"
             onToggle={() => setIsMobilePanelOpen(false)}
             availableTypeIds={availableTypeIds}
             availableSequenceEndTypes={sequenceEndTypeOptions}
@@ -645,9 +645,20 @@ const EventsPage: React.FC = () => {
 
       <div className="rounded-lg bg-slate-100 p-4 dark:bg-slate-800">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">
-            {displayFilters.mode === "sequences" ? "Tabla de secuencias" : "Tabla de eventos"}
-          </h2>
+          <div className="flex min-w-0 items-center gap-1">
+            <h2 className="text-sm font-semibold">
+              {displayFilters.mode === "sequences"
+                ? "Selector de secuencia a visualizar"
+                : "Tabla de eventos"}
+            </h2>
+            {displayFilters.mode === "sequences" ? (
+              <PitchInfoPopup
+                id="sequence-table-selector-help"
+                title="Selector de secuencia"
+                description="Selecciona una fila o su indicador luminoso para mostrar únicamente esa secuencia en el campograma. Vuelve a pulsarla para ocultarla."
+              />
+            ) : null}
+          </div>
           <span className="rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-muted-foreground">
             Numero de resultados - {tableResultCount}
           </span>

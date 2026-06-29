@@ -1,4 +1,5 @@
 import React from "react";
+import { PitchInfoPopup } from "@/components/pitch/PitchInfoPopup";
 import { NumberInput } from "@/components/ui/number-input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -418,9 +419,16 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
 
           <div className="flex flex-col gap-4">
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Evento precedente
-              </p>
+              <div className="mb-3 flex items-center gap-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Evento precedente
+                </p>
+                <PitchInfoPopup
+                  id="sequence-preceding-event-help"
+                  title="Evento precedente"
+                  description="Filtra las secuencias según el evento inmediatamente anterior a su inicio. Ese evento aporta contexto, pero no forma parte de la secuencia mostrada."
+                />
+              </div>
               <Combobox
                 multiple
                 value={validSelectedSequencePrecedingTypeIds}
@@ -488,9 +496,16 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
             </div>
 
             <div>
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Final de secuencia
-              </p>
+              <div className="mb-3 flex items-center gap-1">
+                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                  Final de secuencia
+                </p>
+                <PitchInfoPopup
+                  id="sequence-ending-event-help"
+                  title="Final de secuencia"
+                  description="Filtra las secuencias por la acción que provoca su final, como un tiro, una falta, una recuperación o una salida del balón. El evento final sí se incluye en la secuencia."
+                />
+              </div>
               <Combobox
                 multiple
                 value={validSelectedSequenceEndTypeIds}

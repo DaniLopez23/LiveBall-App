@@ -1,6 +1,10 @@
 packages:
   - "."
 
+# The lockfile is maintained in this private project, so Docker builds can skip
+# revalidating supply-chain metadata for every transitive dependency.
+trustLockfile: true
+
 allowBuilds:
   "@swc/core": true
   esbuild: true
