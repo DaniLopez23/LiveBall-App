@@ -1,9 +1,15 @@
 FROM node:22-alpine AS deps
 
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH
+
 WORKDIR /app
 
+RUN corepack enable
+
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN corepack enable && pnpm install --frozen-lockfile
+RUN --mount=type=cache,id=liveball-pnpm,target=/pnpm/store \
+    pnpm install --frozen-lockfile
 
 FROM deps AS build
 

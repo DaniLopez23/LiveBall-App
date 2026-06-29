@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { HelpCircle, Wifi, WifiOff, Maximize2, Minimize2 } from "lucide-react";
+import { Wifi, WifiOff, Maximize2, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import useGameStore from "@/store/gameStore";
@@ -223,13 +223,6 @@ export function Header() {
 
       {/* Right: help + WS status + fullscreen */}
       <div className="flex items-center gap-0.5 sm:gap-1 justify-end">
-        <button
-          type="button"
-          className="flex items-center justify-center size-7 sm:size-8 rounded-md opacity-40 hover:opacity-80 transition-opacity cursor-pointer"
-          aria-label="Más información"
-        >
-          <HelpCircle className="size-3.5 sm:size-4" />
-        </button>
 
         <Button
           variant="ghost"

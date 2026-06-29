@@ -1,13 +1,11 @@
 import React, { useState } from "react";
-import { ChevronLeft, ChevronRight, Info } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 import type { OptaEvent } from "@/components/pitch/figures/OptaMarkers";
-import EventsPitchModalDetail from "@/components/pitch/eventsPitch/EventsPitchModalDetail";
 import type { EventSequence } from "@/components/pitch/eventsPitch/eventSequences";
 import {
   formatEventTime,
   getActionLabel,
-  getOutcomeLabel,
   getTeamName,
 } from "@/components/pitch/eventsPitch/eventDisplay";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -36,7 +34,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
   game,
 }) => {
   const [page, setPage] = useState(0);
-  const [detailSequence, setDetailSequence] = useState<EventSequence | null>(null);
 
   React.useEffect(() => {
     setPage(0);
@@ -52,10 +49,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
     )
     .map(({ sequence }) => sequence);
   const pageSequences = orderedSequences.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
-  const detailEndEvent = detailSequence ? getSequenceEndEvent(detailSequence) : null;
-  const detailOutcomeLabel = detailEndEvent
-    ? getOutcomeLabel(detailEndEvent.type_id, detailEndEvent.outcome)
-    : "";
 
   return (
     <div className="flex flex-col overflow-hidden rounded-lg border">
@@ -68,13 +61,12 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
               <TableHead>Equipo</TableHead>
               <TableHead>Accion que la termina</TableHead>
               <TableHead>Accion precedente</TableHead>
-              <TableHead className="w-10 text-center">Mas informacion</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="overflow-hidden">
             {sequences.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="py-6 text-center text-muted-foreground">
+                <TableCell colSpan={5} className="py-6 text-center text-muted-foreground">
                   Sin secuencias para mostrar
                 </TableCell>
               </TableRow>
@@ -132,19 +124,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
                     <TableCell className="text-xs">
                       {sequence.precedingEvent ? getActionLabel(sequence.precedingEvent.type_id) : "-"}
                     </TableCell>
-                    <TableCell className="text-center">
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setDetailSequence(sequence);
-                        }}
-                        className="inline-flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                        aria-label="Ver detalle de secuencia"
-                      >
-                        <Info className="size-3.5" />
-                      </button>
-                    </TableCell>
                   </TableRow>
                 );
               })
@@ -181,17 +160,6 @@ const EventsPitchSequencesTable: React.FC<EventsPitchSequencesTableProps> = ({
           </button>
         </div>
       </div>
-
-      <EventsPitchModalDetail
-        open={detailSequence != null}
-        event={detailEndEvent}
-        events={detailSequence?.events ?? []}
-        contextEventsOverride={detailSequence?.events}
-        game={game}
-        actionLabel={detailEndEvent ? getActionLabel(detailEndEvent.type_id) : ""}
-        outcomeLabel={detailOutcomeLabel}
-        onClose={() => setDetailSequence(null)}
-      />
     </div>
   );
 };

@@ -2,6 +2,7 @@ import {
 	ArrowRight,
 	CalendarDays,
 	CheckCircle2,
+	CircleAlert,
 	CircleHelp,
 	Clock3,
 	LoaderCircle,
@@ -14,6 +15,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -80,6 +82,15 @@ const formatMatchDate = (rawDate?: string | null): string => {
 		minute: "2-digit",
 		hour12: false,
 	}).format(date);
+};
+
+const formatLastUpdatedTime = (timestamp: number): string => {
+	return new Intl.DateTimeFormat("es-ES", {
+		hour: "2-digit",
+		minute: "2-digit",
+		second: "2-digit",
+		hour12: false,
+	}).format(new Date(timestamp));
 };
 
 function MatchStatusBadge({ status }: { status: AvailableMatchStatus }) {
@@ -282,6 +293,10 @@ export default function HomePage() {
 	const matches = useMatchSelectionStore((state) => state.matches);
 	const selectedGameId = useMatchSelectionStore((state) => state.selectedGameId);
 	const loadStatus = useMatchSelectionStore((state) => state.loadStatus);
+	const isRefreshing = useMatchSelectionStore((state) => state.isRefreshing);
+	const lastUpdatedAt = useMatchSelectionStore(
+		(state) => state.lastUpdatedAt,
+	);
 	const error = useMatchSelectionStore((state) => state.error);
 	const loadAvailableMatches = useMatchSelectionStore(
 		(state) => state.loadAvailableMatches,
@@ -336,7 +351,7 @@ export default function HomePage() {
 			</Card>
 
 			<section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-4 pb-4 sm:px-6 sm:pb-6 lg:px-8 lg:pb-8">
-				<div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<div className="flex items-center gap-2">
 						<h2 className="text-lg font-semibold">
 							Partidos disponibles
@@ -344,11 +359,30 @@ export default function HomePage() {
 						</h2>
 						<MatchHelpDialog />
 					</div>
-					{loadStatus === "loaded" && matches[0] ? (
-						<span className="text-xs text-muted-foreground">
-							{matches[0]?.competition_name} · {matches[0]?.season_name}
-						</span>
-					) : null}
+					<div className="flex flex-wrap items-center gap-2 sm:justify-end">
+						<div className="flex flex-col text-xs text-muted-foreground sm:items-end">
+							{loadStatus === "loaded" && matches[0] ? (
+								<span>
+									{matches[0]?.competition_name} · {matches[0]?.season_name}
+								</span>
+							) : null}
+							{lastUpdatedAt ? (
+								<time dateTime={new Date(lastUpdatedAt).toISOString()}>
+									Actualizado a las {formatLastUpdatedTime(lastUpdatedAt)}
+								</time>
+							) : null}
+						</div>
+						<Button
+							type="button"
+							variant="outline"
+							size="sm"
+							disabled={loadStatus === "loading" || isRefreshing}
+							onClick={() => void loadAvailableMatches(true)}
+						>
+							<RefreshCw className={cn(isRefreshing && "animate-spin")} />
+							{isRefreshing ? "Actualizando..." : "Actualizar estados"}
+						</Button>
+					</div>
 				</div>
 
 				{loadStatus === "loaded" && matches.length > 0 ? (
@@ -411,21 +445,36 @@ export default function HomePage() {
 				) : null}
 
 				{loadStatus === "error" ? (
-					<Card className="border-destructive/30">
-						<CardContent className="flex flex-col items-start gap-3 p-5">
-							<p className="text-sm text-destructive">{error}</p>
+					<Alert variant="destructive">
+						<CircleAlert />
+						<AlertTitle>Partidos no disponibles todavía</AlertTitle>
+						<AlertDescription className="flex flex-col items-start gap-3">
+							<span>{error}</span>
+							<span>LiveBall volverá a intentarlo automáticamente.</span>
 							<Button
+								type="button"
 								variant="outline"
+								size="sm"
 								onClick={() => void loadAvailableMatches(true)}
 							>
 								<RefreshCw />
-								Reintentar
+								Reintentar ahora
 							</Button>
-						</CardContent>
-					</Card>
+						</AlertDescription>
+					</Alert>
 				) : null}
 
-				{loadStatus === "loaded" && matches.length === 0 ? (
+				{loadStatus === "loaded" && error ? (
+					<Alert variant="destructive">
+						<CircleAlert />
+						<AlertTitle>No se pudieron actualizar los estados</AlertTitle>
+						<AlertDescription>
+							{error} Se mantiene la última lista de partidos disponible.
+						</AlertDescription>
+					</Alert>
+				) : null}
+
+				{loadStatus === "loaded" && matches.length === 0 && !isRefreshing ? (
 					<Card>
 						<CardContent className="p-6 text-sm text-muted-foreground">
 							El feed F42 no contiene ningún MatchData disponible.

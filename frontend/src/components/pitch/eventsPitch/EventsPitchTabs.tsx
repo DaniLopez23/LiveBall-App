@@ -1,17 +1,11 @@
-import {
-  SlidersHorizontal,
-  BarChart2,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ChevronLeft, ChevronRight, SlidersHorizontal } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import EventsPitchFilters, {
   type EventsFilters,
   type PlayerFilterOption,
   type SequenceEndTypeOption,
 } from "./EventsPitchFilters";
-import EventsPitchStats from "./EventsPitchStats";
 
 interface EventsPitchTabsProps {
   filters: EventsFilters;
@@ -26,7 +20,6 @@ interface EventsPitchTabsProps {
   availablePlayers: PlayerFilterOption[];
   maxMinute: number;
   hasSecondHalf: boolean;
-  defaultValue?: "stats" | "filters";
   showToggle?: boolean;
 }
 
@@ -43,7 +36,6 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   availablePlayers,
   maxMinute,
   hasSecondHalf,
-  defaultValue = "filters",
   showToggle = true,
 }) => {
   if (!isOpen) {
@@ -52,8 +44,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
         <button
           type="button"
           onClick={onToggle}
-          className="flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-          aria-label="Mostrar panel"
+          className="flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+          aria-label="Mostrar filtros"
         >
           <ChevronLeft className="size-4" />
         </button>
@@ -62,43 +54,30 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   }
 
   return (
-    <Tabs defaultValue={defaultValue} className="flex flex-col h-full">
-      {/* Header bar: lifted-tab style border-b */}
+    <div className="flex h-full min-h-0 flex-col">
       <div
         className={cn(
-          "flex flex-wrap items-center border-b shrink-0 px-2 py-1 bg-muted/40",
+          "flex min-h-12 shrink-0 items-center border-b bg-muted/40 px-3 py-2",
           !showToggle && "pr-12",
         )}
       >
-        <TabsList className="min-w-0 flex-wrap bg-transparent justify-start rounded-none border-0 p-0 h-auto min-h-10 gap-0">
-          <TabsTrigger
-            value="stats"
-            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
-          >
-            <BarChart2 className="size-3.5" />
-            Estadísticas
-          </TabsTrigger>
-          <TabsTrigger
-            value="filters"
-            className="bg-muted/60 hover:bg-muted border-b-border data-[state=active]:bg-slate-100 dark:data-[state=active]:bg-slate-800 data-[state=active]:border-border data-[state=active]:border-b-slate-100 dark:data-[state=active]:border-b-slate-800 min-h-10 rounded-none rounded-t border border-transparent px-3 gap-1.5 text-xs data-[state=active]:-mb-px data-[state=active]:shadow-none!"
-          >
-            <SlidersHorizontal className="size-3.5" />
-            Filtros
-          </TabsTrigger>
-        </TabsList>
-        {showToggle && (
+        <div className="flex min-w-0 items-center gap-2">
+          <SlidersHorizontal className="size-4 shrink-0 text-muted-foreground" />
+          <h2 className="text-sm font-semibold">Filtros de eventos</h2>
+        </div>
+        {showToggle ? (
           <button
             type="button"
             onClick={onToggle}
-            className="ml-auto flex items-center justify-center rounded-md p-1 text-muted-foreground hover:text-foreground hover:bg-muted/60 transition-colors"
-            aria-label="Ocultar panel"
+            className="ml-auto flex items-center justify-center rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
+            aria-label="Ocultar filtros"
           >
             <ChevronRight className="size-4" />
           </button>
-        )}
+        ) : null}
       </div>
 
-      <TabsContent value="filters" className="flex-1 overflow-auto p-4">
+      <div className="min-h-0 flex-1 overflow-auto p-4">
         <EventsPitchFilters
           filters={filters}
           onChange={onFiltersChange}
@@ -111,12 +90,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
           maxMinute={maxMinute}
           hasSecondHalf={hasSecondHalf}
         />
-      </TabsContent>
-
-      <TabsContent value="stats" className="flex-1 overflow-auto p-3">
-        <EventsPitchStats />
-      </TabsContent>
-    </Tabs>
+      </div>
+    </div>
   );
 };
 

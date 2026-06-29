@@ -19,13 +19,13 @@ services:
     logging: *default-logging
     depends_on:
       backend-fastapi:
-        condition: service_healthy
+        condition: service_started
         restart: true
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/ready"]
-      interval: 10s
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/"]
+      interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 24
       start_period: 10s
 
   backend-fastapi:
@@ -53,12 +53,12 @@ services:
     logging: *default-logging
     depends_on:
       match-simulator:
-        condition: service_healthy
+        condition: service_started
     healthcheck:
       test: ["CMD-SHELL", "python -c \"import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:' + os.getenv('APP_PORT', '8000') + '/ready', timeout=2).read()\""]
-      interval: 10s
+      interval: 5s
       timeout: 3s
-      retries: 5
+      retries: 24
       start_period: 10s
 
   match-simulator:
@@ -85,9 +85,9 @@ services:
     logging: *default-logging
     healthcheck:
       test: ["CMD-SHELL", "find /shared/events -maxdepth 1 -type f -name 'f24-*.xml' -size +0c | grep -q . && find /shared/stats -maxdepth 1 -type f -name 'f9-*.xml' -size +0c | grep -q . && test -s \"$${F40_OUTPUT_XML_PATH}\" && test -s \"$${F42_OUTPUT_XML_PATH}\""]
-      interval: 10s
+      interval: 3s
       timeout: 3s
-      retries: 10
+      retries: 40
       start_period: 5s
 
 volumes:

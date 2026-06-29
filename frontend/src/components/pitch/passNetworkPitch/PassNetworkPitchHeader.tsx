@@ -20,6 +20,10 @@ const legendItems = [
 	{ label: "Grosor", description: "Mas pases en esa relacion." },
 	{ label: "Intensidad", description: "Mas color indica mayor peso." },
 	{ label: "Flecha", description: "Direccion principal del pase." },
+	{
+		label: "Dirección de ataque",
+		description: "En este campograma el equipo ataca de abajo hacia arriba.",
+	},
 	{ label: "Hover", description: "Detalle de jugador o conexion." },
 ];
 
@@ -66,6 +70,7 @@ export function PassNetworkPitchHeader({
 				anchorRef={legendButtonRef}
 				id="pass-network-pitch-legend"
 				ariaLabel="Leyenda de la red de pases"
+				title="Leyenda de la red de pases"
 				items={legendItems}
 				onClose={() => setLegendOpen(false)}
 			/>

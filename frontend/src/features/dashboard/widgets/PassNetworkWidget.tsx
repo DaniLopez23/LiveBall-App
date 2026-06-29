@@ -176,6 +176,16 @@ const buildDisplayNetwork = (
 		nodePositionMode: filters.nodePositionMode,
 	});
 
+const buildStatsNetwork = (
+	network: TeamPassNetwork | null,
+	range: [number, number],
+	filters: PassNetworkWidgetFilters,
+): BuiltPassNetwork | null =>
+	buildPassingNetworkForRange(network, range[0], range[1], {
+		minPasses: 1,
+		nodePositionMode: filters.nodePositionMode,
+	});
+
 type PassNetworkTeam = "home" | "away";
 type PassNetworkWidgetView = "network" | "stats" | "filters";
 
@@ -260,6 +270,14 @@ export function PassNetworkWidget({
 	);
 	const filteredAwayNetwork = useMemo(
 		() => buildDisplayNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
+		[awayNetwork, displayRangeSeconds, normalizedFilters],
+	);
+	const statsHomeNetwork = useMemo(
+		() => buildStatsNetwork(homeNetwork, displayRangeSeconds, normalizedFilters),
+		[displayRangeSeconds, homeNetwork, normalizedFilters],
+	);
+	const statsAwayNetwork = useMemo(
+		() => buildStatsNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
 		[awayNetwork, displayRangeSeconds, normalizedFilters],
 	);
 	const homeNodes = filteredHomeNetwork?.nodes ?? [];
@@ -451,8 +469,8 @@ export function PassNetworkWidget({
 						<TabsContent value="stats" className="min-h-0 flex-1 overflow-auto">
 							<div className="min-h-full rounded-md border bg-background p-3">
 								<PassNetworkStats
-									homeNetwork={filteredHomeNetwork}
-									awayNetwork={filteredAwayNetwork}
+									homeNetwork={statsHomeNetwork}
+									awayNetwork={statsAwayNetwork}
 									homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
 									awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
 									homeColor={HOME_COLOR}
@@ -553,8 +571,8 @@ export function PassNetworkWidget({
 			{config.showStats ? (
 				<div className="min-h-52 shrink-0 overflow-hidden rounded-md border bg-background p-3">
 					<PassNetworkStats
-						homeNetwork={filteredHomeNetwork}
-						awayNetwork={filteredAwayNetwork}
+						homeNetwork={statsHomeNetwork}
+						awayNetwork={statsAwayNetwork}
 						homeTeamName={game?.home_team.team_name ?? "Equipo Local"}
 						awayTeamName={game?.away_team.team_name ?? "Equipo Visitante"}
 						homeColor={HOME_COLOR}

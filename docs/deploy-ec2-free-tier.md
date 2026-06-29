@@ -105,7 +105,86 @@ No escribas la IP publica en `VITE_API_URL` ni `VITE_WS_BASE_URL`. Vacias, las
 URLs se calculan a partir del host actual y funcionan tanto con IP como con un
 dominio futuro.
 
-## 7. Construir sin agotar la RAM
+## 7. Subir los datos de los partidos
+
+Los XML no tienen que estar en Git. Se suben directamente desde tu equipo a la
+EC2 **antes de construir `match-simulator`**, porque su Dockerfile incorpora la
+carpeta `match-simulator/data` dentro de la imagen.
+
+La estructura local esperada es:
+
+```text
+match-simulator/data/
+|-- events/
+|   |-- simulate/   # F24 que se actualizan durante la simulacion
+|   `-- static/     # F24 de partidos ya finalizados
+|-- stats/
+|   |-- simulate/   # F9 emparejados con los F24 simulados
+|   `-- static/     # F9 de partidos ya finalizados
+|-- players/
+|   `-- F40-squad-23.xml
+`-- schedule/
+    `-- f42-23-2023-results.xml
+```
+
+Los archivos de `events/simulate` y `stats/simulate` deben tener el mismo
+`match_id` en el nombre para que el simulador pueda emparejar cada F24 con su F9.
+
+### 7.1 Comprimir los datos en Windows
+
+Abre PowerShell en la raiz local de LiveBall y ejecuta:
+
+```powershell
+tar -czf "$env:TEMP\liveball-match-data.tar.gz" `
+  -C ".\match-simulator\data" events stats players schedule
+```
+
+Esto crea un unico archivo temporal y evita tener que ejecutar `scp` para cada
+XML. La carpeta `data/docs` no se incluye.
+
+### 7.2 Subir el archivo a la EC2
+
+Sustituye la ruta de la clave y la IP publica:
+
+```powershell
+scp -i "C:\Users\TU_USUARIO\Downloads\liveball.pem" `
+  "$env:TEMP\liveball-match-data.tar.gz" `
+  ubuntu@IP_PUBLICA:/tmp/liveball-match-data.tar.gz
+```
+
+Si la clave esta en la carpeta actual puedes usar `-i .\liveball.pem`.
+
+### 7.3 Extraer los datos en la instancia
+
+Conectado por SSH a la EC2:
+
+```bash
+sudo mkdir -p /opt/liveball/match-simulator/data
+sudo tar -xzf /tmp/liveball-match-data.tar.gz -C /opt/liveball/match-simulator/data
+sudo chown -R ubuntu:ubuntu /opt/liveball/match-simulator/data
+rm /tmp/liveball-match-data.tar.gz
+```
+
+La extraccion mezcla y reemplaza archivos con el mismo nombre, pero no elimina
+otros XML que ya existan. Para una primera subida esto es lo esperado.
+
+Comprueba los archivos y sus tamanos:
+
+```bash
+find /opt/liveball/match-simulator/data \
+  -type f -name '*.xml' -printf '%p %s bytes\n' | sort
+```
+
+No deberia aparecer ningun XML con `0 bytes`. Verifica especialmente que
+existan F24, F9, F40 y F42.
+
+Cuando la subida haya terminado puedes borrar el archivo temporal local:
+
+```powershell
+Remove-Item "$env:TEMP\liveball-match-data.tar.gz"
+```
+
+## 8. Construir sin agotar la RAM
 
 Construye una imagen cada vez:
 
@@ -118,12 +197,28 @@ docker compose build frontend-react
 En una `t3.micro` estos builds pueden tardar varios minutos. La swap evita que
 los procesos de TypeScript, pip o Docker sean terminados por falta de memoria.
 
-## 8. Levantar la aplicacion
+El primer build de `frontend-react` tiene que descargar unos 600 paquetes y es
+el mas lento. Los siguientes reutilizan la cache BuildKit de pnpm y deberian ser
+mucho mas rapidos. No uses `--no-cache` salvo que estes diagnosticando un
+problema de dependencias.
+
+## 9. Levantar la aplicacion
 
 ```bash
 docker compose up -d
 docker compose ps
 ```
+
+El frontend estatico puede quedar disponible antes de que FastAPI termine de
+precargar los XML historicos. Para bloquear el comando hasta que los tres
+servicios esten completamente preparados, usa:
+
+```bash
+docker compose up -d --wait --wait-timeout 180
+```
+
+En una instancia pequena es normal que `/ready` tarde mas que la pagina React;
+puedes seguir el progreso con `docker compose logs -f backend-fastapi`.
 
 Comprobaciones desde la EC2:
 
@@ -152,7 +247,7 @@ React, HTTP API y WebSocket usan ese mismo origen. Este despliegue sencillo usa
 HTTP; no introduzcas contrasenas ni informacion sensible. HTTPS requiere un
 dominio y un proxy con certificado y se puede incorporar mas adelante.
 
-## 9. Arranque automatico
+## 10. Arranque automatico
 
 ```bash
 cd /opt/liveball
@@ -167,7 +262,7 @@ Frontend y backend tienen `restart: unless-stopped`. El simulador usa
 `restart: on-failure`: no se repite indefinidamente cuando termina con exito,
 pero vuelve a ejecutarse despues de reiniciar la instancia mediante systemd.
 
-## 10. Actualizar la aplicacion
+## 11. Actualizar la aplicacion
 
 ```bash
 cd /opt/liveball
@@ -181,7 +276,47 @@ docker image prune -f
 
 `docker image prune -f` elimina capas sin usar y ayuda a conservar espacio.
 
-## 11. Detener o eliminar
+### 11.1 Actualizar solamente los datos XML
+
+Repite los pasos 7.1 a 7.3 para subir el nuevo archivo. Despues, en la EC2:
+
+```bash
+cd /opt/liveball
+docker compose build match-simulator
+docker compose up -d --force-recreate --wait match-simulator
+docker compose restart backend-fastapi
+```
+
+El rebuild es necesario porque los XML fuente forman parte de la imagen del
+simulador. El reinicio del backend limpia sus caches en memoria y vuelve a leer
+F40/F42 y los directorios F24/F9 compartidos.
+
+Los XML generados previamente siguen en `shared-volume`, lo que es adecuado si
+solo anades o actualizas partidos.
+
+Si el nuevo paquete sustituye completamente al anterior y elimina partidos,
+borra primero en la EC2 las cuatro carpetas fuente antiguas antes de repetir la
+extraccion del paso 7.3:
+
+```bash
+sudo rm -rf /opt/liveball/match-simulator/data/events \
+  /opt/liveball/match-simulator/data/stats \
+  /opt/liveball/match-simulator/data/players \
+  /opt/liveball/match-simulator/data/schedule
+```
+
+Tras subir y reconstruir la imagen, reinicia tambien el volumen generado:
+
+```bash
+cd /opt/liveball
+docker compose down -v
+docker compose up -d
+```
+
+Este ultimo procedimiento borra deliberadamente todos los XML generados y los
+vuelve a crear desde el nuevo paquete.
+
+## 12. Detener o eliminar
 
 Detener conservando el volumen XML:
 

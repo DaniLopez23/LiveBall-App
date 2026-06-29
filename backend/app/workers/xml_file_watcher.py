@@ -79,6 +79,9 @@ async def _run_xml_watcher(
             )
 
         for xml_file in xml_files:
+            # Keep HTTP and WebSocket handling responsive during the initial
+            # scan, which can include several large historical feeds.
+            await asyncio.sleep(0.01)
             try:
                 content = reader.read_if_changed(str(xml_file))
                 if content is None:

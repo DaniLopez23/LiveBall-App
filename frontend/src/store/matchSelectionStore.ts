@@ -9,6 +9,8 @@ interface MatchSelectionState {
 	matches: AvailableMatch[];
 	selectedGameId: string | null;
 	loadStatus: MatchesLoadStatus;
+	isRefreshing: boolean;
+	lastUpdatedAt: number | null;
 	error: string | null;
 	loadAvailableMatches: (force?: boolean) => Promise<void>;
 	selectMatch: (gameId: string) => void;
@@ -18,14 +20,25 @@ const useMatchSelectionStore = create<MatchSelectionState>((set, get) => ({
 	matches: [],
 	selectedGameId: null,
 	loadStatus: "idle",
+	isRefreshing: false,
+	lastUpdatedAt: null,
 	error: null,
 	loadAvailableMatches: async (force = false) => {
-		const { loadStatus } = get();
-		if (loadStatus === "loading" || (!force && loadStatus === "loaded")) {
+		const { isRefreshing, loadStatus } = get();
+		if (
+			loadStatus === "loading" ||
+			isRefreshing ||
+			(!force && loadStatus === "loaded")
+		) {
 			return;
 		}
 
-		set({ loadStatus: "loading", error: null });
+		const refreshingLoadedMatches = loadStatus === "loaded";
+		set(
+			refreshingLoadedMatches
+				? { isRefreshing: true, error: null }
+				: { loadStatus: "loading", isRefreshing: false, error: null },
+		);
 		try {
 			const matches = await getAvailableMatches();
 			set((state) => ({
@@ -36,11 +49,14 @@ const useMatchSelectionStore = create<MatchSelectionState>((set, get) => ({
 					? state.selectedGameId
 					: null,
 				loadStatus: "loaded",
+				isRefreshing: false,
+				lastUpdatedAt: Date.now(),
 				error: null,
 			}));
 		} catch (error) {
 			set({
-				loadStatus: "error",
+				loadStatus: refreshingLoadedMatches ? "loaded" : "error",
+				isRefreshing: false,
 				error:
 					error instanceof Error
 						? error.message

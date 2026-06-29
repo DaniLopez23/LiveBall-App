@@ -9,10 +9,21 @@ function App() {
   const loadAvailableMatches = useMatchSelectionStore(
     (state) => state.loadAvailableMatches,
   );
+  const matchesLoadStatus = useMatchSelectionStore((state) => state.loadStatus);
 
   useEffect(() => {
     void loadAvailableMatches();
   }, [loadAvailableMatches]);
+
+  useEffect(() => {
+    if (matchesLoadStatus !== "error") return;
+
+    const retryId = window.setTimeout(() => {
+      void loadAvailableMatches(true);
+    }, 3_000);
+
+    return () => window.clearTimeout(retryId);
+  }, [loadAvailableMatches, matchesLoadStatus]);
 
   useWebsocket({
     gameId: selectedGameId ?? "",
