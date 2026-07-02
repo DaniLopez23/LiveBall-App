@@ -21,7 +21,10 @@ import {
 	snapSecondToBucket,
 } from "@/lib/matchTime";
 import { cn } from "@/lib/utils";
-import type { PassingNetworkMode } from "./passNetworkFilters.types";
+import type {
+	PassNetworkRangeChangeOptions,
+	PassingNetworkMode,
+} from "./passNetworkFilters.types";
 import type { Event } from "@/types/event";
 import type { TeamSide } from "@/types/stats";
 
@@ -43,7 +46,7 @@ interface PassNetworkTimelineSlicerProps {
 	bucketSizeSeconds?: number;
 	disabled?: boolean;
 	className?: string;
-	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onRangeChange: (range: [number, number], options?: PassNetworkRangeChangeOptions) => void;
 	onCurrentSecondChange: (second: number) => void;
 }
 

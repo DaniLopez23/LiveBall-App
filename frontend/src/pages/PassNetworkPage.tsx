@@ -7,6 +7,7 @@ import { usePassNetworkPlayback } from "@/components/pitch/passNetworkPitch/useP
 import {
 	DEFAULT_PASS_NETWORK_FILTERS,
 	type PassNetworkFiltersState,
+	type PassNetworkRangeChangeOptions,
 } from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
 import { Button } from "@/components/ui/button";
 import {
@@ -237,12 +238,13 @@ const PassNetworkPage: React.FC = () => {
 
 	const handleRangeChange = (
 		range: [number, number],
-		options?: { followLive?: boolean },
+		options?: PassNetworkRangeChangeOptions,
 	) => {
 		handleFiltersChange({
 			...normalizedFilters,
 			rangeStartSecond: range[0],
 			rangeEndSecond: range[1],
+			momentSecond: options?.resetMoment ? range[1] : normalizedFilters.momentSecond,
 			followLive: options?.followLive ?? false,
 		});
 	};

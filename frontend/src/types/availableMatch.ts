@@ -34,6 +34,7 @@ export interface AvailableMatch {
 	timezone?: string | null;
 	venue?: string | null;
 	attendance?: number | null;
+	current_minute?: number | null;
 	home_team: AvailableMatchTeam;
 	away_team: AvailableMatchTeam;
 }

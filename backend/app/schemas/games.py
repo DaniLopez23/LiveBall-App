@@ -41,10 +41,11 @@ class AvailableMatch(BaseModel):
     timezone: Optional[str] = None
     venue: Optional[str] = None
     attendance: Optional[int] = None
+    current_minute: Optional[int] = None
     home_team: AvailableMatchTeam
     away_team: AvailableMatchTeam
 
-    @field_validator("matchday", "attendance", mode="before")
+    @field_validator("matchday", "attendance", "current_minute", mode="before")
     @classmethod
     def coerce_optional_int(cls, v: object) -> Optional[int]:
         if v is None or v == "":

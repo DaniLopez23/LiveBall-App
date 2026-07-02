@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { BUCKET_SIZE_SECONDS, clamp } from "@/lib/matchTime";
-import type { PassingNetworkMode } from "./passNetworkFilters.types";
+import type {
+	PassNetworkRangeChangeOptions,
+	PassingNetworkMode,
+} from "./passNetworkFilters.types";
 
 const PLAYBACK_TICK_MS = 500;
 
@@ -11,7 +14,7 @@ interface UsePassNetworkPlaybackOptions {
 	currentSecond: number;
 	maxSecond: number;
 	bucketSizeSeconds?: number;
-	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onRangeChange: (range: [number, number], options?: PassNetworkRangeChangeOptions) => void;
 	onCurrentSecondChange: (second: number) => void;
 }
 
@@ -64,7 +67,7 @@ export function usePassNetworkPlayback({
 	}, []);
 
 	const handleRangeChange = useCallback(
-		(nextRange: [number, number], options?: { followLive?: boolean }) => {
+		(nextRange: [number, number], options?: PassNetworkRangeChangeOptions) => {
 			setIsPlaying(false);
 			onRangeChangeRef.current(nextRange, options);
 		},

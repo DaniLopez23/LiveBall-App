@@ -34,6 +34,7 @@ import {
 
 export type EventsMode = "live" | "sequences" | "all";
 export type SequencePassCountMode = "any" | "more" | "less";
+export type MinuteRangePreset = "first-half" | "second-half" | "full" | "custom";
 
 export interface SequenceEndTypeOption {
   id: string;
@@ -54,6 +55,7 @@ export interface EventsFilters {
   selectedOutcomes: string[];
   selectedSubtypes: string[];
   minuteRange: [number, number];
+  minuteRangePreset: MinuteRangePreset;
 }
 
 interface EventsPitchFiltersProps {
@@ -247,16 +249,19 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const momentPresets = [
     {
       label: "1a Parte",
+      preset: "first-half" as const,
       range: [0, Math.min(45, boundedMaxMinute)] as [number, number],
       disabled: false,
     },
     {
       label: "2a Parte",
+      preset: "second-half" as const,
       range: [45, boundedMaxMinute] as [number, number],
       disabled: !hasSecondHalf || boundedMaxMinute < 45,
     },
     {
       label: "Completo",
+      preset: "full" as const,
       range: [0, boundedMaxMinute] as [number, number],
       disabled: false,
     },
@@ -404,7 +409,12 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                 ) : null}
                 {availablePlayers.map((option) => (
                   <ComboboxItem key={option.id} value={option.id}>
-                    {option.label}
+                    <span
+                      className="size-2.5 shrink-0 rounded-full border border-black/15"
+                      style={{ backgroundColor: option.color }}
+                      aria-hidden="true"
+                    />
+                    <span className="truncate">{option.label}</span>
                   </ComboboxItem>
                 ))}
               </ComboboxList>
@@ -810,6 +820,7 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
                       Math.min(nextStart, nextEnd),
                       Math.max(nextStart, nextEnd),
                     ] as [number, number],
+                    minuteRangePreset: "custom",
                   });
                 }}
                 className="flex-1"
@@ -817,15 +828,21 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               <span className="w-6 text-xs text-muted-foreground">{safeMinuteRange[1]}&apos;</span>
             </div>
             <div className="grid grid-cols-3 gap-1">
-              {momentPresets.map(({ label, range, disabled }) => {
-                const active = safeMinuteRange[0] === range[0] && safeMinuteRange[1] === range[1];
+              {momentPresets.map(({ label, preset, range, disabled }) => {
+                const active = filters.minuteRangePreset === preset;
 
                 return (
                   <button
                     key={label}
                     type="button"
                     disabled={disabled}
-                    onClick={() => onChange({ ...filters, minuteRange: range })}
+                    onClick={() =>
+                      onChange({
+                        ...filters,
+                        minuteRange: range,
+                        minuteRangePreset: preset,
+                      })
+                    }
                     className={cn(
                       "rounded-md border px-1 py-1 text-xs transition-colors disabled:pointer-events-none disabled:opacity-45",
                       active

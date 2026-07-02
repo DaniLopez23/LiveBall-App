@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import useGameStore from "@/store/gameStore";
 import useEventsStore from "@/store/eventsStore";
 import useWebsocketStore from "@/store/websocketStore";
+import { getScoreFromGoalEvents } from "@/lib/matchEventState";
 
 function extractSeasonYear(seasonName: string): string {
   const match = seasonName.match(/\d{4}\/\d{4}/);
@@ -138,8 +139,19 @@ export function Header() {
       ? `${String(lastEvent.min).padStart(2, "0")}:${String(lastEvent.sec ?? 0).padStart(2, "0")}`
       : null;
 
-  const homeScore = hasMatchStarted ? game?.home_team.score ?? "0" : "0";
-  const awayScore = hasMatchStarted ? game?.away_team.score ?? "0" : "0";
+  const eventScore = useMemo(
+    () =>
+      game
+        ? getScoreFromGoalEvents(
+            events,
+            game.home_team.team_id,
+            game.away_team.team_id,
+          )
+        : { home: 0, away: 0 },
+    [events, game],
+  );
+  const homeScore = hasMatchStarted ? eventScore.home : 0;
+  const awayScore = hasMatchStarted ? eventScore.away : 0;
   const seasonYear = game ? extractSeasonYear(game.season_name) : "";
   const kickoffDateTime = formatKickoffDateTime(game?.game_date);
 

@@ -162,5 +162,65 @@ test("an assist decisively increases the attacking ranking", () => {
 
 	assert.equal(attack?.player?.id, "Creador");
 	assert.equal(attack?.player?.assists, 1);
-	assert.equal(attack?.score, 198);
+	assert.equal(attack?.score, 198.1);
+});
+
+test("successful passes provide a low-weight attacking fallback before any shot", () => {
+	const events: Event[] = [
+		makeEvent({ id: "pass-1", typeId: "1", playerId: "Pasador" }),
+		makeEvent({ id: "pass-2", typeId: "1", playerId: "Pasador" }),
+		makeEvent({ id: "failed-pass", typeId: "1", playerId: "Otro", outcome: 0 }),
+	];
+
+	const attack = getRankedKeyPlayers(events, "home").find(
+		({ role }) => role === "attack",
+	);
+
+	assert.equal(attack?.player?.id, "Pasador");
+	assert.equal(attack?.player?.successfulPasses, 2);
+	assert.equal(attack?.score, 0.2);
+});
+
+test("goals and assists contribute without replacing the main role metrics", () => {
+	const defensiveEvents: Event[] = [
+		makeEvent({
+			id: "defender-goal",
+			typeId: "16",
+			playerId: "Defensa goleador",
+			outcome: "Goal",
+			extra: { type_name: "shot" },
+		}),
+	];
+	const defense = getRankedKeyPlayers(defensiveEvents, "home").find(
+		({ role }) => role === "defense",
+	);
+
+	assert.equal(defense?.player?.id, "Defensa goleador");
+	assert.equal(defense?.player?.goals, 1);
+	assert.equal(defense?.score, 8);
+
+	const midfieldEvents: Event[] = [
+		makeEvent({ id: "assist-pass", typeId: "1", playerId: "Asistente" }),
+		makeEvent({
+			id: "anonymous-goal",
+			typeId: "16",
+			playerId: "",
+			outcome: "Goal",
+			extra: { type_name: "shot", assist_event_id: "assist-pass" },
+		}),
+		...Array.from({ length: 5 }, (_, index) =>
+			makeEvent({
+				id: `volume-pass-${index}`,
+				typeId: "1",
+				playerId: "Medio volumen",
+			}),
+		),
+	];
+	const midfield = getRankedKeyPlayers(midfieldEvents, "home").find(
+		({ role }) => role === "midfield",
+	);
+
+	assert.equal(midfield?.player?.id, "Asistente");
+	assert.equal(midfield?.player?.assists, 1);
+	assert.equal(midfield?.score, 11.5);
 });

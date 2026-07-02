@@ -67,3 +67,54 @@ class AvailableGamesStatusTests(unittest.TestCase):
         )
 
         self.assertEqual(matches[0].status, "postponed")
+
+    def test_processed_goal_events_override_catalogue_score(self):
+        cache = GameStateCache()
+        cache.store_match_state("game-1", MATCH_STATE_SECOND_PERIOD_ACTIVE)
+        cache.store_exported_event(
+            "game-1",
+            "1",
+            "goal-home",
+            {"type_id": "16", "team_id": "1"},
+        )
+        cache.store_exported_event(
+            "game-1",
+            "2",
+            "goal-away",
+            {"type_id": "16", "team_id": "2"},
+        )
+        cache.store_exported_event(
+            "game-1",
+            "2",
+            "own-goal-away",
+            {"type_id": "16", "team_id": "2", "own_goal": True},
+        )
+        cache.store_exported_event(
+            "game-1",
+            "1",
+            "shot-not-goal",
+            {
+                "type_id": "15",
+                "team_id": "1",
+                "period_id": 2,
+                "min": 12,
+                "sec": 10,
+            },
+        )
+        catalogue_match = make_match("game-1")
+        catalogue_match = catalogue_match.model_copy(
+            update={
+                "home_team": catalogue_match.home_team.model_copy(
+                    update={"score": 7}
+                ),
+                "away_team": catalogue_match.away_team.model_copy(
+                    update={"score": 6}
+                ),
+            }
+        )
+
+        [match] = _with_processed_match_statuses([catalogue_match], cache)
+
+        self.assertEqual(match.home_team.score, 2)
+        self.assertEqual(match.away_team.score, 1)
+        self.assertEqual(match.current_minute, 57)

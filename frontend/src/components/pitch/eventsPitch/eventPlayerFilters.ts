@@ -5,6 +5,7 @@ export interface PlayerFilterOption {
 	id: string;
 	label: string;
 	teamId?: string | null;
+	color?: string;
 }
 
 type EventTeamFilter = "home" | "away" | "both";
@@ -24,7 +25,7 @@ function formatPlayerOptionLabel(
 ): string {
 	const safeDorsal = dorsal?.trim() || "S/D";
 	const safeName = name?.trim() || `Jugador ${id}`;
-	return `${safeDorsal}-${safeName}`;
+	return `${safeDorsal} - ${safeName}`;
 }
 
 function getEventPlayerIds(event: PitchEvent): string[] {
@@ -82,11 +83,17 @@ export function buildPlayerOptions(
 				id,
 				label: formatPlayerOptionLabel(id, candidate.dorsal, candidate.name),
 				teamId: event.team_id,
+				color:
+					event.team_id === game?.home_team.team_id
+						? "#3b82f6"
+						: event.team_id === game?.away_team.team_id
+							? "#ef4444"
+							: "#94a3b8",
 				dorsalSort: Number.isFinite(dorsalSort) ? dorsalSort : Number.MAX_SAFE_INTEGER,
 			};
 			const current = playersById.get(id);
 
-			if (!current || current.label.startsWith("S/D-")) {
+			if (!current || current.label.startsWith("S/D -")) {
 				playersById.set(id, option);
 			}
 		}
@@ -98,5 +105,10 @@ export function buildPlayerOptions(
 				left.dorsalSort - right.dorsalSort ||
 				left.label.localeCompare(right.label, "es", { sensitivity: "base" }),
 		)
-		.map(({ dorsalSort, ...option }) => option);
+		.map((option) => ({
+			id: option.id,
+			label: option.label,
+			teamId: option.teamId,
+			color: option.color,
+		}));
 }
