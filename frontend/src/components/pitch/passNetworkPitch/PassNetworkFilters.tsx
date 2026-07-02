@@ -11,6 +11,7 @@ import type { Event } from "@/types/event";
 import PassNetworkTimelineSlicer from "./PassNetworkTimelineSlicer";
 import {
 	DEFAULT_PASS_NETWORK_FILTERS,
+	type PassNetworkRangeChangeOptions,
 	type PassingNetworkMode,
 	type PassNetworkFiltersState,
 } from "./passNetworkFilters.types";
@@ -20,7 +21,7 @@ interface PassNetworkFiltersProps {
 	onChange: (filters: PassNetworkFiltersState) => void;
 	currentSecond: number;
 	selectedRangeSeconds: [number, number];
-	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onRangeChange: (range: [number, number], options?: PassNetworkRangeChangeOptions) => void;
 	onCurrentSecondChange: (second: number) => void;
 	onReturnToLive: () => void;
 	isPlaying: boolean;
@@ -223,25 +224,31 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 								>
 									Personalizado
 								</button>
-								<Input
-									type="number"
-									min={1}
-									step={1}
-									disabled={filters.windowDurationMode !== "custom"}
-									aria-label="Duracion personalizada en minutos"
-									value={customDurationMinutes}
-									onChange={(event) => {
-										const minutes = Number(event.target.value);
-										if (!Number.isFinite(minutes) || minutes <= 0) return;
-										onPause();
-										onChange({
-											...filters,
-											windowDurationSeconds: clampDuration(minutes * 60, maxSecond),
-											windowDurationMode: "custom",
-										});
-									}}
-									className="h-8 w-20 text-right text-xs"
-								/>
+								{filters.windowDurationMode === "custom" ? (
+									<label className="flex h-8 items-center overflow-hidden rounded-md border border-primary/60 bg-background shadow-sm ring-2 ring-primary/10 focus-within:ring-primary/25">
+										<Input
+											type="number"
+											min={1}
+											step={1}
+											aria-label="Duración personalizada en minutos"
+											value={customDurationMinutes}
+											onChange={(event) => {
+												const minutes = Number(event.target.value);
+												if (!Number.isFinite(minutes) || minutes <= 0) return;
+												onPause();
+												onChange({
+													...filters,
+													windowDurationSeconds: clampDuration(minutes * 60, maxSecond),
+													windowDurationMode: "custom",
+												});
+											}}
+											className="h-7 w-16 border-0 bg-background px-2 text-right text-xs font-semibold text-foreground shadow-none focus-visible:ring-0"
+										/>
+										<span className="border-l bg-muted/70 px-2 text-[11px] font-medium text-foreground">
+											min
+										</span>
+									</label>
+								) : null}
 							</div>
 						</div>
 					) : null}
@@ -266,7 +273,10 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 											type="button"
 											onClick={() => {
 												onPause();
-												onRangeChange(range, { followLive: false });
+												onRangeChange(range, {
+													followLive: false,
+													resetMoment: true,
+												});
 											}}
 											className={cn(
 												"rounded px-2 py-1.5 text-xs font-medium transition-colors",

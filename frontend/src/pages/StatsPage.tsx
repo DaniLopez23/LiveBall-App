@@ -37,6 +37,7 @@ import {
 	getRankedKeyPlayers,
 	type KeyPlayerStats,
 } from "@/lib/keyPlayerRanking";
+import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import useStatsStore from "@/store/statsStore";
@@ -388,6 +389,10 @@ function getKeyPlayers(
 					label: "Goles · asist.",
 					value: player ? `${player.goals} · ${player.assists}` : "-",
 				},
+				{
+					label: "Pases exitosos",
+					value: player ? String(player.successfulPasses) : "-",
+				},
 			],
 		};
 	});
@@ -554,7 +559,12 @@ function KeyPlayerCard({
 					</div>
 				</div>
 			</div>
-			<div className="mt-3 grid grid-cols-3 gap-1.5 text-xs">
+			<div
+				className={cn(
+					"mt-3 grid gap-1.5 text-xs",
+					item.metrics.length > 3 ? "grid-cols-2" : "grid-cols-3",
+				)}
+			>
 				{item.metrics.map((metric) => (
 					<div key={metric.label} className="min-w-0 rounded-md bg-muted/45 px-2 py-1.5">
 						<span className="block truncate text-[10px] text-muted-foreground">

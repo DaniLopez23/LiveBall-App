@@ -60,8 +60,8 @@ const menuItems = [
 ];
 
 const footerItems = [
-  { id: "help", label: "Ayuda", icon: HelpCircle, path: "/ayuda" },
-  { id: "user", label: "Usuario", icon: User, path: "/usuario" },
+  { id: "help", label: "Ayuda", icon: HelpCircle, path: "/ayuda", disabled: false },
+  { id: "user", label: "Usuario", icon: User, path: "/usuario", disabled: true },
 ];
 
 export function AppSidebar() {
@@ -152,16 +152,23 @@ export function AppSidebar() {
             const isActive = location.pathname.startsWith(item.path);
             return (
               <SidebarMenuItem key={item.id}>
-                <SidebarMenuButton
-                  asChild
-                  isActive={isActive}
-                  tooltip={item.label}
-                >
-                  <NavLink to={item.path}>
+                {item.disabled ? (
+                  <SidebarMenuButton disabled tooltip={`${item.label}: no disponible`}>
                     <item.icon />
                     <span>{item.label}</span>
-                  </NavLink>
-                </SidebarMenuButton>
+                  </SidebarMenuButton>
+                ) : (
+                  <SidebarMenuButton
+                    asChild
+                    isActive={isActive}
+                    tooltip={item.label}
+                  >
+                    <NavLink to={item.path}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  </SidebarMenuButton>
+                )}
               </SidebarMenuItem>
             );
           })}

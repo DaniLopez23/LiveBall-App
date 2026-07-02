@@ -2,6 +2,11 @@ export type NodePositionMode = "given" | "received" | "global";
 export type PassingNetworkMode = "cumulative" | "sliding";
 export type WindowDurationMode = "preset" | "custom";
 
+export interface PassNetworkRangeChangeOptions {
+	followLive?: boolean;
+	resetMoment?: boolean;
+}
+
 export interface PassNetworkFiltersState {
 	[key: string]: unknown;
 	minPasses: number;

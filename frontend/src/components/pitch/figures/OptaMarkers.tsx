@@ -550,7 +550,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
         isLive: false,
         isActive: false,
         isHighlighted,
-        hideSequenceLabel: false,
+        hideSequenceLabel: presentationMode === "all",
         opacity: 1,
         markerScale: (isHighlighted ? 1.46 : 1) * safeMarkerScaleMultiplier,
         hitRadius: (isHighlighted ? 15 : 7) * safeMarkerScaleMultiplier,

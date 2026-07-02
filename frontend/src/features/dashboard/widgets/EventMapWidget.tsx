@@ -629,6 +629,7 @@ function PlayerFilterList({
 					options={availablePlayers.map((player) => ({
 						value: player.id,
 						label: player.label,
+						color: player.color,
 					}))}
 					value={selectedPlayerIds}
 					onChange={onChange}

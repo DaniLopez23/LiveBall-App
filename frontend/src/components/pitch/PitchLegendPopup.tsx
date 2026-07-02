@@ -60,6 +60,7 @@ export function PitchLegendPopup({
 	title = "Leyenda",
 }: PitchLegendPopupProps) {
 	const [position, setPosition] = React.useState({ left: 16, top: 72 });
+	const popupRef = React.useRef<HTMLDivElement | null>(null);
 
 	React.useEffect(() => {
 		if (!open) return;
@@ -70,14 +71,25 @@ export function PitchLegendPopup({
 		const onKeyDown = (event: KeyboardEvent) => {
 			if (event.key === "Escape") onClose();
 		};
+		const onPointerDown = (event: PointerEvent) => {
+			const target = event.target;
+			if (!(target instanceof Node)) return;
+			if (popupRef.current?.contains(target) || anchorRef.current?.contains(target)) {
+				return;
+			}
+
+			onClose();
+		};
 
 		updatePosition();
 		document.addEventListener("keydown", onKeyDown);
+		document.addEventListener("pointerdown", onPointerDown);
 		window.addEventListener("resize", updatePosition);
 		window.addEventListener("scroll", updatePosition, true);
 
 		return () => {
 			document.removeEventListener("keydown", onKeyDown);
+			document.removeEventListener("pointerdown", onPointerDown);
 			window.removeEventListener("resize", updatePosition);
 			window.removeEventListener("scroll", updatePosition, true);
 		};
@@ -87,6 +99,7 @@ export function PitchLegendPopup({
 
 	return createPortal(
 		<div
+			ref={popupRef}
 			id={id}
 			role="dialog"
 			aria-label={ariaLabel}

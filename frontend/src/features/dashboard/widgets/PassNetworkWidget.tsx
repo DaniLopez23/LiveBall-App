@@ -7,6 +7,7 @@ import PassNetworkStats from "@/components/pitch/passNetworkPitch/PassNetworkSta
 import { usePassNetworkPlayback } from "@/components/pitch/passNetworkPitch/usePassNetworkPlayback";
 import {
 	DEFAULT_PASS_NETWORK_FILTERS,
+	type PassNetworkRangeChangeOptions,
 } from "@/components/pitch/passNetworkPitch/passNetworkFilters.types";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
@@ -290,12 +291,13 @@ export function PassNetworkWidget({
 	};
 	const handleRangeChange = (
 		range: [number, number],
-		options?: { followLive?: boolean },
+		options?: PassNetworkRangeChangeOptions,
 	) =>
 		updateFilters({
 			...normalizedFilters,
 			rangeStartSecond: range[0],
 			rangeEndSecond: range[1],
+			momentSecond: options?.resetMoment ? range[1] : normalizedFilters.momentSecond,
 			followLive: options?.followLive ?? false,
 		});
 	const handleCurrentSecondChange = (second: number) =>
@@ -666,12 +668,13 @@ export function PassNetworkWidgetFilters({
 	};
 	const handleRangeChange = (
 		range: [number, number],
-		options?: { followLive?: boolean },
+		options?: PassNetworkRangeChangeOptions,
 	) =>
 		updateFilters({
 			...normalizedFilters,
 			rangeStartSecond: range[0],
 			rangeEndSecond: range[1],
+			momentSecond: options?.resetMoment ? range[1] : normalizedFilters.momentSecond,
 			followLive: options?.followLive ?? false,
 		});
 	const handleCurrentSecondChange = (second: number) =>

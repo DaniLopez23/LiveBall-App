@@ -11,7 +11,7 @@ import {
 	RefreshCw,
 	Trophy,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
@@ -28,7 +28,12 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
+import {
+	getCurrentMatchMinute,
+	getScoreFromGoalEvents,
+} from "@/lib/matchEventState";
 import useMatchSelectionStore from "@/store/matchSelectionStore";
+import useEventsStore from "@/store/eventsStore";
 import type {
 	AvailableMatch,
 	AvailableMatchStatus,
@@ -124,6 +129,7 @@ function MatchCard({
 		match.status === "live" ||
 		match.status === "paused" ||
 		match.status === "finished";
+	const showCurrentMinute = match.status === "live" && match.current_minute != null;
 
 	return (
 		<Card
@@ -197,6 +203,12 @@ function MatchCard({
 
 					<div className="flex flex-wrap items-center justify-center gap-2">
 						<MatchStatusBadge status={match.status} />
+						{showCurrentMinute ? (
+							<Badge variant="secondary" className="gap-1 rounded-md tabular-nums">
+								<Clock3 className="size-3.5" />
+								Min {match.current_minute}&apos;
+							</Badge>
+						) : null}
 					</div>
 				</div>
 
@@ -302,6 +314,39 @@ export default function HomePage() {
 		(state) => state.loadAvailableMatches,
 	);
 	const selectMatch = useMatchSelectionStore((state) => state.selectMatch);
+	const processedEventsGameId = useEventsStore((state) => state.gameId);
+	const processedEvents = useEventsStore((state) => state.events);
+	const displayMatches = useMemo(() => {
+		if (!processedEventsGameId) return matches;
+
+		return matches.map((match) => {
+			if (match.game_id !== processedEventsGameId || !isLiveMatch(match)) {
+				return match;
+			}
+
+			const score = getScoreFromGoalEvents(
+				processedEvents,
+				match.home_team.team_id,
+				match.away_team.team_id,
+			);
+			const currentMinute = getCurrentMatchMinute(processedEvents);
+
+			return {
+				...match,
+				current_minute: currentMinute,
+				home_team: { ...match.home_team, score: score.home },
+				away_team: { ...match.away_team, score: score.away },
+			};
+		});
+	}, [matches, processedEvents, processedEventsGameId]);
+
+	useEffect(() => {
+		const refreshId = window.setInterval(() => {
+			void loadAvailableMatches(true);
+		}, 5_000);
+
+		return () => window.clearInterval(refreshId);
+	}, [loadAvailableMatches]);
 
 	const handleSelect = (gameId: string) => {
 		selectMatch(gameId);
@@ -314,13 +359,13 @@ export default function HomePage() {
 		}
 	};
 
-	const liveMatches = matches.filter(isLiveMatch);
-	const finishedMatches = matches.filter(isFinishedMatch);
-	const otherMatches = matches.filter(
+	const liveMatches = displayMatches.filter(isLiveMatch);
+	const finishedMatches = displayMatches.filter(isFinishedMatch);
+	const otherMatches = displayMatches.filter(
 		(match) => !isLiveMatch(match) && !isFinishedMatch(match),
 	);
 	const hasVisibleMatches =
-		(statusFilter === "all" && matches.length > 0) ||
+		(statusFilter === "all" && displayMatches.length > 0) ||
 		(statusFilter === "live" && liveMatches.length > 0) ||
 		(statusFilter === "finished" && finishedMatches.length > 0);
 

@@ -174,7 +174,12 @@ export function SwitchField({
 }
 
 interface CheckboxListProps {
-	options: Array<{ value: string; label: string; description?: string }>;
+	options: Array<{
+		value: string;
+		label: string;
+		description?: string;
+		color?: string;
+	}>;
 	value: string[];
 	onChange: (value: string[]) => void;
 }
@@ -203,6 +208,13 @@ export function CheckboxList({ options, value, onChange }: CheckboxListProps) {
 								onChange(value.filter((item) => item !== option.value));
 							}}
 						/>
+						{option.color ? (
+							<span
+								className="mt-1 size-2.5 shrink-0 rounded-full border border-black/15"
+								style={{ backgroundColor: option.color }}
+								aria-hidden="true"
+							/>
+						) : null}
 						<span className="min-w-0">
 							<span className="block font-medium">{option.label}</span>
 							{option.description ? (

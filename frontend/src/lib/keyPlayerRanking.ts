@@ -29,7 +29,12 @@ export interface RankedKeyPlayer {
 
 const DEFENSIVE_TYPE_IDS = new Set(["7", "8", "12", "44", "49", "67"]);
 const DUEL_TYPE_IDS = new Set(["44", "67"]);
-// A goal or an assist must outweigh normal match-volume metrics by a wide margin.
+// Goals and assists complement role metrics, but only dominate the attacking rank.
+const DECISIVE_ACTION_WEIGHTS = {
+	defense: { goals: 8, assists: 6 },
+	midfield: { goals: 12, assists: 10 },
+	attack: { goals: 100, assists: 90 },
+} as const;
 const SCORE_WEIGHTS = {
 	defense: {
 		defensiveActions: 1,
@@ -46,13 +51,23 @@ const SCORE_WEIGHTS = {
 		successfulDribbles: 6,
 	},
 	attack: {
+		successfulPasses: 0.1,
 		shots: 2,
 		shotsOnTarget: 6,
 		blockedShots: 3,
-		goals: 100,
-		assists: 90,
 	},
 } as const;
+
+function getDecisiveActionScore(
+	player: KeyPlayerStats,
+	role: KeyPlayerRole,
+): number {
+	const weights = DECISIVE_ACTION_WEIGHTS[role];
+	return (
+		player.goals * weights.goals +
+		player.assists * weights.assists
+	);
+}
 
 function isSuccessful(event: Event): boolean {
 	return String(event.outcome) === "1";
@@ -101,7 +116,8 @@ function getRoleScore(player: KeyPlayerStats, role: KeyPlayerRole): number {
 				SCORE_WEIGHTS.defense.successfulDefensiveActions +
 			player.duelsWon * SCORE_WEIGHTS.defense.duelsWon +
 			player.tackles * SCORE_WEIGHTS.defense.tackles +
-			player.successfulTackles * SCORE_WEIGHTS.defense.successfulTackles
+			player.successfulTackles * SCORE_WEIGHTS.defense.successfulTackles +
+			getDecisiveActionScore(player, role)
 		);
 	}
 
@@ -111,22 +127,25 @@ function getRoleScore(player: KeyPlayerStats, role: KeyPlayerRole): number {
 			player.successfulPasses * SCORE_WEIGHTS.midfield.successfulPasses +
 			player.duelsWon * SCORE_WEIGHTS.midfield.duelsWon +
 			player.dribbles * SCORE_WEIGHTS.midfield.dribbles +
-			player.successfulDribbles * SCORE_WEIGHTS.midfield.successfulDribbles
+			player.successfulDribbles * SCORE_WEIGHTS.midfield.successfulDribbles +
+			getDecisiveActionScore(player, role)
 		);
 	}
 
 	return (
+		player.successfulPasses * SCORE_WEIGHTS.attack.successfulPasses +
 		player.shots * SCORE_WEIGHTS.attack.shots +
 		player.shotsOnTarget * SCORE_WEIGHTS.attack.shotsOnTarget +
 		player.blockedShots * SCORE_WEIGHTS.attack.blockedShots +
-		player.goals * SCORE_WEIGHTS.attack.goals +
-		player.assists * SCORE_WEIGHTS.attack.assists
+		getDecisiveActionScore(player, role)
 	);
 }
 
 function getTieBreakers(player: KeyPlayerStats, role: KeyPlayerRole): number[] {
 	if (role === "defense") {
 		return [
+			player.goals,
+			player.assists,
 			player.successfulTackles,
 			player.duelsWon,
 			player.successfulDefensiveActions,
@@ -136,6 +155,8 @@ function getTieBreakers(player: KeyPlayerStats, role: KeyPlayerRole): number[] {
 
 	if (role === "midfield") {
 		return [
+			player.goals,
+			player.assists,
 			player.successfulPasses,
 			player.successfulDribbles,
 			player.duelsWon,
@@ -148,6 +169,7 @@ function getTieBreakers(player: KeyPlayerStats, role: KeyPlayerRole): number[] {
 		player.assists,
 		player.shotsOnTarget,
 		player.shots,
+		player.successfulPasses,
 	];
 }
 

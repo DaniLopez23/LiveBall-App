@@ -9,7 +9,10 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 import type { PassNetworkEdge, PassNetworkNode } from "@/types/passNetwork";
-import type { PassNetworkFiltersState } from "./passNetworkFilters.types";
+import type {
+	PassNetworkFiltersState,
+	PassNetworkRangeChangeOptions,
+} from "./passNetworkFilters.types";
 
 import PassNetworkFilters from "./PassNetworkFilters";
 import PassNetworkStats from "./PassNetworkStats";
@@ -24,7 +27,7 @@ interface PassNetworkTabsProps {
 	onFiltersChange: (filters: PassNetworkFiltersState) => void;
 	currentSecond: number;
 	selectedRangeSeconds: [number, number];
-	onRangeChange: (range: [number, number], options?: { followLive?: boolean }) => void;
+	onRangeChange: (range: [number, number], options?: PassNetworkRangeChangeOptions) => void;
 	onCurrentSecondChange: (second: number) => void;
 	onReturnToLive: () => void;
 	isPlaying: boolean;

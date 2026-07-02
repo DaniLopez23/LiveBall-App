@@ -62,7 +62,7 @@ const legendItems = [
   { label: "Pentágono", description: "Regate o duelo individual.", visual: <MarkerExample shape="pentagon" /> },
   { label: "Etiqueta OUT", description: "El balón ha salido del terreno de juego.", visual: <MarkerExample shape="out" color="#ef4444" /> },
   { label: "Colores", description: "Azul para el equipo local y rojo para el visitante.", visual: <MarkerExample shape="colors" /> },
-  { label: "Dorsal y orden", description: "El dorsal aparece dentro del marcador y el número de secuencia debajo.", visual: <span className="text-center text-xs font-bold leading-tight">12<br /><span className="text-[10px] text-muted-foreground">3</span></span> },
+  { label: "Dorsal y orden", description: "El dorsal aparece dentro del marcador. El orden inferior se oculta en el modo Todos.", visual: <span className="text-center text-xs font-bold leading-tight">12<br /><span className="text-[10px] text-muted-foreground">3</span></span> },
 ];
 
 export function EventsPitchHeader({

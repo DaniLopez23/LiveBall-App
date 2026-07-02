@@ -53,6 +53,7 @@ const DEFAULT_FILTERS: EventsFilters = {
   selectedOutcomes: [],
   selectedSubtypes: [],
   minuteRange: [0, 90],
+  minuteRangePreset: "full",
 };
 
 const clampMinuteRange = (
@@ -361,18 +362,23 @@ const EventsPage: React.FC = () => {
   }, [availableTypeIds]);
 
   const displayFilters = useMemo(() => {
+    const minuteRange: [number, number] =
+      filters.minuteRangePreset === "full"
+        ? [0, currentMaxMinute]
+        : clampMinuteRange(filters.minuteRange, currentMaxMinute);
+
     if (isDefaultAllSelection && seededFilters) {
       return {
         ...filters,
         selectedOutcomes: seededFilters.selectedOutcomes,
         selectedSubtypes: seededFilters.selectedSubtypes,
-        minuteRange: clampMinuteRange(filters.minuteRange, currentMaxMinute),
+        minuteRange,
       };
     }
 
     return {
       ...filters,
-      minuteRange: clampMinuteRange(filters.minuteRange, currentMaxMinute),
+      minuteRange,
     };
   }, [filters, seededFilters, isDefaultAllSelection, currentMaxMinute]);
 
