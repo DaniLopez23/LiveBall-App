@@ -68,6 +68,8 @@ interface EventsPitchFiltersProps {
   availableSequencePrecedingTypes: SequenceEndTypeOption[];
   availablePlayers: PlayerFilterOption[];
   maxMinute: number;
+  availableMinute: number;
+  firstHalfEndMinute: number;
   hasSecondHalf: boolean;
 }
 
@@ -83,6 +85,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   availableSequencePrecedingTypes,
   availablePlayers,
   maxMinute,
+  availableMinute,
+  firstHalfEndMinute,
   hasSecondHalf,
 }) => {
   const sequenceEndTypesAnchor = useComboboxAnchor();
@@ -239,10 +243,21 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const isAllMode = filters.mode === "all";
 
   const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
-  const safeMinuteStart = Math.min(Math.max(0, filters.minuteRange[0]), boundedMaxMinute);
+  const boundedAvailableMinute = Math.min(
+    boundedMaxMinute,
+    Math.max(0, Math.ceil(availableMinute)),
+  );
+  const boundedFirstHalfEndMinute = Math.min(
+    boundedMaxMinute,
+    Math.max(45, Math.ceil(firstHalfEndMinute)),
+  );
+  const safeMinuteStart = Math.min(
+    Math.max(0, filters.minuteRange[0]),
+    boundedAvailableMinute,
+  );
   const safeMinuteEnd = Math.max(
     safeMinuteStart,
-    Math.min(Math.max(0, filters.minuteRange[1]), boundedMaxMinute),
+    Math.min(Math.max(0, filters.minuteRange[1]), boundedAvailableMinute),
   );
   const safeMinuteRange: [number, number] = [safeMinuteStart, safeMinuteEnd];
   const sliderMax = Math.max(1, boundedMaxMinute);
@@ -250,19 +265,19 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
     {
       label: "1a Parte",
       preset: "first-half" as const,
-      range: [0, Math.min(45, boundedMaxMinute)] as [number, number],
+      range: [0, Math.min(boundedFirstHalfEndMinute, boundedAvailableMinute)] as [number, number],
       disabled: false,
     },
     {
       label: "2a Parte",
       preset: "second-half" as const,
-      range: [45, boundedMaxMinute] as [number, number],
-      disabled: !hasSecondHalf || boundedMaxMinute < 45,
+      range: [boundedFirstHalfEndMinute, boundedAvailableMinute] as [number, number],
+      disabled: !hasSecondHalf || boundedAvailableMinute < boundedFirstHalfEndMinute,
     },
     {
       label: "Completo",
       preset: "full" as const,
-      range: [0, boundedMaxMinute] as [number, number],
+      range: [0, boundedAvailableMinute] as [number, number],
       disabled: false,
     },
   ];
@@ -801,30 +816,46 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               <span className="w-6 text-right text-xs text-muted-foreground">
                 {safeMinuteRange[0]}&apos;
               </span>
-              <Slider
-                min={0}
-                max={sliderMax}
-                step={1}
-                disabled={boundedMaxMinute === 0}
-                value={safeMinuteRange}
-                onValueChange={(value) => {
-                  const nextStart = Math.min(boundedMaxMinute, Math.max(0, value[0] ?? 0));
-                  const nextEnd = Math.min(
-                    boundedMaxMinute,
-                    Math.max(0, value[1] ?? nextStart),
-                  );
+              <div className="relative flex-1 pt-4">
+                <span className="absolute left-0 top-0 text-[10px] font-semibold text-muted-foreground">1P</span>
+                <span
+                  className="pointer-events-none absolute top-3 z-20 h-5 w-2 -translate-x-1/2 border-x border-border bg-background"
+                  style={{ left: `${(boundedFirstHalfEndMinute / sliderMax) * 100}%` }}
+                />
+                <span
+                  className="absolute top-0 text-[10px] font-semibold text-muted-foreground"
+                  style={{ left: `calc(${(boundedFirstHalfEndMinute / sliderMax) * 100}% + 0.4rem)` }}
+                >
+                  2P
+                </span>
+                <Slider
+                  min={0}
+                  max={sliderMax}
+                  step={1}
+                  disabled={boundedAvailableMinute === 0}
+                  value={safeMinuteRange}
+                  onValueChange={(value) => {
+                    const nextStart = Math.min(
+                      boundedAvailableMinute,
+                      Math.max(0, value[0] ?? 0),
+                    );
+                    const nextEnd = Math.min(
+                      boundedAvailableMinute,
+                      Math.max(0, value[1] ?? nextStart),
+                    );
 
-                  onChange({
-                    ...filters,
-                    minuteRange: [
-                      Math.min(nextStart, nextEnd),
-                      Math.max(nextStart, nextEnd),
-                    ] as [number, number],
-                    minuteRangePreset: "custom",
-                  });
-                }}
-                className="flex-1"
-              />
+                    onChange({
+                      ...filters,
+                      minuteRange: [
+                        Math.min(nextStart, nextEnd),
+                        Math.max(nextStart, nextEnd),
+                      ] as [number, number],
+                      minuteRangePreset: "custom",
+                    });
+                  }}
+                  className="flex-1"
+                />
+              </div>
               <span className="w-6 text-xs text-muted-foreground">{safeMinuteRange[1]}&apos;</span>
             </div>
             <div className="grid grid-cols-3 gap-1">

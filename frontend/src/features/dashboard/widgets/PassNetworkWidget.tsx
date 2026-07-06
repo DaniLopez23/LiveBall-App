@@ -20,10 +20,14 @@ import {
 	BUCKET_SIZE_SECONDS,
 	clamp,
 	derivePassingNetworkRange,
-	formatMatchTime,
-	getEventMatchSecond,
-	getMaxEventSecond,
 } from "@/lib/matchTime";
+import {
+	createMatchTimeline,
+	eventToTimelineSecond,
+	formatTimelineRange,
+	timelineRangeToMatchRange,
+	type MatchTimelineModel,
+} from "@/lib/matchTimeline";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import usePassNetworksStore from "@/store/passNetworksStore";
@@ -143,6 +147,7 @@ function getScoreAtSecond(
 	awayTeamId: string | undefined,
 	limitSecond: number,
 ) {
+	const timeline = createMatchTimeline(events);
 	let home = 0;
 	let away = 0;
 
@@ -150,7 +155,7 @@ function getScoreAtSecond(
 
 	for (const event of events) {
 		if (!isShotEvent(event) || event.type_id !== "16") continue;
-		const eventSecond = getEventMatchSecond(event);
+		const eventSecond = eventToTimelineSecond(event, timeline);
 		if (eventSecond == null || eventSecond > limitSecond) continue;
 		const teamId = event.team_id ? String(event.team_id) : null;
 
@@ -171,21 +176,27 @@ const buildDisplayNetwork = (
 	network: TeamPassNetwork | null,
 	range: [number, number],
 	filters: PassNetworkWidgetFilters,
-): BuiltPassNetwork | null =>
-	buildPassingNetworkForRange(network, range[0], range[1], {
+	timeline: MatchTimelineModel,
+): BuiltPassNetwork | null => {
+	const matchRange = timelineRangeToMatchRange(range, timeline);
+	return buildPassingNetworkForRange(network, matchRange[0], matchRange[1], {
 		minPasses: filters.minPasses,
 		nodePositionMode: filters.nodePositionMode,
 	});
+};
 
 const buildStatsNetwork = (
 	network: TeamPassNetwork | null,
 	range: [number, number],
 	filters: PassNetworkWidgetFilters,
-): BuiltPassNetwork | null =>
-	buildPassingNetworkForRange(network, range[0], range[1], {
+	timeline: MatchTimelineModel,
+): BuiltPassNetwork | null => {
+	const matchRange = timelineRangeToMatchRange(range, timeline);
+	return buildPassingNetworkForRange(network, matchRange[0], matchRange[1], {
 		minPasses: 1,
 		nodePositionMode: filters.nodePositionMode,
 	});
+};
 
 type PassNetworkTeam = "home" | "away";
 type PassNetworkWidgetView = "network" | "stats" | "filters";
@@ -245,8 +256,8 @@ function PassNetworkTeamPanel({
 	);
 }
 
-function formatRangeLabel(range: [number, number]): string {
-	return `Min ${formatMatchTime(range[0])} - ${formatMatchTime(range[1])}`;
+function formatRangeLabel(range: [number, number], timeline: MatchTimelineModel): string {
+	return `Min ${formatTimelineRange(range, timeline)}`;
 }
 
 export function PassNetworkWidget({
@@ -258,7 +269,10 @@ export function PassNetworkWidget({
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
 	const byTeamId = usePassNetworksStore((state) => state.byTeamId);
-	const maxSecond = Math.max(getMaxEventSecond(events), getNetworksMaxSecond(byTeamId));
+	const timeline = useMemo(() => createMatchTimeline(events), [events]);
+	const maxSecond = events.length > 0
+		? timeline.availableSecond
+		: getNetworksMaxSecond(byTeamId);
 	const normalizedFilters = normalizePassNetworkFilters(filters, maxSecond);
 	const selectedRangeSeconds = getSelectedRange(normalizedFilters, maxSecond);
 	const displayRangeSeconds = getDisplayRange(normalizedFilters, maxSecond);
@@ -266,20 +280,20 @@ export function PassNetworkWidget({
 	const homeNetwork = game ? byTeamId[game.home_team.team_id] : null;
 	const awayNetwork = game ? byTeamId[game.away_team.team_id] : null;
 	const filteredHomeNetwork = useMemo(
-		() => buildDisplayNetwork(homeNetwork, displayRangeSeconds, normalizedFilters),
-		[displayRangeSeconds, homeNetwork, normalizedFilters],
+		() => buildDisplayNetwork(homeNetwork, displayRangeSeconds, normalizedFilters, timeline),
+		[displayRangeSeconds, homeNetwork, normalizedFilters, timeline],
 	);
 	const filteredAwayNetwork = useMemo(
-		() => buildDisplayNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
-		[awayNetwork, displayRangeSeconds, normalizedFilters],
+		() => buildDisplayNetwork(awayNetwork, displayRangeSeconds, normalizedFilters, timeline),
+		[awayNetwork, displayRangeSeconds, normalizedFilters, timeline],
 	);
 	const statsHomeNetwork = useMemo(
-		() => buildStatsNetwork(homeNetwork, displayRangeSeconds, normalizedFilters),
-		[displayRangeSeconds, homeNetwork, normalizedFilters],
+		() => buildStatsNetwork(homeNetwork, displayRangeSeconds, normalizedFilters, timeline),
+		[displayRangeSeconds, homeNetwork, normalizedFilters, timeline],
 	);
 	const statsAwayNetwork = useMemo(
-		() => buildStatsNetwork(awayNetwork, displayRangeSeconds, normalizedFilters),
-		[awayNetwork, displayRangeSeconds, normalizedFilters],
+		() => buildStatsNetwork(awayNetwork, displayRangeSeconds, normalizedFilters, timeline),
+		[awayNetwork, displayRangeSeconds, normalizedFilters, timeline],
 	);
 	const homeNodes = filteredHomeNetwork?.nodes ?? [];
 	const homeEdges = filteredHomeNetwork?.edges ?? [];
@@ -359,7 +373,7 @@ export function PassNetworkWidget({
 				edges: awayEdges,
 				mirrorX: true,
 			};
-	const networkRangeLabel = formatRangeLabel(displayRangeSeconds);
+	const networkRangeLabel = formatRangeLabel(displayRangeSeconds, timeline);
 
 	useEffect(() => {
 		if (activeView === "filters" && !showInlineFilters) {
@@ -647,7 +661,10 @@ export function PassNetworkWidgetFilters({
 	const game = useGameStore((state) => state.game);
 	const events = useEventsStore((state) => state.events);
 	const byTeamId = usePassNetworksStore((state) => state.byTeamId);
-	const maxSecond = Math.max(getMaxEventSecond(events), getNetworksMaxSecond(byTeamId));
+	const timeline = useMemo(() => createMatchTimeline(events), [events]);
+	const maxSecond = events.length > 0
+		? timeline.availableSecond
+		: getNetworksMaxSecond(byTeamId);
 	const normalizedFilters = normalizePassNetworkFilters(value, maxSecond);
 	const selectedRangeSeconds = getSelectedRange(normalizedFilters, maxSecond);
 	const displayRangeSeconds = getDisplayRange(normalizedFilters, maxSecond);

@@ -2,6 +2,12 @@ import { useMemo, useRef, type PointerEvent } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { getEventMatchSecond } from "@/lib/matchTime";
+import {
+	createMatchTimeline,
+	eventToTimelineSecond,
+	formatClockSecond,
+	formatTimelineSecond,
+} from "@/lib/matchTimeline";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 import { isShotEvent } from "@/types/event";
@@ -16,6 +22,8 @@ export interface KeyTimelineEvent {
 	minute: number;
 	second: number;
 	totalSeconds: number;
+	matchSeconds: number;
+	periodId: number;
 	teamId: string | null;
 	teamSide: TeamSide | null;
 	playerName: string | null;
@@ -55,8 +63,6 @@ interface TimelineBounds {
 const SHOT_TYPE_IDS = new Set(["13", "14", "15"]);
 const GOAL_TYPE_ID = "16";
 const CARD_TYPE_ID = "17";
-const HALF_TIME_SECONDS = 45 * 60;
-const FULL_MATCH_SECONDS = 90 * 60;
 const DEFAULT_HOME_COLOR = "#3b82f6";
 const DEFAULT_AWAY_COLOR = "#f43f5e";
 const UNKNOWN_TEAM_COLOR = "#64748b";
@@ -95,14 +101,6 @@ function getEventSeconds(event: Event): number | null {
 	return getEventMatchSecond(event);
 }
 
-function formatMatchTime(totalSeconds: number): string {
-	const boundedSeconds = Math.max(0, Math.floor(totalSeconds));
-	const minute = Math.floor(boundedSeconds / 60);
-	const second = boundedSeconds % 60;
-
-	return `${minute}:${String(second).padStart(2, "0")}`;
-}
-
 function getTeamName(side: TeamSide | null, homeTeamName: string, awayTeamName: string) {
 	if (side === "home") return homeTeamName;
 	if (side === "away") return awayTeamName;
@@ -119,19 +117,12 @@ function getTeamColor(
 	return UNKNOWN_TEAM_COLOR;
 }
 
-function isFirstHalfEvent(event: Event): boolean {
-	if (event.period_id === 1) return true;
-	if (event.period_id === 2) return false;
-	const seconds = getEventSeconds(event);
-
-	return seconds != null && seconds <= HALF_TIME_SECONDS;
-}
-
 export function getKeyTimelineEvents(
 	events: Event[],
 	homeTeamId?: string | null,
 	awayTeamId?: string | null,
 ): KeyTimelineEvent[] {
+	const timeline = createMatchTimeline(events);
 	return events
 		.map((event, index): KeyTimelineEvent | null => {
 			const kind = getEventKind(event);
@@ -147,7 +138,9 @@ export function getKeyTimelineEvents(
 				kind,
 				minute,
 				second,
-				totalSeconds,
+				totalSeconds: eventToTimelineSecond(event, timeline),
+				matchSeconds: totalSeconds,
+				periodId: (event.period_id ?? 1) >= 2 ? 2 : 1,
 				teamId,
 				teamSide: getEventTeamSide(teamId, homeTeamId, awayTeamId),
 				playerName: event.player?.name ?? null,
@@ -162,27 +155,16 @@ export function getKeyEventsTimelineBounds(
 	events: Event[],
 	currentMinute?: number | null,
 ): TimelineBounds {
-	let matchEndSeconds: number | null = null;
-	let firstHalfEndSeconds: number | null = null;
-
-	for (const event of events) {
-		const totalSeconds = getEventSeconds(event);
-		if (totalSeconds == null) continue;
-
-		matchEndSeconds = Math.max(matchEndSeconds ?? 0, totalSeconds);
-		if (isFirstHalfEvent(event)) {
-			firstHalfEndSeconds = Math.max(firstHalfEndSeconds ?? 0, totalSeconds);
-		}
-	}
+	const timeline = createMatchTimeline(events);
+	const matchEndSeconds = events.length > 0 ? timeline.availableSecond : null;
+	const firstHalfEndSeconds = events.some((event) => (event.period_id ?? 1) < 2)
+		? timeline.firstHalfEndSecond
+		: null;
 
 	const currentSeconds = isFiniteNumber(currentMinute)
 		? Math.max(0, Math.floor(currentMinute) * 60)
 		: 0;
-	const durationSeconds = Math.max(
-		FULL_MATCH_SECONDS,
-		matchEndSeconds ?? 0,
-		currentSeconds,
-	);
+	const durationSeconds = Math.max(timeline.durationSecond, currentSeconds);
 
 	return {
 		durationSeconds,
@@ -197,13 +179,14 @@ export function getScoreAtTimelineSecond(
 	awayTeamId: string,
 	limitSeconds: number,
 ) {
+	const timeline = createMatchTimeline(events);
 	let home = 0;
 	let away = 0;
 
 	for (const event of events) {
 		if (!isShotEvent(event) || event.type_id !== GOAL_TYPE_ID) continue;
 
-		const totalSeconds = getEventSeconds(event);
+		const totalSeconds = eventToTimelineSecond(event, timeline);
 		if (totalSeconds == null || totalSeconds > limitSeconds) continue;
 
 		const teamId = event.team_id ? String(event.team_id) : null;
@@ -232,11 +215,7 @@ export function getTimelineEndMinute(events: Event[], fallbackMinute = 90): numb
 
 export function getAvailableTimelineMinute(events: Event[], fallbackMinute = 0): number {
 	if (events.length === 0) return fallbackMinute;
-
-	return events.reduce(
-		(maxMinute, event) => Math.max(maxMinute, Math.floor(event.min ?? 0)),
-		fallbackMinute,
-	);
+	return Math.max(fallbackMinute, Math.floor(createMatchTimeline(events).availableSecond / 60));
 }
 
 function BallTimelineIcon() {
@@ -312,6 +291,7 @@ export default function KeyEventsTimeline({
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const activePointerIdRef = useRef<number | null>(null);
 	const activeKinds = useMemo(() => new Set(eventKinds), [eventKinds]);
+	const timeline = useMemo(() => createMatchTimeline(events), [events]);
 	const { durationSeconds, matchEndSeconds, firstHalfEndSeconds } = useMemo(
 		() => getKeyEventsTimelineBounds(events, currentMinute),
 		[events, currentMinute],
@@ -344,7 +324,7 @@ export default function KeyEventsTimeline({
 	const halfPercent =
 		durationSeconds <= 0
 			? 0
-			: Math.min(100, Math.max(0, (HALF_TIME_SECONDS / durationSeconds) * 100));
+			: Math.min(100, Math.max(0, (timeline.firstHalfEndSecond / durationSeconds) * 100));
 	const playedSeconds = Math.min(
 		durationSeconds,
 		boundedCurrentSecond ?? matchEndSeconds ?? 0,
@@ -355,8 +335,8 @@ export default function KeyEventsTimeline({
 			: Math.min(100, Math.max(0, (playedSeconds / durationSeconds) * 100));
 	const firstHalfEndLabel = firstHalfEndSeconds == null
 		? "-"
-		: formatMatchTime(firstHalfEndSeconds);
-	const matchEndLabel = formatMatchTime(durationSeconds);
+		: formatClockSecond(firstHalfEndSeconds);
+	const matchEndLabel = formatTimelineSecond(durationSeconds, timeline, 2);
 	const hasScore = showScore && homeScore != null && awayScore != null;
 
 	const clampSelectableMinute = (minute: number) => {
@@ -469,11 +449,11 @@ export default function KeyEventsTimeline({
 					</span>
 
 					<span
-						className="absolute top-1 bottom-1 z-10 w-0.5 -translate-x-1/2 rounded-full bg-border"
+					className="absolute top-1 bottom-1 z-10 w-2 -translate-x-1/2 border-x border-border bg-background"
 						style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${halfPercent / 100})` }}
 					>
 						<span className="absolute left-1/2 top-0 -translate-x-1/2 rounded bg-background px-1 text-[10px] font-semibold tabular-nums text-muted-foreground">
-							45'
+							1P&nbsp;&nbsp;|&nbsp;&nbsp;2P
 						</span>
 					</span>
 
@@ -484,8 +464,8 @@ export default function KeyEventsTimeline({
 								: 0;
 						const color = getTeamColor(event.teamSide, homeColor, awayColor);
 						const teamName = getTeamName(event.teamSide, homeTeamName, awayTeamName);
-						const label = `${KIND_LABELS[event.kind]} ${teamName} ${formatMatchTime(
-							event.totalSeconds,
+						const label = `${KIND_LABELS[event.kind]} ${teamName} ${formatClockSecond(
+							event.matchSeconds,
 						)}`;
 
 						return (
@@ -507,7 +487,7 @@ export default function KeyEventsTimeline({
 								</span>
 								<span className="pointer-events-none absolute bottom-full left-1/2 z-20 mb-2 hidden w-max max-w-52 -translate-x-1/2 rounded-md border bg-popover px-2 py-1 text-left text-[11px] font-medium text-popover-foreground shadow-md group-hover:block group-focus-visible:block">
 									<span className="block">
-										{KIND_LABELS[event.kind]} - {formatMatchTime(event.totalSeconds)}
+										{KIND_LABELS[event.kind]} - {formatClockSecond(event.matchSeconds)}
 									</span>
 									<span className="block text-muted-foreground">
 										{teamName}
@@ -529,14 +509,22 @@ export default function KeyEventsTimeline({
 							style={{
 								left: `calc(0.75rem + (100% - 1.5rem) * ${currentPercent / 100})`,
 							}}
-							aria-label={`Minuto actual ${Math.floor(boundedCurrentSecond / 60)}'`}
+							aria-label={`Minuto actual ${formatTimelineSecond(
+								boundedCurrentSecond,
+								timeline,
+								timeline.currentPeriodId === 2 ? 2 : 1,
+							)}`}
 							onPointerDown={handleThumbPointerDown}
 							onPointerMove={handleThumbPointerMove}
 							onPointerUp={handleThumbPointerEnd}
 							onPointerCancel={handleThumbPointerEnd}
 						>
 							<span className="absolute top-1 rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-sm">
-								{Math.floor(boundedCurrentSecond / 60)}'
+								{formatTimelineSecond(
+									boundedCurrentSecond,
+									timeline,
+									timeline.currentPeriodId === 2 ? 2 : 1,
+								)}
 							</span>
 							<span className="absolute top-6 h-0 w-0 border-l-[7px] border-r-[7px] border-t-[9px] border-l-transparent border-r-transparent border-t-emerald-600" />
 							<span className="absolute bottom-1 top-8 w-1 rounded-full bg-emerald-600 shadow-sm" />
@@ -550,7 +538,7 @@ export default function KeyEventsTimeline({
 						<span className="shrink-0 tabular-nums text-foreground">Ult. 1P {firstHalfEndLabel}</span>
 					</div>
 					<div className="flex min-w-0 items-center justify-between gap-2">
-						<span className="shrink-0 tabular-nums text-foreground">45:00</span>
+						<span className="shrink-0 tabular-nums text-foreground">Inicio 2P 45:00</span>
 						<span className="shrink-0 tabular-nums text-foreground">Final {matchEndLabel}</span>
 					</div>
 				</div>

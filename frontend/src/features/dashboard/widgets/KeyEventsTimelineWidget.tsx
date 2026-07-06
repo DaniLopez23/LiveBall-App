@@ -8,7 +8,7 @@ import KeyEventsTimeline, {
 	type KeyEventKind,
 	type KeyEventsTimelineTeamFilter,
 } from "@/components/stats/KeyEventsTimeline";
-import { formatMatchTime, getMaxEventSecond } from "@/lib/matchTime";
+import { createMatchTimeline, formatTimelineSecond } from "@/lib/matchTimeline";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
 import useMatchSelectionStore from "@/store/matchSelectionStore";
@@ -98,10 +98,11 @@ export function KeyEventsTimelineWidget({
 	const homeTeamId = game?.home_team.team_id ?? null;
 	const awayTeamId = game?.away_team.team_id ?? null;
 	const timelineEndMinute = useMemo(() => getTimelineEndMinute(events, 90), [events]);
+	const timeline = useMemo(() => createMatchTimeline(events), [events]);
 	const minuteRange: [number, number] = [0, timelineEndMinute];
 	const isMatchFinished =
 		selectedMatchStatus === "finished" || hasFinishedMatchState(events);
-	const latestEventSecond = events.length > 0 ? getMaxEventSecond(events) : null;
+	const latestEventSecond = events.length > 0 ? timeline.availableSecond : null;
 	const markerSecond = !isMatchFinished ? latestEventSecond : null;
 	const scoreLimitSecond =
 		markerSecond ?? Math.max(0, timelineEndMinute * 60 + 59);
@@ -125,7 +126,11 @@ export function KeyEventsTimelineWidget({
 		isMatchFinished
 			? "Finalizado"
 			: markerSecond != null
-				? `Actual ${formatMatchTime(markerSecond)}`
+				? `Actual ${formatTimelineSecond(
+						markerSecond,
+						timeline,
+						timeline.currentPeriodId === 2 ? 2 : 1,
+					)}`
 				: "Sin eventos",
 	];
 

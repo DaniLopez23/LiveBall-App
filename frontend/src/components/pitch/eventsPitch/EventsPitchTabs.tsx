@@ -19,6 +19,8 @@ interface EventsPitchTabsProps {
   availableSequencePrecedingTypes: SequenceEndTypeOption[];
   availablePlayers: PlayerFilterOption[];
   maxMinute: number;
+  availableMinute: number;
+  firstHalfEndMinute: number;
   hasSecondHalf: boolean;
   showToggle?: boolean;
 }
@@ -35,6 +37,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
   availableSequencePrecedingTypes,
   availablePlayers,
   maxMinute,
+  availableMinute,
+  firstHalfEndMinute,
   hasSecondHalf,
   showToggle = true,
 }) => {
@@ -88,6 +92,8 @@ const EventsPitchTabs: React.FC<EventsPitchTabsProps> = ({
           availableSequencePrecedingTypes={availableSequencePrecedingTypes}
           availablePlayers={availablePlayers}
           maxMinute={maxMinute}
+          availableMinute={availableMinute}
+          firstHalfEndMinute={firstHalfEndMinute}
           hasSecondHalf={hasSecondHalf}
         />
       </div>

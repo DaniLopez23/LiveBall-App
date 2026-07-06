@@ -28,6 +28,7 @@ import {
   type EventSequence,
 } from "@/components/pitch/eventsPitch/eventSequences";
 import { getActionLabel } from "@/components/pitch/eventsPitch/eventDisplay";
+import { createMatchTimeline, eventToTimelineSecond } from "@/lib/matchTimeline";
 import { cn } from "@/lib/utils";
 import useEventsStore from "@/store/eventsStore";
 import useGameStore from "@/store/gameStore";
@@ -171,21 +172,11 @@ const EventsPage: React.FC = () => {
         left.id.localeCompare(right.id),
     );
   }, [eventSequences]);
-  const currentMaxMinute = useMemo(
-    () =>
-      pitchEvents.reduce(
-        (maxMinute, event) => Math.max(maxMinute, event.min ?? 0),
-        0,
-      ),
-    [pitchEvents],
-  );
-  const hasSecondHalf = useMemo(
-    () =>
-      pitchEvents.some(
-        (event) => event.period_id === 2 || (event.min ?? 0) >= 45,
-      ),
-    [pitchEvents],
-  );
+  const matchTimeline = useMemo(() => createMatchTimeline(pitchEvents), [pitchEvents]);
+  const currentMaxMinute = Math.ceil(matchTimeline.availableSecond / 60);
+  const timelineEndMinute = Math.ceil(matchTimeline.durationSecond / 60);
+  const firstHalfEndMinute = Math.ceil(matchTimeline.firstHalfEndSecond / 60);
+  const hasSecondHalf = matchTimeline.hasSecondHalf;
 
   const availableTypeIds = useMemo(
     () => Array.from(new Set(pitchEvents.map((event) => event.type_id))) as string[],
@@ -519,7 +510,19 @@ const EventsPage: React.FC = () => {
 
     const [minMinute, maxMinute] = displayFilters.minuteRange;
     result = result.filter((event) => {
-      const minute = event.min ?? 0;
+      if (
+        displayFilters.minuteRangePreset === "first-half" &&
+        (event.period_id ?? 1) >= 2
+      ) {
+        return false;
+      }
+      if (
+        displayFilters.minuteRangePreset === "second-half" &&
+        (event.period_id ?? 1) < 2
+      ) {
+        return false;
+      }
+      const minute = eventToTimelineSecond(event, matchTimeline) / 60;
       return minute >= minMinute && minute <= maxMinute;
     });
 
@@ -530,6 +533,7 @@ const EventsPage: React.FC = () => {
     game,
     isDefaultAllSelection,
     selectedSequence,
+    matchTimeline,
   ]);
 
   const tableResultCount =
@@ -617,7 +621,9 @@ const EventsPage: React.FC = () => {
             availableSequenceEndTypes={sequenceEndTypeOptions}
             availableSequencePrecedingTypes={sequencePrecedingTypeOptions}
             availablePlayers={availablePlayers}
-            maxMinute={currentMaxMinute}
+            maxMinute={timelineEndMinute}
+            availableMinute={currentMaxMinute}
+            firstHalfEndMinute={firstHalfEndMinute}
             hasSecondHalf={hasSecondHalf}
           />
         </div>
@@ -643,7 +649,9 @@ const EventsPage: React.FC = () => {
             availableSequenceEndTypes={sequenceEndTypeOptions}
             availableSequencePrecedingTypes={sequencePrecedingTypeOptions}
             availablePlayers={availablePlayers}
-            maxMinute={currentMaxMinute}
+            maxMinute={timelineEndMinute}
+            availableMinute={currentMaxMinute}
+            firstHalfEndMinute={firstHalfEndMinute}
             hasSecondHalf={hasSecondHalf}
           />
         </SheetContent>

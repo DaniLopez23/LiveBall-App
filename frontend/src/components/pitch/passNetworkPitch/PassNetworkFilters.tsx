@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider-14";
-import { formatMatchTime, clamp, getEventMatchSecond } from "@/lib/matchTime";
+import { clamp } from "@/lib/matchTime";
+import { createMatchTimeline, formatTimelineSecond } from "@/lib/matchTimeline";
 import { cn } from "@/lib/utils";
 import type { Event } from "@/types/event";
 import PassNetworkTimelineSlicer from "./PassNetworkTimelineSlicer";
@@ -42,7 +43,6 @@ interface PassNetworkFiltersProps {
 }
 
 const WINDOW_PRESETS_SECONDS = [5 * 60, 10 * 60, 15 * 60];
-const FIRST_HALF_SECONDS = 45 * 60;
 
 const modeOptions: Array<{ value: PassingNetworkMode; label: string }> = [
 	{ value: "cumulative", label: "Acumulado" },
@@ -56,41 +56,15 @@ const clampDuration = (durationSeconds: number, maxSecond: number): number => {
 
 const getCumulativePeriodPresets = (events: Event[], maxSecond: number) => {
 	const boundedMaxSecond = Math.max(0, Math.floor(maxSecond));
-	const firstPeriodEnd = events.reduce((latestSecond, event) => {
-		if (event.period_id !== 1) return latestSecond;
-		const eventSecond = getEventMatchSecond(event);
-		return eventSecond == null ? latestSecond : Math.max(latestSecond, eventSecond);
-	}, 0);
-	const secondPeriodStart = events.reduce<number | null>((earliestSecond, event) => {
-		if (event.period_id !== 2) return earliestSecond;
-		const eventSecond = getEventMatchSecond(event);
-		if (eventSecond == null) return earliestSecond;
-		return earliestSecond == null ? eventSecond : Math.min(earliestSecond, eventSecond);
-	}, null);
-	const extraTimeStart = events.reduce<number | null>((earliestSecond, event) => {
-		if ((event.period_id ?? 0) < 3) return earliestSecond;
-		const eventSecond = getEventMatchSecond(event);
-		if (eventSecond == null) return earliestSecond;
-		return earliestSecond == null ? eventSecond : Math.min(earliestSecond, eventSecond);
-	}, null);
-	const hasSecondHalf =
-		secondPeriodStart != null ||
-		(boundedMaxSecond > FIRST_HALF_SECONDS && firstPeriodEnd <= FIRST_HALF_SECONDS);
+	const timeline = createMatchTimeline(events);
+	const hasSecondHalf = timeline.hasSecondHalf;
 
 	if (!hasSecondHalf) {
 		return [{ label: "Completo", range: [0, boundedMaxSecond] as [number, number] }];
 	}
 
-	const secondHalfStart = clamp(
-		secondPeriodStart ?? FIRST_HALF_SECONDS,
-		FIRST_HALF_SECONDS,
-		boundedMaxSecond,
-	);
-	const secondHalfEnd = clamp(
-		extraTimeStart ?? boundedMaxSecond,
-		secondHalfStart,
-		boundedMaxSecond,
-	);
+	const secondHalfStart = Math.min(timeline.firstHalfEndSecond, boundedMaxSecond);
+	const secondHalfEnd = Math.max(secondHalfStart, boundedMaxSecond);
 
 	return [
 		{ label: "Primera parte", range: [0, secondHalfStart] as [number, number] },
@@ -130,6 +104,7 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 	);
 	const isLiveDisabled = filters.followLive && currentSecond >= maxSecond;
 	const cumulativePeriodPresets = getCumulativePeriodPresets(events, maxSecond);
+	const timeline = createMatchTimeline(events);
 	const displayEndSecond =
 		filters.mode === "cumulative"
 			? clamp(currentSecond, rangeStartSecond, rangeEndSecond)
@@ -352,11 +327,22 @@ const PassNetworkFilters: React.FC<PassNetworkFiltersProps> = ({
 						<p className="text-xs font-medium text-muted-foreground">
 							Mostrando desde{" "}
 							<span className="tabular-nums text-foreground">
-								{formatMatchTime(rangeStartSecond)}
+								{formatTimelineSecond(
+									rangeStartSecond,
+									timeline,
+									rangeStartSecond >= timeline.firstHalfEndSecond ? 2 : 1,
+								)}
 							</span>{" "}
 							hasta{" "}
 							<span className="tabular-nums text-foreground">
-								{formatMatchTime(displayEndSecond)}
+								{formatTimelineSecond(
+									displayEndSecond,
+									timeline,
+									rangeStartSecond >= timeline.firstHalfEndSecond ||
+										displayEndSecond > timeline.firstHalfEndSecond
+										? 2
+										: 1,
+								)}
 							</span>
 						</p>
 						<Button
