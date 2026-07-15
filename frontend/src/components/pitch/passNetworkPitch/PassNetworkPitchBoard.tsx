@@ -11,6 +11,7 @@ interface PassNetworkPitchBoardProps {
 	mirrorX?: boolean;
 	fieldColor?: string;
 	animated?: boolean;
+	verticalAlign?: "center" | "start";
 }
 
 const PassNetworkPitchBoard: React.FC<PassNetworkPitchBoardProps> = ({
@@ -21,8 +22,13 @@ const PassNetworkPitchBoard: React.FC<PassNetworkPitchBoardProps> = ({
 	mirrorX = false,
 	fieldColor,
 	animated = false,
+	verticalAlign = "center",
 }) => (
-	<OptaPitch orientation={orientation} fieldColor={fieldColor}>
+	<OptaPitch
+		orientation={orientation}
+		fieldColor={fieldColor}
+		verticalAlign={verticalAlign}
+	>
 		<PassNetworkElements
 			nodes={nodes}
 			edges={edges}

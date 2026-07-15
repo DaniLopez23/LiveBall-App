@@ -16,10 +16,14 @@ import {
 	BUCKET_SIZE_SECONDS,
 	DEFAULT_TIMELINE_END_SECONDS,
 	clamp,
-	formatMatchTime,
-	getEventMatchSecond,
 	snapSecondToBucket,
 } from "@/lib/matchTime";
+import {
+	createMatchTimeline,
+	formatClockSecond,
+	formatTimelineRange,
+	formatTimelineSecond,
+} from "@/lib/matchTimeline";
 import { cn } from "@/lib/utils";
 import type {
 	PassNetworkRangeChangeOptions,
@@ -56,15 +60,6 @@ const KIND_LABELS: Record<KeyEventKind, string> = {
 	card: "Tarjeta",
 };
 const UNKNOWN_TEAM_COLOR = "#64748b";
-
-function getLastAvailableSecond(events: Event[], maxSecond: number): number {
-	const lastEventSecond = events.reduce((latestSecond, event) => {
-		const eventSecond = getEventMatchSecond(event);
-		return eventSecond == null ? latestSecond : Math.max(latestSecond, eventSecond);
-	}, 0);
-
-	return Math.max(0, Math.max(lastEventSecond, maxSecond));
-}
 
 function secondToPercent(second: number, timelineEndSecond: number): number {
 	if (timelineEndSecond <= 0) return 0;
@@ -154,8 +149,10 @@ export default function PassNetworkTimelineSlicer({
 	const trackRef = useRef<HTMLDivElement | null>(null);
 	const dragOffsetRef = useRef(0);
 	const [dragTarget, setDragTarget] = useState<"start" | "end" | "cursor" | "window" | null>(null);
+	const timeline = useMemo(() => createMatchTimeline(events), [events]);
 	const timelineEndSecond = Math.max(
 		DEFAULT_TIMELINE_END_SECONDS,
+		timeline.durationSecond,
 		maxSecond,
 		selectedRangeSeconds[1],
 	);
@@ -173,10 +170,7 @@ export default function PassNetworkTimelineSlicer({
 	const selectedDuration = Math.max(bucketSizeSeconds, rangeEndSecond - rangeStartSecond);
 	const current = clamp(currentSecond, 0, maxSelectableSecond);
 	const cursorSecond = clamp(current, rangeStartSecond, rangeEndSecond);
-	const lastAvailableSecond = useMemo(
-		() => getLastAvailableSecond(events, maxSecond),
-		[events, maxSecond],
-	);
+	const lastAvailableSecond = Math.max(0, maxSecond);
 	const timelineEvents = useMemo(
 		() =>
 			getKeyTimelineEvents(events, homeTeamId, awayTeamId).filter(
@@ -193,6 +187,7 @@ export default function PassNetworkTimelineSlicer({
 	const cursorPercent = secondToPercent(cursorSecond, timelineEndSecond);
 	const cursorWidthPercent = Math.max(0, cursorPercent - selectedStartPercent);
 	const playedPercent = secondToPercent(lastAvailableSecond, timelineEndSecond);
+	const halfPercent = secondToPercent(timeline.firstHalfEndSecond, timelineEndSecond);
 
 	const getSecondFromClientX = (clientX: number): number => {
 		const element = trackRef.current;
@@ -371,7 +366,7 @@ export default function PassNetworkTimelineSlicer({
 		commitCumulativeEnd(rangeEndSecond + delta, false);
 	};
 
-	const rangeLabel = `${formatMatchTime(rangeStartSecond)} - ${formatMatchTime(rangeEndSecond)}`;
+	const rangeLabel = formatTimelineRange([rangeStartSecond, rangeEndSecond], timeline);
 
 	return (
 		<div className={cn("min-w-0", className)}>
@@ -452,12 +447,20 @@ export default function PassNetworkTimelineSlicer({
 						/>
 					) : null}
 				</div>
+				<span
+					className="pointer-events-none absolute top-7 z-30 h-10 w-2 -translate-x-1/2 border-x border-border bg-background"
+					style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${halfPercent / 100})` }}
+				>
+					<span className="absolute -top-4 left-1/2 w-max -translate-x-1/2 rounded bg-background px-1 text-[10px] font-semibold text-muted-foreground">
+						1P | 2P
+					</span>
+				</span>
 
 				<span className="absolute left-3 top-[4.7rem] text-[10px] font-medium tabular-nums text-muted-foreground">
 					00:00
 				</span>
 				<span className="absolute right-3 top-[4.7rem] text-[10px] font-medium tabular-nums text-muted-foreground">
-					{formatMatchTime(timelineEndSecond)}
+					{formatTimelineSecond(timelineEndSecond, timeline, 2)}
 				</span>
 
 				{timelineEvents.map((event, index) => {
@@ -470,7 +473,7 @@ export default function PassNetworkTimelineSlicer({
 							key={`${event.kind}-${event.id}-${index}`}
 							className="group absolute top-12 z-20 flex h-14 w-7 -translate-x-1/2 -translate-y-1/2 items-center justify-center"
 							style={{ left: `calc(0.75rem + (100% - 1.5rem) * ${percent / 100})` }}
-							aria-label={`${KIND_LABELS[event.kind]} ${formatMatchTime(event.totalSeconds)}`}
+							aria-label={`${KIND_LABELS[event.kind]} ${formatClockSecond(event.matchSeconds)}`}
 						>
 							<span
 								className="absolute bottom-2 top-5 w-px rounded-full shadow-sm"
@@ -484,7 +487,7 @@ export default function PassNetworkTimelineSlicer({
 							</span>
 							<span className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-2 hidden w-max max-w-52 -translate-x-1/2 rounded-md border bg-popover px-2 py-1 text-left text-[11px] font-medium text-popover-foreground shadow-md group-hover:block group-focus-visible:block">
 								<span className="block">
-									{KIND_LABELS[event.kind]} - {formatMatchTime(event.totalSeconds)}
+									{KIND_LABELS[event.kind]} - {formatClockSecond(event.matchSeconds)}
 								</span>
 								<span className="block text-muted-foreground">
 									{teamName}
@@ -543,7 +546,11 @@ export default function PassNetworkTimelineSlicer({
 								onKeyDown={handleKeyDown(target)}
 							>
 								<span className="rounded-md bg-emerald-600 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white shadow-sm">
-									{formatMatchTime(second)}
+							{formatTimelineSecond(
+								second,
+								timeline,
+								target === "end" ? 1 : 2,
+							)}
 								</span>
 								<span className="mt-0.5 h-0 w-0 border-l-[7px] border-r-[7px] border-t-[9px] border-l-transparent border-r-transparent border-t-emerald-600" />
 								<span className="h-9 w-1 rounded-full bg-emerald-600 shadow-sm ring-2 ring-background" />
@@ -569,7 +576,7 @@ export default function PassNetworkTimelineSlicer({
 					>
 						<span className="h-full w-1 rounded-full bg-primary shadow-sm ring-2 ring-background" />
 						<span className="mt-2 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-primary-foreground shadow-sm">
-							{formatMatchTime(cursorSecond)}
+							{formatTimelineSecond(cursorSecond, timeline, 2)}
 						</span>
 					</span>
 				) : null}

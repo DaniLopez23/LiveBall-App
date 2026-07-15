@@ -345,9 +345,13 @@ const PassNetworkElements: React.FC<PassNetworkElementsProps> = ({
 
     for (const node of nodes) {
       const optaX = mirrorX ? 100 - node.avg_position_total.x : node.avg_position_total.x;
+      const optaY =
+        orientation === "vertical"
+          ? 100 - node.avg_position_total.y
+          : node.avg_position_total.y;
       const { x: svgX, y: svgY } = transformOptaToSvgPure(
         optaX,
-        node.avg_position_total.y,
+        optaY,
         orientation,
       );
 

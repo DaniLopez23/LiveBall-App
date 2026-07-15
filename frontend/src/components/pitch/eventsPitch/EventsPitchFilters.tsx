@@ -68,6 +68,8 @@ interface EventsPitchFiltersProps {
   availableSequencePrecedingTypes: SequenceEndTypeOption[];
   availablePlayers: PlayerFilterOption[];
   maxMinute: number;
+  availableMinute: number;
+  firstHalfEndMinute: number;
   hasSecondHalf: boolean;
 }
 
@@ -83,6 +85,8 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   availableSequencePrecedingTypes,
   availablePlayers,
   maxMinute,
+  availableMinute,
+  firstHalfEndMinute,
   hasSecondHalf,
 }) => {
   const sequenceEndTypesAnchor = useComboboxAnchor();
@@ -239,10 +243,21 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
   const isAllMode = filters.mode === "all";
 
   const boundedMaxMinute = Math.max(0, Math.floor(maxMinute));
-  const safeMinuteStart = Math.min(Math.max(0, filters.minuteRange[0]), boundedMaxMinute);
+  const boundedAvailableMinute = Math.min(
+    boundedMaxMinute,
+    Math.max(0, Math.ceil(availableMinute)),
+  );
+  const boundedFirstHalfEndMinute = Math.min(
+    boundedMaxMinute,
+    Math.max(45, Math.ceil(firstHalfEndMinute)),
+  );
+  const safeMinuteStart = Math.min(
+    Math.max(0, filters.minuteRange[0]),
+    boundedAvailableMinute,
+  );
   const safeMinuteEnd = Math.max(
     safeMinuteStart,
-    Math.min(Math.max(0, filters.minuteRange[1]), boundedMaxMinute),
+    Math.min(Math.max(0, filters.minuteRange[1]), boundedAvailableMinute),
   );
   const safeMinuteRange: [number, number] = [safeMinuteStart, safeMinuteEnd];
   const sliderMax = Math.max(1, boundedMaxMinute);
@@ -250,25 +265,25 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
     {
       label: "1a Parte",
       preset: "first-half" as const,
-      range: [0, Math.min(45, boundedMaxMinute)] as [number, number],
+      range: [0, Math.min(boundedFirstHalfEndMinute, boundedAvailableMinute)] as [number, number],
       disabled: false,
     },
     {
       label: "2a Parte",
       preset: "second-half" as const,
-      range: [45, boundedMaxMinute] as [number, number],
-      disabled: !hasSecondHalf || boundedMaxMinute < 45,
+      range: [boundedFirstHalfEndMinute, boundedAvailableMinute] as [number, number],
+      disabled: !hasSecondHalf || boundedAvailableMinute < boundedFirstHalfEndMinute,
     },
     {
       label: "Completo",
       preset: "full" as const,
-      range: [0, boundedMaxMinute] as [number, number],
+      range: [0, boundedAvailableMinute] as [number, number],
       disabled: false,
     },
   ];
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-5 overflow-y-auto pr-1">
+    <div className="flex min-h-0 flex-col gap-4 pr-1">
       <div>
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Modo
@@ -630,165 +645,171 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
         <>
           <Separator />
 
-          <div className="flex min-h-0 flex-col gap-4 rounded-lg border border-border/70 bg-background/45 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          <div className="flex min-h-0 flex-col gap-2.5 rounded-lg border border-border/70 bg-muted/20 p-2.5">
+            <p className="px-0.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Tipos de eventos
             </p>
 
-            <Select value={filters.selectedEventType} onValueChange={handleEventTypeChange}>
-              <SelectTrigger size="sm" className="w-full bg-background">
-                <SelectValue placeholder="Tipo de evento" />
-              </SelectTrigger>
-              <SelectContent>
-                {availablePitchTypes.map((type) => (
-                  <SelectItem key={type.value} value={type.value}>
-                    {type.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-
-            {!isOutEventSelected ? (
-              <div className="grid min-h-0 grid-cols-1 gap-5">
-                <div className="flex min-w-0 flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground">Subtipos de evento</p>
-                    <span className="text-[11px] text-muted-foreground">
-                      {formatSelectionCounter(
-                        validSelectedSubtypes.length,
-                        availableSubtypeOptions.length,
-                      )}
-                    </span>
-                  </div>
-                  <Combobox
-                    multiple
-                    value={filters.selectedSubtypes}
-                    disabled={availableSubtypeOptions.length === 0}
-                    onValueChange={(value) =>
-                      onChange({ ...filters, selectedSubtypes: value as string[] })
-                    }
+            <div className="grid gap-2">
+              <div className="grid min-w-0 grid-cols-[6.75rem_minmax(0,1fr)] items-center gap-2 rounded-md border border-border/60 bg-background px-2.5 py-2 shadow-xs">
+                <label className="min-w-0 truncate text-[11px] font-medium text-muted-foreground">
+                  Tipo de evento
+                </label>
+                <Select value={filters.selectedEventType} onValueChange={handleEventTypeChange}>
+                  <SelectTrigger
+                    aria-label="Tipo de evento"
+                    className="h-9 min-w-0 bg-background text-left"
                   >
-                    <div ref={subtypesAnchor} className="w-full min-w-0">
-                      <ComboboxTrigger
-                        disabled={availableSubtypeOptions.length === 0}
-                        className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-left">
-                          {formatSelectionSummary(
-                            validSelectedSubtypes.length,
-                            availableSubtypeOptions.length,
-                            "Sin subtipos",
-                            "Todos los subtipos",
-                          )}
-                        </span>
-                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {formatSelectionCounter(
-                            validSelectedSubtypes.length,
-                            availableSubtypeOptions.length,
-                          )}
-                        </span>
-                      </ComboboxTrigger>
-                    </div>
-                    <ComboboxContent anchor={subtypesAnchor}>
-                      <div className="flex items-center justify-end border-b px-2 py-1.5">
-                        <button
-                          type="button"
-                          className="text-xs text-primary disabled:text-muted-foreground"
-                          disabled={availableSubtypeOptions.length === 0}
-                          onClick={() =>
-                            onChange({
-                              ...filters,
-                              selectedSubtypes: allSubtypesSelected ? [] : allSubtypeIds,
-                            })
-                          }
-                        >
-                          {allSubtypesSelected ? "Limpiar seleccion" : "Seleccionar todo"}
-                        </button>
-                      </div>
-                      <ComboboxList>
-                        {availableSubtypeOptions.length === 0 ? (
-                          <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
-                        ) : null}
-                        {availableSubtypeOptions.map((option) => (
-                          <ComboboxItem key={option.id} value={option.id}>
-                            {option.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
-
-                <div className="flex min-w-0 flex-col gap-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[11px] text-muted-foreground">Resultado</p>
-                    <span className="text-[11px] text-muted-foreground">
-                      {formatSelectionCounter(
-                        validSelectedOutcomes.length,
-                        availableOutcomeOptions.length,
-                      )}
-                    </span>
-                  </div>
-                  <Combobox
-                    multiple
-                    value={filters.selectedOutcomes}
-                    disabled={availableOutcomeOptions.length === 0}
-                    onValueChange={(value) =>
-                      onChange({ ...filters, selectedOutcomes: value as string[] })
-                    }
+                    <SelectValue placeholder="Tipo de evento" />
+                  </SelectTrigger>
+                  <SelectContent
+                    position="popper"
+                    align="start"
+                    className="min-w-[var(--radix-select-trigger-width)]"
                   >
-                    <div ref={outcomesAnchor} className="w-full min-w-0">
-                      <ComboboxTrigger
-                        disabled={availableOutcomeOptions.length === 0}
-                        className="flex h-10 w-full items-center gap-2 rounded-md border border-input bg-background px-3 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
-                      >
-                        <span className="min-w-0 flex-1 truncate text-left">
-                          {formatSelectionSummary(
-                            validSelectedOutcomes.length,
-                            availableOutcomeOptions.length,
-                            "Sin resultados",
-                            "Todos los resultados",
-                          )}
-                        </span>
-                        <span className="shrink-0 rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
-                          {formatSelectionCounter(
-                            validSelectedOutcomes.length,
-                            availableOutcomeOptions.length,
-                          )}
-                        </span>
-                      </ComboboxTrigger>
-                    </div>
-                    <ComboboxContent anchor={outcomesAnchor}>
-                      <div className="flex items-center justify-end border-b px-2 py-1.5">
-                        <button
-                          type="button"
-                          className="text-xs text-primary disabled:text-muted-foreground"
-                          disabled={availableOutcomeOptions.length === 0}
-                          onClick={() =>
-                            onChange({
-                              ...filters,
-                              selectedOutcomes: allOutcomesSelected ? [] : allOutcomeIds,
-                            })
-                          }
-                        >
-                          {allOutcomesSelected ? "Limpiar seleccion" : "Seleccionar todo"}
-                        </button>
-                      </div>
-                      <ComboboxList>
-                        {availableOutcomeOptions.length === 0 ? (
-                          <ComboboxEmpty>No hay resultados disponibles.</ComboboxEmpty>
-                        ) : null}
-                        {availableOutcomeOptions.map((option) => (
-                          <ComboboxItem key={option.id} value={option.id}>
-                            {option.label}
-                          </ComboboxItem>
-                        ))}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                </div>
+                    {availablePitchTypes.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            ) : null}
+
+              {!isOutEventSelected ? (
+                <>
+                  <div className="grid min-w-0 grid-cols-[6.75rem_minmax(0,1fr)] items-center gap-2 rounded-md border border-border/60 bg-background px-2.5 py-2 shadow-xs">
+                    <div className="min-w-0">
+                      <label className="block truncate text-[11px] font-medium text-muted-foreground">
+                        Subtipos
+                      </label>
+                      <span className="mt-0.5 inline-flex rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {formatSelectionCounter(
+                          validSelectedSubtypes.length,
+                          availableSubtypeOptions.length,
+                        )}
+                      </span>
+                    </div>
+                    <Combobox
+                      multiple
+                      value={filters.selectedSubtypes}
+                      disabled={availableSubtypeOptions.length === 0}
+                      onValueChange={(value) =>
+                        onChange({ ...filters, selectedSubtypes: value as string[] })
+                      }
+                    >
+                      <div ref={subtypesAnchor} className="w-full min-w-0">
+                        <ComboboxTrigger
+                          disabled={availableSubtypeOptions.length === 0}
+                          className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-left leading-tight">
+                            {formatSelectionSummary(
+                              validSelectedSubtypes.length,
+                              availableSubtypeOptions.length,
+                              "Sin subtipos",
+                              "Todos los subtipos",
+                            )}
+                          </span>
+                        </ComboboxTrigger>
+                      </div>
+                      <ComboboxContent anchor={subtypesAnchor} className="sm:min-w-80">
+                        <div className="flex items-center justify-end border-b px-2 py-1.5">
+                          <button
+                            type="button"
+                            className="text-xs text-primary disabled:text-muted-foreground"
+                            disabled={availableSubtypeOptions.length === 0}
+                            onClick={() =>
+                              onChange({
+                                ...filters,
+                                selectedSubtypes: allSubtypesSelected ? [] : allSubtypeIds,
+                              })
+                            }
+                          >
+                            {allSubtypesSelected ? "Limpiar seleccion" : "Seleccionar todo"}
+                          </button>
+                        </div>
+                        <ComboboxList className="max-h-56">
+                          {availableSubtypeOptions.length === 0 ? (
+                            <ComboboxEmpty>No hay subtipos para este tipo de evento.</ComboboxEmpty>
+                          ) : null}
+                          {availableSubtypeOptions.map((option) => (
+                            <ComboboxItem key={option.id} value={option.id}>
+                              {option.label}
+                            </ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
+
+                  <div className="grid min-w-0 grid-cols-[6.75rem_minmax(0,1fr)] items-center gap-2 rounded-md border border-border/60 bg-background px-2.5 py-2 shadow-xs">
+                    <div className="min-w-0">
+                      <label className="block truncate text-[11px] font-medium text-muted-foreground">
+                        Resultado
+                      </label>
+                      <span className="mt-0.5 inline-flex rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                        {formatSelectionCounter(
+                          validSelectedOutcomes.length,
+                          availableOutcomeOptions.length,
+                        )}
+                      </span>
+                    </div>
+                    <Combobox
+                      multiple
+                      value={filters.selectedOutcomes}
+                      disabled={availableOutcomeOptions.length === 0}
+                      onValueChange={(value) =>
+                        onChange({ ...filters, selectedOutcomes: value as string[] })
+                      }
+                    >
+                      <div ref={outcomesAnchor} className="w-full min-w-0">
+                        <ComboboxTrigger
+                          disabled={availableOutcomeOptions.length === 0}
+                          className="flex h-9 min-w-0 items-center gap-2 rounded-md border border-input bg-background px-2.5 text-sm shadow-xs transition-colors hover:bg-muted/50 data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-left leading-tight">
+                            {formatSelectionSummary(
+                              validSelectedOutcomes.length,
+                              availableOutcomeOptions.length,
+                              "Sin resultados",
+                              "Todos los resultados",
+                            )}
+                          </span>
+                        </ComboboxTrigger>
+                      </div>
+                      <ComboboxContent anchor={outcomesAnchor} className="sm:min-w-80">
+                        <div className="flex items-center justify-end border-b px-2 py-1.5">
+                          <button
+                            type="button"
+                            className="text-xs text-primary disabled:text-muted-foreground"
+                            disabled={availableOutcomeOptions.length === 0}
+                            onClick={() =>
+                              onChange({
+                                ...filters,
+                                selectedOutcomes: allOutcomesSelected ? [] : allOutcomeIds,
+                              })
+                            }
+                          >
+                            {allOutcomesSelected ? "Limpiar seleccion" : "Seleccionar todo"}
+                          </button>
+                        </div>
+                        <ComboboxList className="max-h-56">
+                          {availableOutcomeOptions.length === 0 ? (
+                            <ComboboxEmpty>No hay resultados disponibles.</ComboboxEmpty>
+                          ) : null}
+                          {availableOutcomeOptions.map((option) => (
+                            <ComboboxItem key={option.id} value={option.id}>
+                              {option.label}
+                            </ComboboxItem>
+                          ))}
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                  </div>
+                </>
+              ) : null}
+            </div>
           </div>
 
           <Separator />
@@ -801,30 +822,46 @@ const EventsPitchFilters: React.FC<EventsPitchFiltersProps> = ({
               <span className="w-6 text-right text-xs text-muted-foreground">
                 {safeMinuteRange[0]}&apos;
               </span>
-              <Slider
-                min={0}
-                max={sliderMax}
-                step={1}
-                disabled={boundedMaxMinute === 0}
-                value={safeMinuteRange}
-                onValueChange={(value) => {
-                  const nextStart = Math.min(boundedMaxMinute, Math.max(0, value[0] ?? 0));
-                  const nextEnd = Math.min(
-                    boundedMaxMinute,
-                    Math.max(0, value[1] ?? nextStart),
-                  );
+              <div className="relative flex-1 pt-4">
+                <span className="absolute left-0 top-0 text-[10px] font-semibold text-muted-foreground">1P</span>
+                <span
+                  className="pointer-events-none absolute top-3 z-20 h-5 w-2 -translate-x-1/2 border-x border-border bg-background"
+                  style={{ left: `${(boundedFirstHalfEndMinute / sliderMax) * 100}%` }}
+                />
+                <span
+                  className="absolute top-0 text-[10px] font-semibold text-muted-foreground"
+                  style={{ left: `calc(${(boundedFirstHalfEndMinute / sliderMax) * 100}% + 0.4rem)` }}
+                >
+                  2P
+                </span>
+                <Slider
+                  min={0}
+                  max={sliderMax}
+                  step={1}
+                  disabled={boundedAvailableMinute === 0}
+                  value={safeMinuteRange}
+                  onValueChange={(value) => {
+                    const nextStart = Math.min(
+                      boundedAvailableMinute,
+                      Math.max(0, value[0] ?? 0),
+                    );
+                    const nextEnd = Math.min(
+                      boundedAvailableMinute,
+                      Math.max(0, value[1] ?? nextStart),
+                    );
 
-                  onChange({
-                    ...filters,
-                    minuteRange: [
-                      Math.min(nextStart, nextEnd),
-                      Math.max(nextStart, nextEnd),
-                    ] as [number, number],
-                    minuteRangePreset: "custom",
-                  });
-                }}
-                className="flex-1"
-              />
+                    onChange({
+                      ...filters,
+                      minuteRange: [
+                        Math.min(nextStart, nextEnd),
+                        Math.max(nextStart, nextEnd),
+                      ] as [number, number],
+                      minuteRangePreset: "custom",
+                    });
+                  }}
+                  className="flex-1"
+                />
+              </div>
               <span className="w-6 text-xs text-muted-foreground">{safeMinuteRange[1]}&apos;</span>
             </div>
             <div className="grid grid-cols-3 gap-1">

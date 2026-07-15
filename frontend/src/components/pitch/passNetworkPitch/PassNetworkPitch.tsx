@@ -32,6 +32,8 @@ interface PassNetworkPitchProps {
   teamName?: string;
   /** Optional temporal range label shown in capture summary. */
   rangeLabel?: string;
+  /** Vertical alignment for the rendered pitch area. */
+  pitchVerticalAlign?: "center" | "start";
 }
 
 const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
@@ -46,6 +48,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
   showHeader = true,
   teamName,
   rangeLabel,
+  pitchVerticalAlign = "center",
 }) => {
   const [isFullscreenOpen, setIsFullscreenOpen] = useState(false);
   const [isCaptureOpen, setIsCaptureOpen] = useState(false);
@@ -90,6 +93,7 @@ const PassNetworkPitch: React.FC<PassNetworkPitchProps> = ({
           mirrorX={mirrorX}
           fieldColor={fieldColor}
           animated={animated}
+          verticalAlign={pitchVerticalAlign}
         />
         {noDataMessage ? <PassNetworkNoDataOverlay message={noDataMessage} /> : null}
       </div>
