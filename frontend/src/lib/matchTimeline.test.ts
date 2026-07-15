@@ -61,3 +61,14 @@ test("keeps first-half added time when live play has just entered 2P", () => {
 		[0, 51 * 60],
 	);
 });
+
+test("uses the latest timeline event even when events are not ordered", () => {
+	const timeline = createMatchTimeline([
+		makeEvent("second-late", 2, 89, 30),
+		makeEvent("first-late-array-item", 1, 44, 10),
+	]);
+
+	assert.equal(timeline.hasSecondHalf, true);
+	assert.equal(timeline.availableSecond, 89 * 60 + 30);
+	assert.equal(timeline.currentPeriodId, 2);
+});

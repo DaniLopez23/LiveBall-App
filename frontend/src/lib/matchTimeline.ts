@@ -26,12 +26,10 @@ function getMainPeriodId(event: Event): 1 | 2 {
 export function createMatchTimeline(events: Event[]): MatchTimelineModel {
 	let firstHalfEndSecond = REGULATION_HALF_SECONDS;
 	let secondHalfEndMatchSecond = REGULATION_MATCH_SECONDS;
-	let latestEvent: Event | null = null;
 
 	for (const event of events) {
 		const matchSecond = getEventMatchSecond(event);
 		if (matchSecond == null) continue;
-		latestEvent = event;
 
 		if (getMainPeriodId(event) === 1) {
 			firstHalfEndSecond = Math.max(firstHalfEndSecond, matchSecond);
@@ -40,19 +38,28 @@ export function createMatchTimeline(events: Event[]): MatchTimelineModel {
 		}
 	}
 
-	const currentPeriodId = latestEvent ? getMainPeriodId(latestEvent) : 1;
 	const hasSecondHalf = events.some((event) => (event.period_id ?? 1) >= 2);
 	const durationSecond =
 		firstHalfEndSecond + (secondHalfEndMatchSecond - REGULATION_HALF_SECONDS);
-	const availableSecond = latestEvent
-		? eventToTimelineSecond(latestEvent, { firstHalfEndSecond })
-		: 0;
+	let latestTimelineSecond = 0;
+	let currentPeriodId = 1;
+
+	for (const event of events) {
+		const matchSecond = getEventMatchSecond(event);
+		if (matchSecond == null) continue;
+
+		const timelineSecond = eventToTimelineSecond(event, { firstHalfEndSecond });
+		if (timelineSecond >= latestTimelineSecond) {
+			latestTimelineSecond = timelineSecond;
+			currentPeriodId = getMainPeriodId(event);
+		}
+	}
 
 	return {
 		firstHalfEndSecond,
 		secondHalfEndMatchSecond,
 		durationSecond,
-		availableSecond,
+		availableSecond: latestTimelineSecond,
 		currentPeriodId,
 		hasSecondHalf,
 	};

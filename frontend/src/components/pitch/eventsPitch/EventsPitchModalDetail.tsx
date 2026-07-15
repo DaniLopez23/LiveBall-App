@@ -146,7 +146,6 @@ const EventsPitchModalDetail: React.FC<EventsPitchModalDetailProps> = ({
 						orientation="horizontal"
 						showHeader={false}
 						highlightedEventId={event.id}
-						animateSequence
 						game={game}
 					/>
 				</div>

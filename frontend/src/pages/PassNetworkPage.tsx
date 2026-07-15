@@ -314,6 +314,7 @@ const PassNetworkPage: React.FC = () => {
 							color={HOME_COLOR}
 							orientation="vertical"
 							animated
+							pitchVerticalAlign="start"
 							noDataMessage={homeNodes.length > 0 ? undefined : "No hay datos suficientes"}
 							teamName={game?.home_team.team_name ?? "Equipo Local"}
 							rangeLabel={networkRangeLabel}
@@ -359,6 +360,7 @@ const PassNetworkPage: React.FC = () => {
 							orientation="vertical"
 							mirrorX
 							animated
+							pitchVerticalAlign="start"
 							noDataMessage={awayNodes.length > 0 ? undefined : "No hay datos suficientes"}
 							teamName={game?.away_team.team_name ?? "Equipo Visitante"}
 							rangeLabel={networkRangeLabel}

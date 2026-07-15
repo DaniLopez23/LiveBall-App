@@ -7,12 +7,15 @@ interface OptaPitchProps {
   orientation?: Orientation;
   /** Pitch surface background color (default: #2d7a3a). */
   fieldColor?: string;
+  /** Vertical alignment for the pitch inside its available viewport. */
+  verticalAlign?: "center" | "start";
 }
 
 const OptaPitch: React.FC<OptaPitchProps> = ({
   children,
   orientation: orientationProp,
   fieldColor = "#2d7a3a",
+  verticalAlign = "center",
 }) => {
   const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
   const setOrientation = useOptaPitchConfigStore((s) => s.setOrientation);
@@ -108,12 +111,14 @@ const OptaPitch: React.FC<OptaPitchProps> = ({
     : { x: fX + fW,  y: fY + gSO,     width: gDepth, height: gSpan  };
 
   const fg = { fill: "none", stroke: "white", strokeWidth: 0.5 };
+  const preserveAspectRatio =
+    verticalAlign === "start" ? "xMidYMin meet" : "xMidYMid meet";
 
   return (
     <div className="w-full h-full flex justify-center items-center">
       <svg
         viewBox={`0 0 ${vW} ${vH}`}
-        preserveAspectRatio="xMidYMid meet"
+        preserveAspectRatio={preserveAspectRatio}
         className="w-full h-full"
         style={{ display: "block" }}
       >
