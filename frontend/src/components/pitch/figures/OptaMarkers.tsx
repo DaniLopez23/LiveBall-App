@@ -18,6 +18,7 @@ import {
   formatEventTime,
   getActionLabel,
 } from "@/components/pitch/eventsPitch/eventDisplay";
+import { getShotTargetOptaCoordinate } from "@/lib/eventPitchCoordinates";
 import {
   type PitchEvent,
   isDefensiveEvent,
@@ -60,6 +61,8 @@ export interface OptaMarkersProps {
   markerScaleMultiplier?: number;
   /** Event id that should stand out inside a selected sequence. */
   highlightedEventId?: string | null;
+  /** Away team id, used to orient relative shot goal-mouth coordinates. */
+  awayTeamId?: string | null;
 }
 
 /**
@@ -326,6 +329,7 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
   showConnectors = true,
   markerScaleMultiplier = 1,
   highlightedEventId,
+  awayTeamId,
 }) => {
   const storeOrientation = useOptaPitchConfigStore((s) => s.orientation);
   const orientation = orientationProp ?? storeOrientation;
@@ -720,8 +724,10 @@ const OptaMarkers: React.FC<OptaMarkersProps> = ({
     }
 
     if (isShotEvent(event)) {
-      const goalOptaX = (event.x ?? 50) > 50 ? 100 : 0;
-      const goalOptaY = event.goal_mouth_y ?? event.y ?? 50;
+      const { x: goalOptaX, y: goalOptaY } = getShotTargetOptaCoordinate(
+        event,
+        awayTeamId,
+      );
       const { x: svgX2, y: svgY2 } = transformOptaToSvg(goalOptaX, goalOptaY);
 
       return wrap(event.id, (

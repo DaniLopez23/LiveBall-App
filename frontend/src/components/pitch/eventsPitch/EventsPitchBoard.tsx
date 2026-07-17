@@ -15,6 +15,7 @@ interface EventsPitchBoardProps {
   animated?: boolean;
   markerScaleMultiplier?: number;
   highlightedEventId?: string | null;
+  awayTeamId?: string | null;
 }
 
 const EventsPitchBoard: React.FC<EventsPitchBoardProps> = ({
@@ -27,6 +28,7 @@ const EventsPitchBoard: React.FC<EventsPitchBoardProps> = ({
   animated = false,
   markerScaleMultiplier,
   highlightedEventId,
+  awayTeamId,
 }) => (
   <OptaPitch orientation={orientation} fieldColor={fieldColor}>
     <OptaMarkers
@@ -39,6 +41,7 @@ const EventsPitchBoard: React.FC<EventsPitchBoardProps> = ({
       eventColors={eventColors}
       markerScaleMultiplier={markerScaleMultiplier}
       highlightedEventId={highlightedEventId}
+      awayTeamId={awayTeamId}
     />
   </OptaPitch>
 );

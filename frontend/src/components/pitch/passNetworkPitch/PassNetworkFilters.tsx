@@ -63,11 +63,15 @@ const getCumulativePeriodPresets = (events: Event[], maxSecond: number) => {
 		return [{ label: "Completo", range: [0, boundedMaxSecond] as [number, number] }];
 	}
 
+	const firstHalfAvailableEnd = Math.min(
+		timeline.firstHalfAvailableSecond ?? timeline.firstHalfEndSecond,
+		boundedMaxSecond,
+	);
 	const secondHalfStart = Math.min(timeline.firstHalfEndSecond, boundedMaxSecond);
 	const secondHalfEnd = Math.max(secondHalfStart, boundedMaxSecond);
 
 	return [
-		{ label: "Primera parte", range: [0, secondHalfStart] as [number, number] },
+		{ label: "Primera parte", range: [0, firstHalfAvailableEnd] as [number, number] },
 		{ label: "Segunda parte", range: [secondHalfStart, secondHalfEnd] as [number, number] },
 		{ label: "Completo", range: [0, boundedMaxSecond] as [number, number] },
 	];

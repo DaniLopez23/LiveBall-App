@@ -310,6 +310,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
           fieldColor={fieldColor}
           markerScaleMultiplier={markerScaleMultiplier}
           highlightedEventId={highlightedEventId}
+          awayTeamId={game?.away_team.team_id}
         />
         {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
         {!loadingMessage && noDataMessage ? (
@@ -360,6 +361,7 @@ const EventsPitch: React.FC<EventsPitchProps> = ({
                   fieldColor={fieldColor}
                   markerScaleMultiplier={markerScaleMultiplier}
                   highlightedEventId={highlightedEventId}
+                  awayTeamId={game?.away_team.team_id}
                 />
                 {loadingMessage ? <EventsPitchLoadingOverlay message={loadingMessage} /> : null}
                 {!loadingMessage && noDataMessage ? (

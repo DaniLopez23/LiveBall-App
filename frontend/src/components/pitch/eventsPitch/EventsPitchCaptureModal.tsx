@@ -371,6 +371,7 @@ const EventsPitchCaptureModal: React.FC<EventsPitchCaptureModalProps> = ({
                 eventColors={eventColors}
                 orientation={orientation}
                 fieldColor={fieldColor}
+                awayTeamId={game?.away_team.team_id}
               />
             )}
           </div>
