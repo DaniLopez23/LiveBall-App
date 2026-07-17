@@ -6,6 +6,7 @@ export const REGULATION_MATCH_SECONDS = 90 * 60;
 
 export interface MatchTimelineModel {
 	firstHalfEndSecond: number;
+	firstHalfAvailableSecond: number | null;
 	secondHalfEndMatchSecond: number;
 	durationSecond: number;
 	availableSecond: number;
@@ -13,9 +14,14 @@ export interface MatchTimelineModel {
 	hasSecondHalf: boolean;
 }
 
-function getMainPeriodId(event: Event): 1 | 2 {
-	if ((event.period_id ?? 1) >= 2) return 2;
-	return 1;
+function getMainPeriodId(event: Event): 1 | 2 | null {
+	const periodId = event.period_id;
+	if (periodId == null || periodId === 1) return 1;
+	if (periodId >= 2 && periodId <= 5) return 2;
+
+	// Opta also uses technical periods such as 14 and 16 for end/setup
+	// events. They are not match-clock periods and must not advance the UI.
+	return null;
 }
 
 /**
@@ -25,38 +31,50 @@ function getMainPeriodId(event: Event): 1 | 2 {
  */
 export function createMatchTimeline(events: Event[]): MatchTimelineModel {
 	let firstHalfEndSecond = REGULATION_HALF_SECONDS;
+	let firstHalfAvailableSecond: number | null = null;
 	let secondHalfEndMatchSecond = REGULATION_MATCH_SECONDS;
 
 	for (const event of events) {
+		const mainPeriodId = getMainPeriodId(event);
+		if (mainPeriodId == null) continue;
+
 		const matchSecond = getEventMatchSecond(event);
 		if (matchSecond == null) continue;
 
-		if (getMainPeriodId(event) === 1) {
+		if (mainPeriodId === 1) {
+			firstHalfAvailableSecond =
+				firstHalfAvailableSecond == null
+					? matchSecond
+					: Math.max(firstHalfAvailableSecond, matchSecond);
 			firstHalfEndSecond = Math.max(firstHalfEndSecond, matchSecond);
 		} else {
 			secondHalfEndMatchSecond = Math.max(secondHalfEndMatchSecond, matchSecond);
 		}
 	}
 
-	const hasSecondHalf = events.some((event) => (event.period_id ?? 1) >= 2);
+	const hasSecondHalf = events.some((event) => getMainPeriodId(event) === 2);
 	const durationSecond =
 		firstHalfEndSecond + (secondHalfEndMatchSecond - REGULATION_HALF_SECONDS);
 	let latestTimelineSecond = 0;
 	let currentPeriodId = 1;
 
 	for (const event of events) {
+		const mainPeriodId = getMainPeriodId(event);
+		if (mainPeriodId == null) continue;
+
 		const matchSecond = getEventMatchSecond(event);
 		if (matchSecond == null) continue;
 
 		const timelineSecond = eventToTimelineSecond(event, { firstHalfEndSecond });
 		if (timelineSecond >= latestTimelineSecond) {
 			latestTimelineSecond = timelineSecond;
-			currentPeriodId = getMainPeriodId(event);
+			currentPeriodId = mainPeriodId;
 		}
 	}
 
 	return {
 		firstHalfEndSecond,
+		firstHalfAvailableSecond,
 		secondHalfEndMatchSecond,
 		durationSecond,
 		availableSecond: latestTimelineSecond,
@@ -70,7 +88,7 @@ export function eventToTimelineSecond(
 	timeline: Pick<MatchTimelineModel, "firstHalfEndSecond">,
 ): number {
 	const matchSecond = getEventMatchSecond(event) ?? 0;
-	if (getMainPeriodId(event) === 1) return matchSecond;
+	if (getMainPeriodId(event) !== 2) return matchSecond;
 
 	return timeline.firstHalfEndSecond + Math.max(0, matchSecond - REGULATION_HALF_SECONDS);
 }

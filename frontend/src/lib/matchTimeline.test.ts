@@ -69,6 +69,32 @@ test("uses the latest timeline event even when events are not ordered", () => {
 	]);
 
 	assert.equal(timeline.hasSecondHalf, true);
+	assert.equal(timeline.firstHalfAvailableSecond, 44 * 60 + 10);
+	assert.equal(timeline.firstHalfEndSecond, 45 * 60);
 	assert.equal(timeline.availableSecond, 89 * 60 + 30);
 	assert.equal(timeline.currentPeriodId, 2);
+});
+
+test("keeps first-half progress separate from the regulation boundary", () => {
+	const timeline = createMatchTimeline([
+		makeEvent("first-current", 1, 23, 17),
+		makeEvent("first-older", 1, 8, 45),
+	]);
+
+	assert.equal(timeline.firstHalfAvailableSecond, 23 * 60 + 17);
+	assert.equal(timeline.firstHalfEndSecond, 45 * 60);
+	assert.equal(timeline.availableSecond, 23 * 60 + 17);
+});
+
+test("ignores technical setup periods when calculating live progress", () => {
+	const timeline = createMatchTimeline([
+		makeEvent("team-setup", 16, 0),
+		makeEvent("first-current", 1, 7, 12),
+		makeEvent("first-older", 1, 6, 40),
+	]);
+
+	assert.equal(timeline.hasSecondHalf, false);
+	assert.equal(timeline.currentPeriodId, 1);
+	assert.equal(timeline.firstHalfAvailableSecond, 7 * 60 + 12);
+	assert.equal(timeline.availableSecond, 7 * 60 + 12);
 });

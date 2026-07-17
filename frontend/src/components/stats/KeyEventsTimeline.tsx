@@ -157,9 +157,7 @@ export function getKeyEventsTimelineBounds(
 ): TimelineBounds {
 	const timeline = createMatchTimeline(events);
 	const matchEndSeconds = events.length > 0 ? timeline.availableSecond : null;
-	const firstHalfEndSeconds = events.some((event) => (event.period_id ?? 1) < 2)
-		? timeline.firstHalfEndSecond
-		: null;
+	const firstHalfEndSeconds = timeline.firstHalfAvailableSecond;
 
 	const currentSeconds = isFiniteNumber(currentMinute)
 		? Math.max(0, Math.floor(currentMinute) * 60)
